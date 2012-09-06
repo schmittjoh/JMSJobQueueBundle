@@ -17,6 +17,7 @@
         "jms/di-extra-bundle": ">=1.1,<=1.2"
     },
     "require-dev": {
+        "doctrine/doctrine-fixtures-bundle": "*",
         "sensio/framework-extra-bundle": "*",
         "symfony/class-loader": "*",
         "symfony/yaml": "*",
