@@ -1,0 +1,27 @@
+{
+    "name":         "jms/job-queue-bundle",
+    "description":  "Allows to schedule Symfony2 console commands as jobs.",
+    "keywords":     ["job","queue"],
+    "homepage":     "http://jmsyst.com/bundles/JMSJobQueueBundle",
+    "type":         "symfony-bundle",
+    "license":      "Apache2",
+    "authors": [
+        {
+            "name":   "Johannes M. Schmitt",
+            "email":  "schmittjoh@gmail.com"
+        }
+    ],
+    "require": {
+        "symfony/framework-bundle": "2.1.*",
+        "doctrine/common": "2.*"
+    },
+    "autoload": {
+        "psr-0": { "JMS\\JobQueueBundle": "" }
+    },
+    "target-dir": "JMS/JobQueueBundle",
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.1.x-dev"
+        }
+    }
+}
