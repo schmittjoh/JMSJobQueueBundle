@@ -1,4 +1,4 @@
-JMSJobQueueBundle
+JMSJobQueueBundle [![Build Status](https://secure.travis-ci.org/schmittjoh/JMSJobQueueBundle.png?branch=master)](http://travis-ci.org/schmittjoh/JMSJobQueueBundle)
 =================
 
 Documentation: 
