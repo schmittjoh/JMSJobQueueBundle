@@ -13,8 +13,25 @@
     ],
     "require": {
         "symfony/framework-bundle": "2.1.*",
-        "doctrine/common": "2.*"
+        "doctrine/common": "2.*",
+        "jms/di-extra-bundle": ">=1.1,<=1.2"
     },
+    "require-dev": {
+        "sensio/framework-extra-bundle": "*",
+        "symfony/class-loader": "*",
+        "symfony/yaml": "*",
+        "symfony/browser-kit": "*",
+        "symfony/class-loader": "*",
+        "symfony/finder": "*",
+        "symfony/css-selector": "*",
+        "symfony/process": "*",
+        "doctrine/doctrine-bundle": "*",
+        "symfony/twig-bundle": "*",
+        "doctrine/orm": "*",
+        "symfony/form": "*",
+        "symfony/validator": "*"
+    },
+    "minimum-stability": "dev",
     "autoload": {
         "psr-0": { "JMS\\JobQueueBundle": "" }
     },
