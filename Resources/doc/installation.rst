@@ -53,7 +53,7 @@ times. You can easily achieve this by using supervisord_.
 
 A sample supervisord config might look like this:
 
-.. code-block ::
+.. code-block :: ini
 
     [program:jms_job_queue_runner]
     command=php %kernel.root_dir%/console jms-job-queue:run --env=prod --verbose

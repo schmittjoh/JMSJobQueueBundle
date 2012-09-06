@@ -5,7 +5,7 @@ Creating Jobs
 =============
 Creating jobs is super simple, you just need to persist an instance of ``Job``:
 
-.. code-block ::
+.. code-block :: php
 
     <?php
 
@@ -18,7 +18,7 @@ Adding Dependencies Between Jobs
 If you want to have a job run after another job finishes, you can also achieve this
 quite easily:
 
-.. code-block ::
+.. code-block :: php
 
     <?php
 
