@@ -45,13 +45,6 @@ register the new bundle:
         // ...
     );
 
-Now use the ``vendors`` script to clone the newly added repositories 
-into your project:
-
-.. code-block :: bash
-
-    php bin/vendors install
-
 Setting Up supervisord
 ======================
 For this bundle to work, you have to make sure that one (and only one) 
