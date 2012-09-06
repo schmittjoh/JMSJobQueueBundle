@@ -37,6 +37,15 @@ class JobTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @depends testConstruct
+     * @expectedException JMS\JobQueueBundle\Exception\InvalidStateTransitionException
+     */
+    public function testInvalidTransition(Job $job)
+    {
+        $job->setState('failed');
+    }
+
+    /**
+     * @depends testConstruct
      */
     public function testStateToRunning(Job $job)
     {

@@ -18,6 +18,7 @@
 
 namespace JMS\JobQueueBundle\Event;
 
+use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Event\JobEvent;
 
 class StateChangeEvent extends JobEvent

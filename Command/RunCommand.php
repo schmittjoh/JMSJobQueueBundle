@@ -43,8 +43,8 @@ class RunCommand extends ContainerAwareCommand
         $this
             ->setName('jms-job-queue:run')
             ->setDescription('Runs jobs from the queue.')
-            ->addOption('max-runtime', 'r', InputOption::VALUE_OPTIONAL, 'The maximum runtime in seconds.', 900)
-            ->addOption('max-concurrent-jobs', 'j', InputOption::VALUE_OPTIONAL, 'The maximum number of concurrent jobs.', 5)
+            ->addOption('max-runtime', 'r', InputOption::VALUE_REQUIRED, 'The maximum runtime in seconds.', 900)
+            ->addOption('max-concurrent-jobs', 'j', InputOption::VALUE_REQUIRED, 'The maximum number of concurrent jobs.', 5)
         ;
     }
 
@@ -72,8 +72,9 @@ class RunCommand extends ContainerAwareCommand
         while (time() - $startTime < $maxRuntime) {
             $this->checkRunningJobs();
 
+            $excludedIds = array();
             while (count($this->runningJobs) < $maxConcurrentJobs) {
-                if (null === $pendingJob = $this->registry->getManager('JMSJobQueueBundle:Job')->getRepository('JMSJobQueueBundle:Job')->findPendingJob()) {
+                if (null === $pendingJob = $this->getRepository()->findStartableJob($excludedIds)) {
                     $output->write('Nothing to run, waiting for 15 seconds... ');
                     sleep(15);
                     $output->writeln('Resuming.');
@@ -91,12 +92,14 @@ class RunCommand extends ContainerAwareCommand
             $output->writeln('Resuming.');
         }
 
-        $output->writeln('Max runtime reached, waiting for running jobs to terminate.');
-        while (count($this->runningJobs) > 0) {
-            $this->checkRunningJobs();
-            sleep(10);
+        if (count($this->runningJobs) > 0) {
+            $output->writeln('Max runtime reached, waiting for running jobs to terminate.');
+            while (count($this->runningJobs) > 0) {
+                $this->checkRunningJobs();
+                sleep(10);
+            }
         }
-        $output->writeln('Termating.');
+        $output->writeln('Terminating.');
 
         return 0;
     }
@@ -135,7 +138,7 @@ class RunCommand extends ContainerAwareCommand
             // For long running processes, it is nice to update the output status regularly.
             $data['job']->addOutput($newOutput);
             $data['job']->addErrorOutput($newErrorOutput);
-            $em = $this->registry->getManager('JMSJobQueueBundle:Job');
+            $em = $this->getEntityManager();
             $em->persist($data['job']);
             $em->flush($data['job']);
 
@@ -145,8 +148,7 @@ class RunCommand extends ContainerAwareCommand
             if ($data['job']->getMaxRuntime() > 0 && $runtime > $data['job']->getMaxRuntime()) {
                 $data['process']->stop(5);
 
-                $em = $this->registry->getManager('JMSJobQueueBundle:Job');
-                $em->getRepository('JMSJobQueueBundle:Job')->closeJob($data['job'], Job::STATE_TERMINATED);
+                $this->getRepository()->closeJob($data['job'], Job::STATE_TERMINATED);
                 $this->output->writeln($job.' terminated; maximum runtime exceeded.');
 
                 unset($this->runningJobs[$i]);
@@ -164,8 +166,7 @@ class RunCommand extends ContainerAwareCommand
             $data['job']->setErrorOutput($data['process']->getErrorOutput());
 
             $newState = 0 === $data['process']->getExitCode() ? Job::STATE_FINISHED : Job::STATE_FAILED;
-            $em = $this->registry->getManager('JMSJobQueueBundle:Job');
-            $em->getRepository('JMSJobQueueBundle:Job')->closeJob($data['job'], $newState);
+            $this->getRepository()->closeJob($data['job'], $newState);
 
             unset($this->runningJobs[$i]);
         }
@@ -177,13 +178,26 @@ class RunCommand extends ContainerAwareCommand
         $this->dispatcher->dispatch('jms_job_queue.job_state_change', $event);
         $job->setState($event->getNewState());
 
-        $em = $this->registry->getManager('JMSJobQueueBundle:Job');
+        $em = $this->getEntityManager();
         $em->persist($job);
         $em->flush($job);
 
+        // Job was canceled by an event listener.
+        if ($event->getNewState() === Job::STATE_CANCELED) {
+            return;
+        } else if ($event->getNewState() !== Job::STATE_RUNNING) {
+            throw new \LogicException(sprintf('Unsupported state "%s".', $event->getNewState()));
+        }
+
         $pb = new ProcessBuilder();
+
+        // PHP wraps the process in "sh -c" by default, but we need to control
+        // the process directly.
+        if ( ! defined('PHP_WINDOWS_VERSION_MAJOR')) {
+            $pb->add('exec');
+        }
+
         $pb
-            ->add('exec')
             ->add('php')
             ->add($this->getContainer()->getParameter('kernel.root_dir').'/console')
             ->add($job->getCommand())
@@ -199,7 +213,7 @@ class RunCommand extends ContainerAwareCommand
         }
         $proc = $pb->getProcess();
         $proc->start();
-        $this->output->writeln('Started Job "%d" (%s).', $job->getId(), $job->getCommand());
+        $this->output->writeln(sprintf('Started %s.', $job));
 
         $this->runningJobs[] = array(
             'process' => $proc,
@@ -207,5 +221,15 @@ class RunCommand extends ContainerAwareCommand
             'output_pointer' => 0,
             'error_output_pointer' => 0,
         );
+    }
+
+    private function getEntityManager()
+    {
+        return $this->registry->getManagerForClass('JMSJobQueueBundle:Job');
+    }
+
+    private function getRepository()
+    {
+        return $this->getEntityManager()->getRepository('JMSJobQueueBundle:Job');
     }
 }

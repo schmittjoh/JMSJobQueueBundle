@@ -39,21 +39,28 @@ class JobRepository extends EntityRepository
         $this->dispatcher = $dispatcher;
     }
 
-    public function findStartableJob()
+    public function findStartableJob(array &$excludedIds = array())
     {
-        while (null !== $job = $this->findPendingJob()) {
+        while (null !== $job = $this->findPendingJob($excludedIds)) {
             if ($job->isStartable()) {
                 return $job;
             }
+
+            $excludedIds[] = $job->getId();
         }
 
         return null;
     }
 
-    public function findPendingJob()
+    public function findPendingJob(array $excludedIds = array())
     {
-        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE j.state = :state")
+        if ( ! $excludedIds) {
+            $excludedIds = array(-1);
+        }
+
+        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.jobDependencies d WHERE j.state = :state AND j.id NOT IN (:excludedIds) ORDER BY j.id ASC")
                     ->setParameter('state', Job::STATE_PENDING)
+                    ->setParameter('excludedIds', $excludedIds)
                     ->setMaxResults(1)
                     ->getOneOrNullResult();
     }
@@ -79,7 +86,7 @@ class JobRepository extends EntityRepository
         }
         $visited[] = $job;
 
-        $incomingDeps = $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE :job MEMBER OF j.dependencies")
+        $incomingDeps = $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.jobDependencies d WHERE :job MEMBER OF j.jobDependencies")
                             ->setParameter('job', $job)
                             ->getResult();
         foreach ($incomingDeps as $dep) {

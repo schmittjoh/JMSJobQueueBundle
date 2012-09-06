@@ -25,8 +25,8 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * @ORM\Entity(repositoryClass = "JMS\JobQueueBundle\Entity\Repository")
- * @ORM\Table(name = "jms_job")
+ * @ORM\Entity(repositoryClass = "JMS\JobQueueBundle\Entity\Repository\JobRepository")
+ * @ORM\Table(name = "jms_jobs")
  * @ORM\ChangeTrackingPolicy("DEFERRED_EXPLICIT")
  *
  * @author Johannes M. Schmitt <schmittjoh@gmail.com>
