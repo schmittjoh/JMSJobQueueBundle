@@ -14,7 +14,7 @@
     "require": {
         "symfony/framework-bundle": "2.1.*",
         "doctrine/common": "2.*",
-        "jms/di-extra-bundle": ">=1.1,<=1.2"
+        "jms/di-extra-bundle": ">=1.1,<2.0"
     },
     "require-dev": {
         "doctrine/doctrine-fixtures-bundle": "*",
