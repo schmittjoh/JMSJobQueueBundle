@@ -33,6 +33,7 @@ use Doctrine\ORM\Mapping as ORM;
  */
 class Job
 {
+    const STATE_NEW = 'new';
     const STATE_PENDING = 'pending';
     const STATE_CANCELED = 'canceled';
     const STATE_RUNNING = 'running';
@@ -44,7 +45,7 @@ class Job
     private $id;
 
     /** @ORM\Column(type = "string") */
-    private $state = self::STATE_PENDING;
+    private $state;
 
     /** @ORM\Column(type = "datetime") */
     private $createdAt;
@@ -65,7 +66,7 @@ class Job
      *     inverseJoinColumns = { @ORM\JoinColumn(name = "dest_job_id", referencedColumnName = "id")}
      * )
      */
-    private $jobDependencies;
+    private $dependencies;
 
     /** @ORM\Column(type = "text", nullable = true) */
     private $output;
@@ -79,17 +80,18 @@ class Job
     /** @ORM\Column(type = "smallint", options = {"unsigned": true}) */
     private $maxRuntime = 0;
 
-    public static function create($command, array $args = array())
+    public static function create($command, array $args = array(), $confirmed = true)
     {
-        return new self($command, $args);
+        return new self($command, $args, $confirmed);
     }
 
-    public function __construct($command, array $args = array())
+    public function __construct($command, array $args = array(), $confirmed = true)
     {
         $this->command = $command;
         $this->args = $args;
+        $this->state = $confirmed ? self::STATE_PENDING : self::STATE_NEW;
         $this->createdAt = new \DateTime();
-        $this->jobDependencies = new ArrayCollection();
+        $this->dependencies = new ArrayCollection();
     }
 
     public function getId()
@@ -104,7 +106,7 @@ class Job
 
     public function isStartable()
     {
-        foreach ($this->jobDependencies as $dep) {
+        foreach ($this->dependencies as $dep) {
             if ($dep->getState() !== self::STATE_FINISHED) {
                 return false;
             }
@@ -120,6 +122,12 @@ class Job
         }
 
         switch ($this->state) {
+            case self::STATE_NEW:
+                if ( ! in_array($newState, array(self::STATE_PENDING, self::STATE_CANCELED), true)) {
+                    throw new InvalidStateTransitionException($this, $newState, array(self::STATE_PENDING, self::STATE_CANCELED));
+                }
+                break;
+
             case self::STATE_PENDING:
                 if ( ! in_array($newState, array(self::STATE_RUNNING, self::STATE_CANCELED), true)) {
                     throw new InvalidStateTransitionException($this, $newState, array(self::STATE_RUNNING, self::STATE_CANCELED));
@@ -163,14 +171,18 @@ class Job
         return $this->args;
     }
 
-    public function getJobDependencies()
+    public function getDependencies()
     {
-        return $this->jobDependencies;
+        return $this->dependencies;
     }
 
-    public function addJobDependency(Job $job)
+    public function addDependency(Job $job)
     {
-        $this->jobDependencies->add($job);
+        if ($this->mightHaveStarted()) {
+            throw new \LogicException('You cannot add dependencies to a job which might have been started already.');
+        }
+
+        $this->dependencies->add($job);
     }
 
     public function addOutput($output)
@@ -231,5 +243,22 @@ class Job
     public function __toString()
     {
         return sprintf('Job(id = %s, command = "%s")', $this->id, $this->command);
+    }
+
+    private function mightHaveStarted()
+    {
+        if (null === $this->id) {
+            return false;
+        }
+
+        if (self::STATE_NEW === $this->state) {
+            return false;
+        }
+
+        if (self::STATE_PENDING === $this->state && ! $this->isStartable()) {
+            return false;
+        }
+
+        return true;
     }
 }

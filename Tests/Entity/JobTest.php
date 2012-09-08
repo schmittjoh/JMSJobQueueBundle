@@ -128,16 +128,27 @@ class JobTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('bar', $job->getErrorOutput());
     }
 
-    public function testAddJobDependency()
+    public function testAddDependency()
     {
         $a = new Job('a');
         $b = new Job('b');
-        $this->assertCount(0, $a->getJobDependencies());
-        $this->assertCount(0, $b->getJobDependencies());
+        $this->assertCount(0, $a->getDependencies());
+        $this->assertCount(0, $b->getDependencies());
 
-        $a->addJobDependency($b);
-        $this->assertCount(1, $a->getJobDependencies());
-        $this->assertCount(0, $b->getJobDependencies());
-        $this->assertSame($b, $a->getJobDependencies()->first());
+        $a->addDependency($b);
+        $this->assertCount(1, $a->getDependencies());
+        $this->assertCount(0, $b->getDependencies());
+        $this->assertSame($b, $a->getDependencies()->first());
+    }
+
+    /**
+     * @expectedException \LogicException
+     * @expectedExceptionMessage asdfasdfadf
+     */
+    public function testAddDependencyToRunningJob()
+    {
+        $job = new Job('a');
+        $job->setState(Job::STATE_RUNNING);
+        $job->addDependency(new Job('b'));
     }
 }

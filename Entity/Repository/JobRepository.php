@@ -39,6 +39,58 @@ class JobRepository extends EntityRepository
         $this->dispatcher = $dispatcher;
     }
 
+    /**
+     * Returns the job that matches the given criteria, or throws an exception
+     * if no matching job is found.
+     *
+     * @param array $criteria
+     *
+     * @return Job
+     */
+    public function getOneBy(array $criteria)
+    {
+        if (null !== $job = $this->findOneBy($criteria)) {
+            return $job;
+        }
+
+        throw new \RuntimeException(sprintf('Could not find a job which matches criteria "%s".', json_encode($criteria)));
+    }
+
+    public function getOne($command, array $args = array())
+    {
+        return $this->getOneBy(array('command' => $command, 'args' => $args));
+    }
+
+    public function getOrCreateIfNotExists($command, array $args)
+    {
+        if (null !== $job = $this->findOneBy(array('command' => $command, 'args' => $args))) {
+            return $job;
+        }
+
+        $job = new Job($command, $args, false);
+        $this->_em->persist($job);
+        $this->_em->flush($job);
+
+        $firstJob = $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.command = :command AND j.args = :args ORDER BY j.id ASC")
+             ->setParameter('command', $command)
+             ->setParameter('args', $args)
+             ->setMaxResults(1)
+             ->getSingleResult();
+
+        if ($firstJob === $job) {
+            $job->setState(Job::STATE_PENDING);
+            $this->_em->persist($job);
+            $this->_em->flush($job);
+
+            return $job;
+        }
+
+        $this->_em->remove($job);
+        $this->_em->flush($job);
+
+        return $firstJob;
+    }
+
     public function findStartableJob(array &$excludedIds = array())
     {
         while (null !== $job = $this->findPendingJob($excludedIds)) {
@@ -47,6 +99,11 @@ class JobRepository extends EntityRepository
             }
 
             $excludedIds[] = $job->getId();
+
+            // We do not want to have non-startable jobs floating around in
+            // cache as they might be changed by another process. So, better
+            // re-fetch them when they are not excluded anymore.
+            $this->_em->detach($job);
         }
 
         return null;
