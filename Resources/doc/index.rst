@@ -12,6 +12,7 @@ Features:
 - dependencies between jobs
 - logging of stdout/stderr output
 - events to hook into job execution
+- retry logic
 
 Documentation
 -------------

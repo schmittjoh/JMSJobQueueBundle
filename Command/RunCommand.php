@@ -18,6 +18,8 @@
 
 namespace JMS\JobQueueBundle\Command;
 
+use JMS\JobQueueBundle\Exception\LogicException;
+
 use JMS\JobQueueBundle\Exception\InvalidArgumentException;
 use JMS\JobQueueBundle\Event\NewOutputEvent;
 use Symfony\Component\Process\ProcessBuilder;
@@ -75,10 +77,7 @@ class RunCommand extends ContainerAwareCommand
             $excludedIds = array();
             while (count($this->runningJobs) < $maxConcurrentJobs) {
                 if (null === $pendingJob = $this->getRepository()->findStartableJob($excludedIds)) {
-                    $output->write('Nothing to run, waiting for 15 seconds... ');
-                    sleep(15);
-                    $output->writeln('Resuming.');
-
+                    sleep(2);
                     continue 2; // Check if the maximum runtime has been exceeded.
                 }
 
@@ -87,19 +86,15 @@ class RunCommand extends ContainerAwareCommand
                 $this->checkRunningJobs();
             }
 
-            $output->write('Max concurrent jobs reached, waiting for 5 seconds... ');
-            sleep(5);
-            $output->writeln('Resuming.');
+            sleep(2);
         }
 
         if (count($this->runningJobs) > 0) {
-            $output->writeln('Max runtime reached, waiting for running jobs to terminate.');
             while (count($this->runningJobs) > 0) {
                 $this->checkRunningJobs();
-                sleep(10);
+                sleep(2);
             }
         }
-        $output->writeln('Terminating.');
 
         return 0;
     }
@@ -138,6 +133,7 @@ class RunCommand extends ContainerAwareCommand
             // For long running processes, it is nice to update the output status regularly.
             $data['job']->addOutput($newOutput);
             $data['job']->addErrorOutput($newErrorOutput);
+            $data['job']->checked();
             $em = $this->getEntityManager();
             $em->persist($data['job']);
             $em->flush($data['job']);
@@ -160,16 +156,67 @@ class RunCommand extends ContainerAwareCommand
                 continue;
             }
 
-            $this->output->writeln($data['job'].' finished.');
+            $this->output->writeln($data['job'].' finished with exit code '.$data['process']->getExitCode().'.');
             $data['job']->setExitCode($data['process']->getExitCode());
             $data['job']->setOutput($data['process']->getOutput());
             $data['job']->setErrorOutput($data['process']->getErrorOutput());
 
             $newState = 0 === $data['process']->getExitCode() ? Job::STATE_FINISHED : Job::STATE_FAILED;
-            $this->getRepository()->closeJob($data['job'], $newState);
+            $newState = $this->stateChange($data['job'], $newState);
 
-            unset($this->runningJobs[$i]);
+            $em = $this->getEntityManager();
+
+            // For retry jobs, we set the state directly as we do not need to take care of
+            // dependencies for it.
+            if ($data['job']->isRetryJob()) {
+                $newState = $this->stateChange($data['job'], $newState);
+                $data['job']->setState($newState);
+            }
+
+            // If the job is set to failed, check whether we can schedule a retry job.
+            if (Job::STATE_FAILED === $newState) {
+                $originalJob = $data['job']->getOriginalJob();
+                if (count($originalJob->getRetryJobs()) < $originalJob->getMaxRetries()) {
+                    $retryJob = new Job($originalJob->getCommand(), $originalJob->getArgs());
+                    $retryJob->setMaxRuntime($originalJob->getMaxRuntime());
+                    $originalJob->addRetryJob($retryJob);
+
+                    $em->persist($retryJob);
+                    $em->persist($originalJob);
+                    $em->persist($data['job']);
+                    $em->flush();
+
+                    unset($this->runningJobs[$i]);
+
+                    continue;
+                }
+
+                $em->persist($data['job']);
+                $em->flush($data['job']);
+                $this->getRepository()->closeJob($originalJob, Job::STATE_FAILED);
+                unset($this->runningJobs[$i]);
+
+                continue;
+            }
+
+            if (Job::STATE_FINISHED === $newState) {
+                $this->getRepository()->closeJob($data['job']->getOriginalJob(), Job::STATE_FINISHED);
+
+                unset($this->runningJobs[$i]);
+
+                continue;
+            }
+
+            throw new LogicException(sprintf('The final state must either be finished, or failed, but got "%s".', $newState));
         }
+    }
+
+    private function stateChange(Job $job, $newState)
+    {
+        $event = new StateChangeEvent($job, $newState);
+        $this->dispatcher->dispatch('jms_job_queue.job_state_change', $event);
+
+        return $event->getNewState();
     }
 
     private function startJob(Job $job)

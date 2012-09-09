@@ -143,12 +143,64 @@ class JobTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException \LogicException
-     * @expectedExceptionMessage asdfasdfadf
+     * @expectedExceptionMessage You cannot add dependencies to a job which might have been started already.
      */
     public function testAddDependencyToRunningJob()
     {
         $job = new Job('a');
         $job->setState(Job::STATE_RUNNING);
+        $this->setField($job, 'id', 1);
         $job->addDependency(new Job('b'));
+    }
+
+    public function testAddRetryJob()
+    {
+        $a = new Job('a');
+        $a->setState(Job::STATE_RUNNING);
+        $b = new Job('b');
+        $a->addRetryJob($b);
+
+        $this->assertCount(1, $a->getRetryJobs());
+        $this->assertSame($b, $a->getRetryJobs()->get(0));
+
+        return $a;
+    }
+
+    /**
+     * @depends testAddRetryJob
+     */
+    public function testIsRetryJob(Job $a)
+    {
+        $this->assertFalse($a->isRetryJob());
+        $this->assertTrue($a->getRetryJobs()->get(0)->isRetryJob());
+    }
+
+    /**
+     * @depends testAddRetryJob
+     */
+    public function testGetOriginalJob(Job $a)
+    {
+        $this->assertSame($a, $a->getOriginalJob());
+        $this->assertSame($a, $a->getRetryJobs()->get(0)->getOriginalJob());
+    }
+
+    public function testCheckedAt()
+    {
+        $job = new Job('a');
+        $this->assertNull($job->getCheckedAt());
+
+        $job->checked();
+        $this->assertInstanceOf('DateTime', $checkedAtA = $job->getCheckedAt());
+
+        $job->checked();
+        $this->assertInstanceOf('DateTime', $checkedAtB = $job->getCheckedAt());
+        $this->assertNotSame($checkedAtA, $checkedAtB);
+    }
+
+    private function setField($obj, $field, $value)
+    {
+        $ref = new \ReflectionProperty($obj, $field);
+        $ref->setAccessible(true);
+        $ref->setValue($obj, $value);
     }
 }

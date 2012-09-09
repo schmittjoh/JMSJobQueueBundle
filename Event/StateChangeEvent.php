@@ -37,9 +37,9 @@ class StateChangeEvent extends JobEvent
         return $this->newState;
     }
 
-    public function setNewState($newState)
+    public function setNewState($state)
     {
-        $this->newState = $newState;
+        $this->newState = $state;
     }
 
     public function getOldState()

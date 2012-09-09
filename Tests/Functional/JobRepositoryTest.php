@@ -2,14 +2,50 @@
 
 namespace JMS\JobQueueBundle\Tests\Functional;
 
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Doctrine\ORM\EntityManager;
+use JMS\JobQueueBundle\Entity\Repository\JobRepository;
 use JMS\JobQueueBundle\Event\StateChangeEvent;
 use JMS\JobQueueBundle\Entity\Job;
 
 class JobRepositoryTest extends BaseTestCase
 {
+    /** @var EntityManager */
     private $em;
+
+    /** @var JobRepository */
     private $repo;
+
+    /** @var EventDispatcher */
     private $dispatcher;
+
+    public function testGetOne()
+    {
+        $a = new Job('a', array('foo'));
+        $a2 = new Job('a');
+        $this->em->persist($a);
+        $this->em->persist($a2);
+        $this->em->flush();
+
+        $this->assertSame($a, $this->repo->getJob('a', array('foo')));
+        $this->assertSame($a2, $this->repo->getJob('a'));
+    }
+
+    /**
+     * @expectedException RuntimeException
+     * @expectedExceptionMessage Found no job for command
+     */
+    public function testGetOneThrowsWhenNotFound()
+    {
+        $this->repo->getJob('foo');
+    }
+
+    public function getOrCreateIfNotExists()
+    {
+        $a = $this->repo->getOrCreateIfNotExists('a');
+        $this->assertSame($a, $this->repo->getOrCreateIfNotExists('a'));
+        $this->assertNotSame($a, $this->repo->getOrCreateIfNotExists('a', array('foo')));
+    }
 
     public function testFindPendingJob()
     {
@@ -34,7 +70,7 @@ class JobRepositoryTest extends BaseTestCase
         $a->setState('running');
         $b = new Job('b');
         $c = new Job('c');
-        $b->addJobDependency($c);
+        $b->addDependency($c);
         $this->em->persist($a);
         $this->em->persist($b);
         $this->em->persist($c);
@@ -45,22 +81,41 @@ class JobRepositoryTest extends BaseTestCase
         $this->assertEquals(array($b->getId()), $excludedIds);
     }
 
+    public function testFindStartableJobDetachesNonStartableJobs()
+    {
+        $a = new Job('a');
+        $b = new Job('b');
+        $a->addDependency($b);
+        $this->em->persist($a);
+        $this->em->persist($b);
+        $this->em->flush();
+
+        $this->assertTrue($this->em->contains($a));
+        $this->assertTrue($this->em->contains($b));
+
+        $excludedIds = array();
+        $this->assertEquals($b->getId(), $this->repo->findStartableJob($excludedIds)->getId());
+        $this->assertEquals(array($a->getId()), $excludedIds);
+        $this->assertFalse($this->em->contains($a));
+        $this->assertTrue($this->em->contains($b));
+    }
+
     public function testCloseJob()
     {
         $a = new Job('a');
         $a->setState('running');
         $b = new Job('b');
-        $b->addJobDependency($a);
+        $b->addDependency($a);
         $this->em->persist($a);
         $this->em->persist($b);
         $this->em->flush();
 
         $this->dispatcher->expects($this->at(0))
             ->method('dispatch')
-            ->with('jms_job_queue.job_state_change', new StateChangeEvent($b, 'canceled'));
+            ->with('jms_job_queue.job_state_change', new StateChangeEvent($a, 'terminated'));
         $this->dispatcher->expects($this->at(1))
             ->method('dispatch')
-            ->with('jms_job_queue.job_state_change', new StateChangeEvent($a, 'terminated'));
+            ->with('jms_job_queue.job_state_change', new StateChangeEvent($b, 'canceled'));
 
         $this->assertEquals('running', $a->getState());
         $this->assertEquals('pending', $b->getState());

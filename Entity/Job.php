@@ -53,6 +53,9 @@ class Job
     /** @ORM\Column(type = "datetime", nullable = true) */
     private $startedAt;
 
+    /** @ORM\Column(type = "datetime", nullable = true) */
+    private $checkedAt;
+
     /** @ORM\Column(type = "string") */
     private $command;
 
@@ -80,6 +83,15 @@ class Job
     /** @ORM\Column(type = "smallint", options = {"unsigned": true}) */
     private $maxRuntime = 0;
 
+    /** @ORM\Column(type = "smallint", options = {"unsigned": true}) */
+    private $maxRetries = 0;
+
+    /** @ORM\ManyToOne(targetEntity = "Job", inversedBy = "retryJobs") */
+    private $originalJob;
+
+    /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove"}) */
+    private $retryJobs;
+
     public static function create($command, array $args = array(), $confirmed = true)
     {
         return new self($command, $args, $confirmed);
@@ -92,6 +104,7 @@ class Job
         $this->state = $confirmed ? self::STATE_PENDING : self::STATE_NEW;
         $this->createdAt = new \DateTime();
         $this->dependencies = new ArrayCollection();
+        $this->retryJobs = new ArrayCollection();
     }
 
     public function getId()
@@ -135,6 +148,7 @@ class Job
 
                 if ($newState === self::STATE_RUNNING) {
                     $this->startedAt = new \DateTime();
+                    $this->checkedAt = new \DateTime();
                 }
 
                 break;
@@ -238,6 +252,68 @@ class Job
     public function getStartedAt()
     {
         return $this->startedAt;
+    }
+
+    public function getMaxRetries()
+    {
+        return $this->maxRetries;
+    }
+
+    public function setMaxRetries($tries)
+    {
+        $this->maxRetries = (integer) $tries;
+    }
+
+    public function getOriginalJob()
+    {
+        if (null === $this->originalJob) {
+            return $this;
+        }
+
+        return $this->originalJob;
+    }
+
+    public function setOriginalJob(Job $job)
+    {
+        if (self::STATE_PENDING !== $this->state) {
+            throw new \LogicException($this.' must be in state "PENDING".');
+        }
+
+        if (null !== $this->originalJob) {
+            throw new \LogicException($this.' already has an original job set.');
+        }
+
+        $this->originalJob = $job;
+    }
+
+    public function addRetryJob(Job $job)
+    {
+        if (self::STATE_RUNNING !== $this->state) {
+            throw new \LogicException('Retry jobs can only be added to running jobs.');
+        }
+
+        $job->setOriginalJob($this);
+        $this->retryJobs->add($job);
+    }
+
+    public function getRetryJobs()
+    {
+        return $this->retryJobs;
+    }
+
+    public function isRetryJob()
+    {
+        return null !== $this->originalJob;
+    }
+
+    public function checked()
+    {
+        $this->checkedAt = new \DateTime();
+    }
+
+    public function getCheckedAt()
+    {
+        return $this->checkedAt;
     }
 
     public function __toString()

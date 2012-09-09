@@ -18,6 +18,8 @@
 
 namespace JMS\JobQueueBundle\Entity\Repository;
 
+use Doctrine\DBAL\Types\Type;
+
 use JMS\JobQueueBundle\Event\StateChangeEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Doctrine\ORM\EntityRepository;
@@ -39,31 +41,27 @@ class JobRepository extends EntityRepository
         $this->dispatcher = $dispatcher;
     }
 
-    /**
-     * Returns the job that matches the given criteria, or throws an exception
-     * if no matching job is found.
-     *
-     * @param array $criteria
-     *
-     * @return Job
-     */
-    public function getOneBy(array $criteria)
+    public function findJob($command, array $args = array())
     {
-        if (null !== $job = $this->findOneBy($criteria)) {
+        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.command = :command AND j.args = :args")
+            ->setParameter('command', $command)
+            ->setParameter('args', $args, Type::JSON_ARRAY)
+            ->setMaxResults(1)
+            ->getOneOrNullResult();
+    }
+
+    public function getJob($command, array $args = array())
+    {
+        if (null !== $job = $this->findJob($command, $args)) {
             return $job;
         }
 
-        throw new \RuntimeException(sprintf('Could not find a job which matches criteria "%s".', json_encode($criteria)));
+        throw new \RuntimeException(sprintf('Found no job for command "%s" with args "%s".', $command, json_encode($args)));
     }
 
-    public function getOne($command, array $args = array())
+    public function getOrCreateIfNotExists($command, array $args = array())
     {
-        return $this->getOneBy(array('command' => $command, 'args' => $args));
-    }
-
-    public function getOrCreateIfNotExists($command, array $args)
-    {
-        if (null !== $job = $this->findOneBy(array('command' => $command, 'args' => $args))) {
+        if (null !== $job = $this->findJob($command, $args)) {
             return $job;
         }
 
@@ -115,7 +113,7 @@ class JobRepository extends EntityRepository
             $excludedIds = array(-1);
         }
 
-        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.jobDependencies d WHERE j.state = :state AND j.id NOT IN (:excludedIds) ORDER BY j.id ASC")
+        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE j.state = :state AND j.id NOT IN (:excludedIds) ORDER BY j.id ASC")
                     ->setParameter('state', Job::STATE_PENDING)
                     ->setParameter('excludedIds', $excludedIds)
                     ->setMaxResults(1)
@@ -143,17 +141,29 @@ class JobRepository extends EntityRepository
         }
         $visited[] = $job;
 
-        $incomingDeps = $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.jobDependencies d WHERE :job MEMBER OF j.jobDependencies")
-                            ->setParameter('job', $job)
-                            ->getResult();
-        foreach ($incomingDeps as $dep) {
-            $this->closeJobInternal($dep, Job::STATE_CANCELED, $visited);
-        }
-
         if (null !== $this->dispatcher) {
             $event = new StateChangeEvent($job, $finalState);
             $this->dispatcher->dispatch('jms_job_queue.job_state_change', $event);
             $finalState = $event->getNewState();
+        }
+
+        switch ($finalState) {
+            case Job::STATE_CANCELED:
+            case Job::STATE_TERMINATED:
+            case Job::STATE_FAILED:
+                $incomingDeps = $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE :job MEMBER OF j.dependencies")
+                    ->setParameter('job', $job)
+                    ->getResult();
+                foreach ($incomingDeps as $dep) {
+                    $this->closeJobInternal($dep, Job::STATE_CANCELED, $visited);
+                }
+                break;
+
+            case Job::STATE_FINISHED:
+                break;
+
+            default:
+                throw new \LogicException(sprintf('The previous cases were exhaustive. Unsupported final state "%s".', $finalState));
         }
 
         $job->setState($finalState);

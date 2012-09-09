@@ -16,16 +16,14 @@ class RunCommandTest extends BaseTestCase
     {
         $a = new Job('a');
         $b = new Job('b', array('foo'));
-        $b->addJobDependency($a);
+        $b->addDependency($a);
         $this->em->persist($a);
         $this->em->persist($b);
         $this->em->flush();
 
         $output = $this->doRun(array('--max-runtime' => 5));
         $expectedOutput = "Started Job(id = 1, command = \"a\").\n"
-                         ."Job(id = 1, command = \"a\") finished.\n"
-                         ."Nothing to run, waiting for 15 seconds... Resuming.\n"
-                         ."Terminating.\n";
+                         ."Job(id = 1, command = \"a\") finished with exit code 1.\n";
         $this->assertEquals($expectedOutput, $output);
         $this->assertEquals('failed', $a->getState());
         $this->assertEquals('', $a->getOutput());
@@ -37,12 +35,10 @@ class RunCommandTest extends BaseTestCase
     {
         $time = time();
         $output = $this->doRun(array('--max-runtime' => 1));
-        $expectedOutput = "Nothing to run, waiting for 15 seconds... Resuming.\n"
-                         ."Terminating.\n";
-        $this->assertEquals($expectedOutput, $output);
+        $this->assertEquals('', $output);
 
         $runtime = time() - $time;
-        $this->assertTrue($runtime >= 15 && $runtime < 20);
+        $this->assertTrue($runtime >= 2 && $runtime < 8);
     }
 
     public function testSuccessfulCommand()
@@ -53,6 +49,26 @@ class RunCommandTest extends BaseTestCase
 
         $this->doRun(array('--max-runtime' => 1));
         $this->assertEquals('finished', $job->getState());
+    }
+
+    /**
+     * @group retry
+     */
+    public function testRetry()
+    {
+        $job = new Job('jms-job-queue:sometimes-failing-cmd', array(time()));
+        $job->setMaxRetries(5);
+        $this->em->persist($job);
+        $this->em->flush($job);
+
+        $this->doRun(array('--max-runtime' => 1));
+        $this->assertEquals('finished', $job->getState());
+        $this->assertCount(2, $job->getRetryJobs());
+        $this->assertEquals(1, $job->getExitCode());
+        $this->assertEquals('failed', $job->getRetryJobs()->get(0)->getState());
+        $this->assertEquals(1, $job->getRetryJobs()->get(0)->getExitCode());
+        $this->assertEquals('finished', $job->getRetryJobs()->get(1)->getState());
+        $this->assertEquals(0, $job->getRetryJobs()->get(1)->getExitCode());
     }
 
     public function testJobIsTerminatedIfMaxRuntimeIsExceeded()
