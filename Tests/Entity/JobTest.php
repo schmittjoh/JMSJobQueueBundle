@@ -197,6 +197,28 @@ class JobTest extends \PHPUnit_Framework_TestCase
         $this->assertNotSame($checkedAtA, $checkedAtB);
     }
 
+    public function testSameDependencyIsNotAddedTwice()
+    {
+        $a = new Job('a');
+        $b = new Job('b');
+
+        $this->assertCount(0, $a->getDependencies());
+        $a->addDependency($b);
+        $this->assertCount(1, $a->getDependencies());
+        $a->addDependency($b);
+        $this->assertCount(1, $a->getDependencies());
+    }
+
+    public function testHasDependency()
+    {
+        $a = new Job('a');
+        $b = new Job('b');
+
+        $this->assertFalse($a->hasDependency($b));
+        $a->addDependency($b);
+        $this->assertTrue($a->hasDependency($b));
+    }
+
     private function setField($obj, $field, $value)
     {
         $ref = new \ReflectionProperty($obj, $field);

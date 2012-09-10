@@ -190,10 +190,19 @@ class Job
         return $this->dependencies;
     }
 
+    public function hasDependency(Job $job)
+    {
+        return $this->dependencies->contains($job);
+    }
+
     public function addDependency(Job $job)
     {
         if ($this->mightHaveStarted()) {
             throw new \LogicException('You cannot add dependencies to a job which might have been started already.');
+        }
+
+        if ($this->dependencies->contains($job)) {
+            return;
         }
 
         $this->dependencies->add($job);
