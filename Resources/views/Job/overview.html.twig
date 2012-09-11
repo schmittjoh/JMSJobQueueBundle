@@ -1,0 +1,36 @@
+{% extends "JMSJobQueueBundle::base.html.twig" %}
+{% import "JMSJobQueueBundle:Job:macros.html.twig" as macros %}
+
+{% block title %}Overview - {{ parent() }}{% endblock %}
+
+{% block content %}
+
+<h1><div class="page-header">Overview</div></h1>
+
+{% if jobsWithError|length > 0 %}
+<h2>Latest Failing Jobs <small>Showing last 5</small></h2>
+
+<table class="table table-bordered table-striped table-condensed">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Command</th>
+            <th>State</th>
+            <th>Created At</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for job in jobsWithError %}
+        <tr>
+            <td>{{ job.id }}</td>
+            <td><code>{{ job.command }}</code></td>
+            <td>{{ macros.state(job) }}</td>
+            <td>{{ job.createdAt.format("Y-m-d H:i:s") }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% endblock %}

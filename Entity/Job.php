@@ -357,6 +357,41 @@ class Job
         return $this->stackTrace;
     }
 
+    public function isNew()
+    {
+        return self::STATE_NEW === $this->state;
+    }
+
+    public function isPending()
+    {
+        return self::STATE_PENDING === $this->state;
+    }
+
+    public function isCanceled()
+    {
+        return self::STATE_CANCELED === $this->state;
+    }
+
+    public function isRunning()
+    {
+        return self::STATE_RUNNING === $this->state;
+    }
+
+    public function isTerminated()
+    {
+        return self::STATE_TERMINATED === $this->state;
+    }
+
+    public function isFailed()
+    {
+        return self::STATE_FAILED === $this->state;
+    }
+
+    public function isFinished()
+    {
+        return self::STATE_FINISHED === $this->state;
+    }
+
     public function __toString()
     {
         return sprintf('Job(id = %s, command = "%s")', $this->id, $this->command);

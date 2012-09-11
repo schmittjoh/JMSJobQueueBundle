@@ -30,7 +30,11 @@
         "symfony/twig-bundle": "*",
         "doctrine/orm": "*",
         "symfony/form": "*",
-        "symfony/validator": "*"
+        "symfony/validator": "*",
+        "pagerfanta/pagerfanta": "dev-master"
+    },
+    "suggest": {
+        "pagerfanta/pagerfanta": "Required when using the webinterface."
     },
     "minimum-stability": "dev",
     "autoload": {
