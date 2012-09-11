@@ -154,14 +154,18 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             }
 
             $this->output->writeln($data['job'].' finished with exit code '.$data['process']->getExitCode().'.');
+            $em = $this->getEntityManager();
+
+            // If the Job exited with an exception, let's reload it so that we
+            // get access to the stack trace. This might be useful for listeners.
+            $em->refresh($data['job']);
+
             $data['job']->setExitCode($data['process']->getExitCode());
             $data['job']->setOutput($data['process']->getOutput());
             $data['job']->setErrorOutput($data['process']->getErrorOutput());
 
             $newState = 0 === $data['process']->getExitCode() ? Job::STATE_FINISHED : Job::STATE_FAILED;
             $newState = $this->stateChange($data['job'], $newState);
-
-            $em = $this->getEntityManager();
 
             // For retry jobs, we set the state directly as we do not need to take care of
             // dependencies for it.
