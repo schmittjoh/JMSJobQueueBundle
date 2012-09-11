@@ -56,6 +56,9 @@ class Job
     /** @ORM\Column(type = "datetime", nullable = true) */
     private $checkedAt;
 
+    /** @ORM\Column(type = "datetime", nullable = true) */
+    private $closedAt;
+
     /** @ORM\Column(type = "string") */
     private $command;
 
@@ -160,10 +163,14 @@ class Job
                 if ( ! in_array($newState, array(self::STATE_FINISHED, self::STATE_FAILED, self::STATE_TERMINATED))) {
                     throw new InvalidStateTransitionException($this, $newState, array(self::STATE_FINISHED, self::STATE_FAILED));
                 }
+
+                $this->closedAt = new \DateTime();
+
                 break;
 
             case self::STATE_FINISHED:
             case self::STATE_FAILED:
+            case self::STATE_TERMINATED:
                 throw new InvalidStateTransitionException($this, $newState);
 
             default:
@@ -176,6 +183,11 @@ class Job
     public function getCreatedAt()
     {
         return $this->createdAt;
+    }
+
+    public function getClosedAt()
+    {
+        return $this->closedAt;
     }
 
     public function getCommand()
