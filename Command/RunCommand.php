@@ -68,7 +68,6 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $this->registry = $this->getContainer()->get('doctrine');
         $this->dispatcher = $this->getContainer()->get('event_dispatcher');
 
-        $processes = array();
         while (time() - $startTime < $maxRuntime) {
             $this->checkRunningJobs();
 
