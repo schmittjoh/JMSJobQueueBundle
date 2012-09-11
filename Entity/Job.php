@@ -145,6 +145,11 @@ class Job
                 if ( ! in_array($newState, array(self::STATE_PENDING, self::STATE_CANCELED), true)) {
                     throw new InvalidStateTransitionException($this, $newState, array(self::STATE_PENDING, self::STATE_CANCELED));
                 }
+
+                if (self::STATE_CANCELED === $newState) {
+                    $this->closedAt = new \DateTime();
+                }
+
                 break;
 
             case self::STATE_PENDING:
@@ -155,6 +160,8 @@ class Job
                 if ($newState === self::STATE_RUNNING) {
                     $this->startedAt = new \DateTime();
                     $this->checkedAt = new \DateTime();
+                } else if ($newState === self::STATE_CANCELED) {
+                    $this->closedAt = new \DateTime();
                 }
 
                 break;
