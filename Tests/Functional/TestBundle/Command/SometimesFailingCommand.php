@@ -3,12 +3,10 @@
 namespace JMS\JobQueueBundle\Tests\Functional\TestBundle\Command;
 
 use Symfony\Component\Console\Input\InputArgument;
-
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 
-class SometimesFailingCommand extends ContainerAwareCommand
+class SometimesFailingCommand extends \JMS\JobQueueBundle\Command\ContainerAwareCommand
 {
     protected function configure()
     {
@@ -22,9 +20,9 @@ class SometimesFailingCommand extends ContainerAwareCommand
     {
         $expired = time() - $input->getArgument('time');
 
-        if ($expired < 6) {
+        if ($expired <= 6) {
             sleep(4);
-            $output->writeln('Failed.');
+            $output->writeln(sprintf('Failed (expired: %s seconds).', $expired));
 
             return 1;
         }

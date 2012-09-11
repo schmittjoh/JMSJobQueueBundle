@@ -2,11 +2,10 @@
 
 namespace JMS\JobQueueBundle\Tests\Functional\TestBundle\Command;
 
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputInterface;
 
-class SuccessfulCommand extends ContainerAwareCommand
+class SuccessfulCommand extends \JMS\JobQueueBundle\Command\ContainerAwareCommand
 {
     protected function configure()
     {

@@ -19,7 +19,6 @@
 namespace JMS\JobQueueBundle\Command;
 
 use JMS\JobQueueBundle\Exception\LogicException;
-
 use JMS\JobQueueBundle\Exception\InvalidArgumentException;
 use JMS\JobQueueBundle\Event\NewOutputEvent;
 use Symfony\Component\Process\ProcessBuilder;
@@ -29,9 +28,8 @@ use JMS\JobQueueBundle\Event\StateChangeEvent;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 
-class RunCommand extends ContainerAwareCommand
+class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand
 {
     private $env;
     private $verbose;
@@ -249,6 +247,7 @@ class RunCommand extends ContainerAwareCommand
             ->add($this->getContainer()->getParameter('kernel.root_dir').'/console')
             ->add($job->getCommand())
             ->add('--env='.$this->env)
+            ->add('--jms-job-id='.$job->getId())
         ;
 
         if ($this->verbose) {

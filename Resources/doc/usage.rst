@@ -1,6 +1,16 @@
 Usage
 -----
 
+Preparing Console Commands
+==========================
+For your regular console commands to work with JMSJobQueueBundle, you need to
+switch the command's base class to extends
+``JMS\JobQueueBundle\Command\ContainerAwareCommand`` instead of Symfony2's own
+class.
+
+This will allow us to log the stack traces should exceptions occur inside your
+command which will greatly help you with debugging.
+
 Creating Jobs
 =============
 Creating jobs is super simple, you just need to persist an instance of ``Job``:
@@ -28,3 +38,4 @@ quite easily:
     $em->persist($job);
     $em->persist($dependentJob);
     $em->flush();
+

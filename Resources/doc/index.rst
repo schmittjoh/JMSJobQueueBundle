@@ -11,6 +11,7 @@ Features:
 - concurrent job execution
 - dependencies between jobs
 - logging of stdout/stderr output
+- logging of exception stack trace
 - events to hook into job execution
 - retry logic
 
@@ -19,7 +20,7 @@ Documentation
 
 .. toctree::
     :hidden:
-    
+
     installation
     usage
 
@@ -29,7 +30,7 @@ Documentation
 License
 -------
 
-The code is released under the business-friendly `Apache2 license`_. 
+The code is released under the business-friendly `Apache2 license`_.
 
 Documentation is subject to the `Attribution-NonCommercial-NoDerivs 3.0 Unported
 license`_.

@@ -18,11 +18,11 @@
 
 namespace JMS\JobQueueBundle\Entity;
 
-use JMS\JobQueueBundle\Exception\LogicException;
-use JMS\JobQueueBundle\Exception\InvalidStateTransitionException;
-
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
+use JMS\JobQueueBundle\Exception\InvalidStateTransitionException;
+use JMS\JobQueueBundle\Exception\LogicException;
+use Symfony\Component\HttpKernel\Exception\FlattenException;
 
 /**
  * @ORM\Entity(repositoryClass = "JMS\JobQueueBundle\Entity\Repository\JobRepository")
@@ -91,6 +91,9 @@ class Job
 
     /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove"}) */
     private $retryJobs;
+
+    /** @ORM\Column(type = "object", nullable = true) */
+    private $stackTrace;
 
     public static function create($command, array $args = array(), $confirmed = true)
     {
@@ -323,6 +326,16 @@ class Job
     public function getCheckedAt()
     {
         return $this->checkedAt;
+    }
+
+    public function setStackTrace(FlattenException $ex)
+    {
+        $this->stackTrace = $ex;
+    }
+
+    public function getStackTrace()
+    {
+        return $this->stackTrace;
     }
 
     public function __toString()

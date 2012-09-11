@@ -3,10 +3,9 @@
 namespace JMS\JobQueueBundle\Tests\Functional\TestBundle\Command;
 
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class NeverEndingCommand extends ContainerAwareCommand
+class NeverEndingCommand extends \JMS\JobQueueBundle\Command\ContainerAwareCommand
 {
     protected function configure()
     {

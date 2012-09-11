@@ -61,7 +61,7 @@ class RunCommandTest extends BaseTestCase
         $this->em->persist($job);
         $this->em->flush($job);
 
-        $this->doRun(array('--max-runtime' => 1));
+        $this->doRun(array('--max-runtime' => 12, '--verbose' => null));
         $this->assertEquals('finished', $job->getState());
         $this->assertCount(2, $job->getRetryJobs());
         $this->assertEquals(1, $job->getExitCode());
