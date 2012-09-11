@@ -28,11 +28,10 @@ abstract class ContainerAwareCommand extends \Symfony\Bundle\FrameworkBundle\Com
             return parent::run($input, $output);
         } catch (\Exception $ex) {
             if ($input->hasOption('jms-job-id') && null !== $jobId = $input->getOption('jms-job-id')) {
-                $em = $this->getContainer()->get('doctrine')->getManagerForClass('JMSJobQueueBundle:Job');
-                $job = $em->find('JMSJobQueueBundle:Job', $jobId);
-                $job->setStackTrace(FlattenException::create($ex));
-                $em->persist($job);
-                $em->flush($job);
+                // We do use the connection directly to avoid any issues if the entity manager
+                // has already been closed, for example if a transaction was rolled back.
+                $con = $this->getContainer()->get('doctrine')->getManagerForClass('JMSJobQueueBundle:Job')->getConnection();
+                $con->exec("UPDATE jms_jobs SET stackTrace = ".$con->quote(serialize(FlattenException::create($ex)))." WHERE id = ".$jobId);
             }
 
             throw $ex;
