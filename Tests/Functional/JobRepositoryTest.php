@@ -81,6 +81,27 @@ class JobRepositoryTest extends BaseTestCase
         $this->assertEquals(array($b->getId()), $excludedIds);
     }
 
+    public function testFindJobByRelatedEntity()
+    {
+        $a = new Job('a');
+        $b = new Job('b');
+        $b->addRelatedEntity($a);
+        $b2 = new Job('b');
+        $this->em->persist($a);
+        $this->em->persist($b);
+        $this->em->persist($b2);
+        $this->em->flush();
+        $this->em->clear();
+
+        $this->assertFalse($this->em->contains($b));
+
+        $reloadedB = $this->repo->findJobForRelatedEntity('b', $a);
+        $this->assertNotNull($reloadedB);
+        $this->assertEquals($b->getId(), $reloadedB->getId());
+        $this->assertCount(1, $reloadedB->getRelatedEntities());
+        $this->assertEquals($a->getId(), $reloadedB->getRelatedEntities()->first()->getId());
+    }
+
     public function testFindStartableJobDetachesNonStartableJobs()
     {
         $a = new Job('a');

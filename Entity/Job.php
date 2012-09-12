@@ -98,6 +98,14 @@ class Job
     /** @ORM\Column(type = "object", nullable = true) */
     private $stackTrace;
 
+    /**
+     * This may store any entities which are related to this job, and are
+     * managed by Doctrine.
+     *
+     * It is effectively a many-to-any association.
+     */
+    private $relatedEntities;
+
     public static function create($command, array $args = array(), $confirmed = true)
     {
         return new self($command, $args, $confirmed);
@@ -111,6 +119,7 @@ class Job
         $this->createdAt = new \DateTime();
         $this->dependencies = new ArrayCollection();
         $this->retryJobs = new ArrayCollection();
+        $this->relatedEntities = new ArrayCollection();
     }
 
     public function getId()
@@ -205,6 +214,22 @@ class Job
     public function getArgs()
     {
         return $this->args;
+    }
+
+    public function getRelatedEntities()
+    {
+        return $this->relatedEntities;
+    }
+
+    public function addRelatedEntity($entity)
+    {
+        assert('is_object($entity)');
+
+        if ($this->relatedEntities->contains($entity)) {
+            return;
+        }
+
+        $this->relatedEntities->add($entity);
     }
 
     public function getDependencies()

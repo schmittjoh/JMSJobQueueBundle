@@ -18,17 +18,20 @@
 
 namespace JMS\JobQueueBundle\Entity\Repository;
 
+use Doctrine\Common\Util\ClassUtils;
 use Doctrine\DBAL\Types\Type;
-
-use JMS\JobQueueBundle\Event\StateChangeEvent;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Doctrine\ORM\EntityRepository;
-use JMS\JobQueueBundle\Entity\Job;
+use Doctrine\ORM\Query\ResultSetMappingBuilder;
 use JMS\DiExtraBundle\Annotation as DI;
+use JMS\JobQueueBundle\Entity\Job;
+use JMS\JobQueueBundle\Event\StateChangeEvent;
+use Symfony\Bridge\Doctrine\RegistryInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class JobRepository extends EntityRepository
 {
     private $dispatcher;
+    private $registry;
 
     /**
      * @DI\InjectParams({
@@ -39,6 +42,17 @@ class JobRepository extends EntityRepository
     public function setDispatcher(EventDispatcherInterface $dispatcher)
     {
         $this->dispatcher = $dispatcher;
+    }
+
+    /**
+     * @DI\InjectParams({
+     *     "registry" = @DI\Inject("doctrine"),
+     * })
+     * @param RegistryInterface $registry
+     */
+    public function setRegistry(RegistryInterface $registry)
+    {
+        $this->registry = $registry;
     }
 
     public function findJob($command, array $args = array())
@@ -105,6 +119,24 @@ class JobRepository extends EntityRepository
         }
 
         return null;
+    }
+
+    public function findJobForRelatedEntity($command, $relatedEntity)
+    {
+        assert('is_object($relatedEntity)');
+
+        $relClass = ClassUtils::getClass($relatedEntity);
+        $relId = $this->registry->getManagerForClass($relClass)->getMetadataFactory()->getMetadataFor($relClass)->getIdentifierValues($relatedEntity);
+        asort($relId);
+
+        $rsm = new ResultSetMappingBuilder($this->_em);
+        $rsm->addRootEntityFromClassMetadata('JMSJobQueueBundle:Job', 'j');
+
+        return $this->_em->createNativeQuery("SELECT j.* FROM jms_jobs j INNER JOIN jms_job_related_entities r ON r.job_id = j.id WHERE r.related_class = :relClass AND r.related_id = :relId AND j.command = :command", $rsm)
+                   ->setParameter('command', $command)
+                   ->setParameter('relClass', $relClass)
+                   ->setParameter('relId', json_encode($relId))
+                   ->getOneOrNullResult();
     }
 
     public function findPendingJob(array $excludedIds = array())
