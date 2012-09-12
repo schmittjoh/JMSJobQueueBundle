@@ -26,7 +26,9 @@ use Symfony\Component\HttpKernel\Exception\FlattenException;
 
 /**
  * @ORM\Entity(repositoryClass = "JMS\JobQueueBundle\Entity\Repository\JobRepository")
- * @ORM\Table(name = "jms_jobs")
+ * @ORM\Table(name = "jms_jobs", indexes = {
+ *     @ORM\Index(columns = {"command", "args"}),
+ * })
  * @ORM\ChangeTrackingPolicy("DEFERRED_EXPLICIT")
  *
  * @author Johannes M. Schmitt <schmittjoh@gmail.com>
