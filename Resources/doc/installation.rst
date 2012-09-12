@@ -22,7 +22,7 @@ to your `composer.json`file:
 
     Please replace `dev-master` in the snippet above with the latest stable
     branch, for example ``1.0.*``.
-    
+
 Then, you can install the new dependencies by running composer's ``update``
 command from the directory where your ``composer.json`` file is located:
 
@@ -45,9 +45,29 @@ register the new bundle:
         // ...
     );
 
+If you also want to use the webinterface where you can view the outputs, and
+exception stack traces for your jobs, you need to add the following to your
+``routing.yml``:
+
+.. code-block :: yaml
+
+    JMSJobQueueBundle:
+        resource: "@JMSJobQueueBundle/Controller/"
+        type: annotation
+        prefix: /jobs
+
+Typically, you would also want to add some access control restrictions for these
+actions. If you are using ``JMSSecurityExtraBundle`` this could look like this:
+
+.. code-block :: yaml
+
+    jms_security_extra:
+        method_access_control:
+            "JMS\JobQueueBundle\Controller\.*::.*Action": "hasRole('ROLE_ADMIN')"
+
 Setting Up supervisord
 ======================
-For this bundle to work, you have to make sure that one (and only one) 
+For this bundle to work, you have to make sure that one (and only one)
 instance of the console command ``jms-job-queue:run`` is running at all
 times. You can easily achieve this by using supervisord_.
 

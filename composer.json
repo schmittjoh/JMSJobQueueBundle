@@ -34,7 +34,9 @@
         "pagerfanta/pagerfanta": "dev-master"
     },
     "suggest": {
-        "pagerfanta/pagerfanta": "Required when using the webinterface."
+        "pagerfanta/pagerfanta": "Required when using the webinterface.",
+        "sensio/framework-extra-bundle": "Required when using the webinterface.",
+        "symfony/twig-bundle": "Required when using the webinterface."
     },
     "minimum-stability": "dev",
     "autoload": {
