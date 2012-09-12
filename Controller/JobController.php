@@ -14,23 +14,43 @@ class JobController
     /** @DI\Inject */
     private $request;
 
+    /** @DI\Inject */
+    private $router;
+
     /**
      * @Route("/", name = "jms_jobs_overview")
      * @Template
      */
     public function overviewAction()
     {
-        $em = $this->getEm();
-        $repo = $this->getRepo();
-
-        $query = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j ORDER BY j.id DESC");
+        $query = $this->getEm()->createQuery("SELECT j FROM JMSJobQueueBundle:Job j ORDER BY j.id DESC");
         $pager = new \Pagerfanta\Pagerfanta(new \Pagerfanta\Adapter\DoctrineORMAdapter($query));
-        $pager->setCurrentPage(max(1, (integer) $this->request->query->get('page')));
-        $pager->setMaxPerPage(max(5, min(50, (integer) $this->request->query->get('per_page'))));
+        $pager->setCurrentPage(max(1, (integer) $this->request->query->get('page', 1)));
+        $pager->setMaxPerPage(max(5, min(50, (integer) $this->request->query->get('per_page', 20))));
+
+        $pagerView = new \Pagerfanta\View\TwitterBootstrapView();
+        $router = $this->router;
+        $routeGenerator = function($page) use ($router, $pager) {
+            return $router->generate('jms_jobs_overview', array('page' => $page, 'per_page' => $pager->getMaxPerPage()));
+        };
 
         return array(
-            'jobsWithError' => $repo->findLastJobsWithError(5),
+            'jobsWithError' => $this->getRepo()->findLastJobsWithError(5),
             'jobPager' => $pager,
+            'jobPagerView' => $pagerView,
+            'jobPagerGenerator' => $routeGenerator,
+        );
+    }
+
+    /**
+     * @Route("/{id}", name = "jms_jobs_details")
+     * @Template
+     */
+    public function detailsAction(\JMS\JobQueueBundle\Entity\Job $job)
+    {
+        return array(
+            'job' => $job,
+            'incomingDependencies' => $this->getRepo()->getIncomingDependencies($job),
         );
     }
 

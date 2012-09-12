@@ -170,6 +170,13 @@ class JobRepository extends EntityRepository
         $this->_em->persist($job);
     }
 
+    public function getIncomingDependencies(Job $job)
+    {
+        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE :job MEMBER OF j.dependencies")
+                    ->setParameter('job', $job)
+                    ->getResult();
+    }
+
     public function findLastJobsWithError($nbJobs = 10)
     {
         return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.state IN (:errorStates) ORDER BY j.closedAt DESC")

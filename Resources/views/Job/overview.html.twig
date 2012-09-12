@@ -7,8 +7,9 @@
 
 <h1><div class="page-header">Overview</div></h1>
 
-{% if jobsWithError|length > 0 %}
-<h2>Latest Failing Jobs <small>Showing last 5</small></h2>
+{% if jobPager.haveToPaginate %}
+    {{ jobPagerView.render(jobPager, jobPagerGenerator)|raw }}
+{% endif %}
 
 <table class="table table-bordered table-striped table-condensed">
     <thead>
@@ -21,16 +22,37 @@
     </thead>
 
     <tbody>
+        {% if jobPager.currentPage == 1 and jobsWithError|length > 0 %}
         {% for job in jobsWithError %}
         <tr>
-            <td>{{ job.id }}</td>
-            <td><code>{{ job.command }}</code></td>
+            <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ job.id }}</a></td>
+            <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ macros.command(job) }}</a></td>
             <td>{{ macros.state(job) }}</td>
-            <td>{{ job.createdAt.format("Y-m-d H:i:s") }}</td>
+            <td>{{ macros.ago(job.createdAt) }}</td>
+        </tr>
+        {% endfor %}
+        <tr>
+            <td style="height:4px; background-color: #ccc;" colspan="4"></td>
+        </tr>
+        {% endif %}
+
+        {% for job in jobPager %}
+        <tr>
+            <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ job.id }}</a></td>
+            <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ macros.command(job) }}</a></td>
+            <td>{{ macros.state(job) }}</td>
+            <td>{{ macros.ago(job.createdAt) }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4">There are no jobs.</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+
+{% if jobPager.haveToPaginate %}
+    {{ jobPagerView.render(jobPager, jobPagerGenerator)|raw }}
 {% endif %}
 
 {% endblock %}

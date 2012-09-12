@@ -17,3 +17,13 @@
         <span class="label label-warning">Unknown</span>
     {%- endif %}
 {%- endmacro %}
+
+{% macro command(job) -%}
+    <code>{{ job.command }}
+        {%- for arg in job.args %} {{ arg }}{% endfor -%}
+    </code>
+{%- endmacro %}
+
+{% macro ago(time, format) -%}
+    <time class="timeago" datetime="{{ time.format(constant("DateTime::ISO8601")) }}">{{ time.format(format|default("Y-m-d H:i:s")) }}</time>
+{%- endmacro %}
