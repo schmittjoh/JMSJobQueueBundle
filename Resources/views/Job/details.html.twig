@@ -26,6 +26,12 @@
         <th>Created</th>
         <td>{{ macros.ago(job.createdAt) }}</td>
     </tr>
+    {% if job.isRetryJob() %}
+    <tr>
+        <th>Original Job</th>
+        <td><a href="{{ path("jms_jobs_details", {"id": job.originalJob.id}) }}">#{{ job.originalJob.id }}</a> {{ macros.state(job.originalJob) }}</td>
+    </tr>
+    {% endif %}
     {% if job.dependencies|length > 0 %}
     <tr>
         <th>Dependencies</th>
@@ -47,6 +53,31 @@
     </tr>
     {% endif %}
 </table>
+
+{% if job.retryJobs|length > 0 %}
+<h3>Retry Jobs</h3>
+
+<table class="table table-bordered table-striped table-condensed">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Created</th>
+            <th>State</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for retryJob in job.retryJobs %}
+        <tr>
+            <td><a href="{{ path("jms_jobs_details", {"id": retryJob.id}) }}">{{ retryJob.id }}</a></td>
+            <td>{{ macros.ago(retryJob.createdAt) }}</td>
+            <td>{{ macros.state(retryJob) }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endif %}
 
 {% if job.stackTrace is not empty %}
 <h3>Stack Trace</h3>

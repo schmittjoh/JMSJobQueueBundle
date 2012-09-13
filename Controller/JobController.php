@@ -23,8 +23,19 @@ class JobController
      */
     public function overviewAction()
     {
-        $query = $this->getEm()->createQuery("SELECT j FROM JMSJobQueueBundle:Job j ORDER BY j.id DESC");
-        $pager = new \Pagerfanta\Pagerfanta(new \Pagerfanta\Adapter\DoctrineORMAdapter($query));
+        $lastJobsWithError = $this->getRepo()->findLastJobsWithError(5);
+
+        $qb = $this->getEm()->createQueryBuilder();
+        $qb->select('j')->from('JMSJobQueueBundle:Job', 'j')
+                ->where($qb->expr()->isNull('j.originalJob'))
+                ->orderBy('j.id', 'desc');
+
+        foreach ($lastJobsWithError as $i => $job) {
+            $qb->andWhere($qb->expr()->neq('j.id', '?'.$i));
+            $qb->setParameter($i, $job->getId());
+        }
+
+        $pager = new \Pagerfanta\Pagerfanta(new \Pagerfanta\Adapter\DoctrineORMAdapter($qb));
         $pager->setCurrentPage(max(1, (integer) $this->request->query->get('page', 1)));
         $pager->setMaxPerPage(max(5, min(50, (integer) $this->request->query->get('per_page', 20))));
 
@@ -35,7 +46,7 @@ class JobController
         };
 
         return array(
-            'jobsWithError' => $this->getRepo()->findLastJobsWithError(5),
+            'jobsWithError' => $lastJobsWithError,
             'jobPager' => $pager,
             'jobPagerView' => $pagerView,
             'jobPagerGenerator' => $routeGenerator,
