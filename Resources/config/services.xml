@@ -6,6 +6,7 @@
 
     <parameters>
         <parameter key="jms_job_queue.entity.many_to_any_listener.class">JMS\JobQueueBundle\Entity\Listener\ManyToAnyListener</parameter>
+        <parameter key="jms_job_queue.twig.extension.class">JMS\JobQueueBundle\Twig\JobQueueExtension</parameter>
     </parameters>
 
     <services>
@@ -14,6 +15,10 @@
             <tag name="doctrine.event_listener" lazy="true" event="postGenerateSchema" />
             <tag name="doctrine.event_listener" lazy="true" event="postLoad" />
             <tag name="doctrine.event_listener" lazy="true" event="postPersist" />
+        </service>
+
+        <service id="jms_job_queue.twig.extension" class="%jms_job_queue.twig.extension.class%">
+            <tag name="twig.extension" />
         </service>
     </services>
 </container>

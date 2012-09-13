@@ -32,6 +32,21 @@
         <td><a href="{{ path("jms_jobs_details", {"id": job.originalJob.id}) }}">#{{ job.originalJob.id }}</a> {{ macros.state(job.originalJob) }}</td>
     </tr>
     {% endif %}
+    {% if relatedEntities|length > 0 %}
+    <tr>
+        <th>Related Entities</th>
+        <td>
+            {%- for entity in relatedEntities %}
+                {%- if entity.raw is jms_job_queue_linkable -%}
+                    <a href="{{ jms_job_queue_path(entity.raw) }}">{{ entity.raw|jms_job_queue_linkname }}</a>
+                {%- else -%}
+                    {{ entity.class }} ({{ entity.id }})
+                {%- endif -%}
+                {% if not loop.last %}, {% endif -%}
+            {% endfor -%}
+        </td>
+    </tr>
+    {% endif %}
     {% if job.dependencies|length > 0 %}
     <tr>
         <th>Dependencies</th>

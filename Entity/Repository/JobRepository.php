@@ -121,13 +121,22 @@ class JobRepository extends EntityRepository
         return null;
     }
 
+    public function findAllForRelatedEntity($relatedEntity)
+    {
+        list($relClass, $relId) = $this->getRelatedEntityIdentifier($relatedEntity);
+
+        $rsm = new ResultSetMappingBuilder($this->_em);
+        $rsm->addRootEntityFromClassMetadata('JMSJobQueueBundle:Job', 'j');
+
+        return $this->_em->createNativeQuery("SELECT j.* FROM jms_jobs j INNER JOIN jms_job_related_entities r ON r.job_id = j.id WHERE r.related_class = :relClass AND r.related_id = :relId", $rsm)
+                    ->setParameter('relClass', $relClass)
+                    ->setParameter('relId', $relId)
+                    ->getResult();
+    }
+
     public function findJobForRelatedEntity($command, $relatedEntity)
     {
-        assert('is_object($relatedEntity)');
-
-        $relClass = ClassUtils::getClass($relatedEntity);
-        $relId = $this->registry->getManagerForClass($relClass)->getMetadataFactory()->getMetadataFor($relClass)->getIdentifierValues($relatedEntity);
-        asort($relId);
+        list($relClass, $relId) = $this->getRelatedEntityIdentifier($relatedEntity);
 
         $rsm = new ResultSetMappingBuilder($this->_em);
         $rsm->addRootEntityFromClassMetadata('JMSJobQueueBundle:Job', 'j');
@@ -135,8 +144,28 @@ class JobRepository extends EntityRepository
         return $this->_em->createNativeQuery("SELECT j.* FROM jms_jobs j INNER JOIN jms_job_related_entities r ON r.job_id = j.id WHERE r.related_class = :relClass AND r.related_id = :relId AND j.command = :command", $rsm)
                    ->setParameter('command', $command)
                    ->setParameter('relClass', $relClass)
-                   ->setParameter('relId', json_encode($relId))
+                   ->setParameter('relId', $relId)
                    ->getOneOrNullResult();
+    }
+
+    private function getRelatedEntityIdentifier($entity)
+    {
+        assert('is_object($entity)');
+
+        if ($entity instanceof \Doctrine\Common\Persistence\Proxy) {
+            $entity->__load();
+        }
+
+        $relClass = ClassUtils::getClass($entity);
+        $relId = $this->registry->getManagerForClass($relClass)->getMetadataFactory()
+                    ->getMetadataFor($relClass)->getIdentifierValues($entity);
+        asort($relId);
+
+        if ( ! $relId) {
+            throw new \InvalidArgumentException(sprintf('The identifier for entity of class "%s" was empty.', $relClass));
+        }
+
+        return array($relClass, json_encode($relId));
     }
 
     public function findPendingJob(array $excludedIds = array())

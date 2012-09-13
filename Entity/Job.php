@@ -262,12 +262,12 @@ class Job
 
     public function addDependency(Job $job)
     {
-        if ($this->mightHaveStarted()) {
-            throw new \LogicException('You cannot add dependencies to a job which might have been started already.');
-        }
-
         if ($this->dependencies->contains($job)) {
             return;
+        }
+
+        if ($this->mightHaveStarted()) {
+            throw new \LogicException('You cannot add dependencies to a job which might have been started already.');
         }
 
         $this->dependencies->add($job);

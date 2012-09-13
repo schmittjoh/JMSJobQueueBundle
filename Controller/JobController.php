@@ -59,8 +59,18 @@ class JobController
      */
     public function detailsAction(\JMS\JobQueueBundle\Entity\Job $job)
     {
+        $relatedEntites = array();
+        foreach ($job->getRelatedEntities() as $entity) {
+            $relatedEntities[] = array(
+                'class' => \Doctrine\Common\Util\ClassUtils::getClass($entity),
+                'id' => json_encode($this->getEm()->getClassMetadata(get_class($entity))->getIdentifierValues($entity)),
+                'raw' => $entity,
+            );
+        }
+
         return array(
             'job' => $job,
+            'relatedEntities' => $relatedEntities,
             'incomingDependencies' => $this->getRepo()->getIncomingDependencies($job),
         );
     }
