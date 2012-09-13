@@ -63,7 +63,10 @@ actions. If you are using ``JMSSecurityExtraBundle`` this could look like this:
 
     jms_security_extra:
         method_access_control:
-            "JMS\JobQueueBundle\Controller\.*::.*Action": "hasRole('ROLE_ADMIN')"
+            "JMSJobQueueBundle:.*:.*": "hasRole('ROLE_ADMIN')"
+
+This will require the user to have the role ``ROLE_ADMIN`` if he wants to access
+any action from this bundle.
 
 Setting Up supervisord
 ======================
