@@ -223,6 +223,22 @@ class Job
         return $this->relatedEntities;
     }
 
+    public function isClosedNonSuccessful()
+    {
+        return $this->isCanceled() || $this->isTerminated() || $this->isFailed();
+    }
+
+    public function findRelatedEntity($class)
+    {
+        foreach ($this->relatedEntities as $entity) {
+            if ($entity instanceof $class) {
+                return $entity;
+            }
+        }
+
+        return null;
+    }
+
     public function addRelatedEntity($entity)
     {
         assert('is_object($entity)');
