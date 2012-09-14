@@ -127,14 +127,6 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
                 }
             }
 
-            // For long running processes, it is nice to update the output status regularly.
-            $data['job']->addOutput($newOutput);
-            $data['job']->addErrorOutput($newErrorOutput);
-            $data['job']->checked();
-            $em = $this->getEntityManager();
-            $em->persist($data['job']);
-            $em->flush($data['job']);
-
             // Check whether this process exceeds the maximum runtime, and terminate if that is
             // the case.
             $runtime = time() - $data['job']->getStartedAt()->getTimestamp();
@@ -150,6 +142,14 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             }
 
             if ($data['process']->isRunning()) {
+                // For long running processes, it is nice to update the output status regularly.
+                $data['job']->addOutput($newOutput);
+                $data['job']->addErrorOutput($newErrorOutput);
+                $data['job']->checked();
+                $em = $this->getEntityManager();
+                $em->persist($data['job']);
+                $em->flush($data['job']);
+
                 continue;
             }
 
@@ -163,6 +163,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $data['job']->setExitCode($data['process']->getExitCode());
             $data['job']->setOutput($data['process']->getOutput());
             $data['job']->setErrorOutput($data['process']->getErrorOutput());
+            $data['job']->setRuntime(time() - $data['start_time']);
 
             $newState = 0 === $data['process']->getExitCode() ? Job::STATE_FINISHED : Job::STATE_FAILED;
             $newState = $this->stateChange($data['job'], $newState);
@@ -267,6 +268,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $this->runningJobs[] = array(
             'process' => $proc,
             'job' => $job,
+            'start_time' => time(),
             'output_pointer' => 0,
             'error_output_pointer' => 0,
         );

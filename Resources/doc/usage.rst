@@ -1,16 +1,6 @@
 Usage
 -----
 
-Preparing Console Commands
-==========================
-For your regular console commands to work with JMSJobQueueBundle, you need to
-switch the command's base class to extends
-``JMS\JobQueueBundle\Command\ContainerAwareCommand`` instead of Symfony2's own
-class.
-
-This will allow us to log the stack traces should exceptions occur inside your
-command which will greatly help you with debugging.
-
 Creating Jobs
 =============
 Creating jobs is super simple, you just need to persist an instance of ``Job``:
@@ -39,3 +29,18 @@ quite easily:
     $em->persist($dependentJob);
     $em->flush();
 
+Adding Related Entities to Jobs
+===============================
+If you want to link a job to another entity, for example to find the job more
+easily, the job provides a special many-to-any association:
+
+.. code-block :: php
+
+    <?php
+
+    $job = new Job('a');
+    $job->addRelatedEntity($anyEntity);
+    $em->persist($job);
+    $em->flush();
+
+    $em->getRepository('JMSJobQueueBundle:Job')->findJobForRelatedEntity('a', $anyEntity);

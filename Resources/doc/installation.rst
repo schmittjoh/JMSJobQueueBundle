@@ -45,6 +45,14 @@ register the new bundle:
         // ...
     );
 
+In order to gather debugging information like exceptions, you also need to
+replace the default Application class in your ``app/console`` file. Simply,
+exchange the namespace ``Symfony\Bundle\FrameworkBundle\Console\Application``
+for ``JMS\JobQueueBundle\Console\Application`` in ``app/console``.
+
+
+Enabling the Webinterface
+=========================
 If you also want to use the webinterface where you can view the outputs, and
 exception stack traces for your jobs, you need to add the following to your
 ``routing.yml``:
@@ -97,6 +105,7 @@ A sample supervisord config might look like this:
 .. tip ::
 
     For testing, or development, you can of course also run the command manually,
-    but it will auto-exit after 15 minutes by default.
+    but it will auto-exit after 15 minutes by default (you can change this with
+    the ``--max-runtime=seconds`` option).
 
 .. _supervisord: http://supervisord.org/

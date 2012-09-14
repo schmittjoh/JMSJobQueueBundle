@@ -84,9 +84,34 @@ class RunCommandTest extends BaseTestCase
         $this->assertEquals('terminated', $job->getState());
     }
 
+    /**
+     * @group exception
+     */
+    public function testExceptionStackTraceIsSaved()
+    {
+        $job = new Job('jms-job-queue:throws-exception-cmd');
+        $this->em->persist($job);
+        $this->em->flush($job);
+
+        $this->assertNull($job->getStackTrace());
+        $this->assertNull($job->getMemoryUsage());
+        $this->assertNull($job->getMemoryUsageReal());
+
+        $this->doRun(array('--max-runtime' => 1));
+
+        $this->assertNotNull($job->getStackTrace());
+        $this->assertNotNull($job->getMemoryUsage());
+        $this->assertNotNull($job->getMemoryUsageReal());
+    }
+
     protected function setUp()
     {
-        $this->createClient();
+        $this->createClient(array('config' => 'persistent_db.yml'));
+
+        if (is_file($databaseFile = self::$kernel->getCacheDir().'/database.sqlite')) {
+            unlink($databaseFile);
+        }
+
         $this->importDatabaseSchema();
 
         $this->app = new Application(self::$kernel);

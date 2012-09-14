@@ -8,9 +8,9 @@ class BaseTestCase extends WebTestCase
 {
     static protected function createKernel(array $options = array())
     {
-        return new AppKernel(
-            isset($options['config']) ? $options['config'] : 'default.yml'
-        );
+        $config = isset($options['config']) ? $options['config'] : 'default.yml';
+
+        return new AppKernel($config);
     }
     protected final function importDatabaseSchema()
     {

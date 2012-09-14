@@ -1,0 +1,16 @@
+imports:
+    - { resource: framework.yml }
+    - { resource: twig.yml }
+
+doctrine:
+    dbal:
+        driver:   pdo_sqlite
+        path:     %kernel.cache_dir%/database.sqlite
+
+    orm:
+        auto_generate_proxy_classes: %kernel.debug%
+        entity_managers:
+            default:
+                auto_mapping: true
+
+

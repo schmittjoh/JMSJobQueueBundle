@@ -2,20 +2,20 @@
 
 namespace JMS\JobQueueBundle\Tests\Functional\TestBundle\Command;
 
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class NeverEndingCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand
+class ThrowsExceptionCommand extends ContainerAwareCommand
 {
     protected function configure()
     {
-        $this->setName('jms-job-queue:never-ending');
+        $this->setName('jms-job-queue:throws-exception-cmd');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        while (true) {
-            sleep(5);
-        }
+        var_dump('Throwing exception');
+        throw new \RuntimeException('Something went wrong.');
     }
 }

@@ -57,12 +57,17 @@ class AppKernel extends Kernel
 
     public function getCacheDir()
     {
-        return sys_get_temp_dir().'/'.Kernel::VERSION.'/JMSJobQueueBundle/cache';
+        return sys_get_temp_dir().'/'.Kernel::VERSION.'/JMSJobQueueBundle/'.substr(sha1($this->config), 0, 6).'/cache';
+    }
+
+    public function getContainerClass()
+    {
+        return parent::getContainerClass().'_'.substr(sha1($this->config), 0, 6);
     }
 
     public function getLogDir()
     {
-        return sys_get_temp_dir().'/'.Kernel::VERSION.'/JMSJobQueueBundle/logs';
+        return sys_get_temp_dir().'/'.Kernel::VERSION.'/JMSJobQueueBundle/'.substr(sha1($this->config), 0, 6).'/logs';
     }
 
     public function serialize()

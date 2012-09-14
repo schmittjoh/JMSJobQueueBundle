@@ -100,6 +100,15 @@ class Job
     /** @ORM\Column(type = "object", nullable = true) */
     private $stackTrace;
 
+    /** @ORM\Column(type = "smallint", nullable = true, options = {"unsigned": true}) */
+    private $runtime;
+
+    /** @ORM\Column(type = "integer", nullable = true, options = {"unsigned": true}) */
+    private $memoryUsage;
+
+    /** @ORM\Column(type = "integer", nullable = true, options = {"unsigned": true}) */
+    private $memoryUsageReal;
+
     /**
      * This may store any entities which are related to this job, and are
      * managed by Doctrine.
@@ -271,6 +280,26 @@ class Job
         }
 
         $this->dependencies->add($job);
+    }
+
+    public function getRuntime()
+    {
+        return $this->runtime;
+    }
+
+    public function setRuntime($time)
+    {
+        $this->runtime = (integer) $time;
+    }
+
+    public function getMemoryUsage()
+    {
+        return $this->memoryUsage;
+    }
+
+    public function getMemoryUsageReal()
+    {
+        return $this->memoryUsageReal;
     }
 
     public function addOutput($output)
