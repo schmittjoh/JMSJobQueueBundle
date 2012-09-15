@@ -61,9 +61,10 @@ class JobController
     {
         $relatedEntites = array();
         foreach ($job->getRelatedEntities() as $entity) {
+            $class = \Doctrine\Common\Util\ClassUtils::getClass($entity);
             $relatedEntities[] = array(
-                'class' => \Doctrine\Common\Util\ClassUtils::getClass($entity),
-                'id' => json_encode($this->getEm()->getClassMetadata(get_class($entity))->getIdentifierValues($entity)),
+                'class' => $class,
+                'id' => json_encode($this->registry->getManagerForClass($class)->getClassMetadata($class)->getIdentifierValues($entity)),
                 'raw' => $entity,
             );
         }

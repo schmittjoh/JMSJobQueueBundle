@@ -47,6 +47,10 @@ class ManyToAnyListener
             $relId = $this->registry->getManagerForClass($relClass)->getMetadataFactory()->getMetadataFor($relClass)->getIdentifierValues($relatedEntity);
             asort($relId);
 
+            if ( ! $relId) {
+                throw new \RuntimeException('The identifier for the related entity "'.$relClass.'" was empty.');
+            }
+
             $con->executeUpdate("INSERT INTO jms_job_related_entities (job_id, related_class, related_id) VALUES (:jobId, :relClass, :relId)", array(
                 'jobId' => $entity->getId(),
                 'relClass' => $relClass,
