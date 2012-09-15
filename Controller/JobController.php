@@ -59,7 +59,7 @@ class JobController
      */
     public function detailsAction(\JMS\JobQueueBundle\Entity\Job $job)
     {
-        $relatedEntites = array();
+        $relatedEntities = array();
         foreach ($job->getRelatedEntities() as $entity) {
             $class = \Doctrine\Common\Util\ClassUtils::getClass($entity);
             $relatedEntities[] = array(
