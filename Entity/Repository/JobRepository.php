@@ -198,7 +198,7 @@ class JobRepository extends EntityRepository
                     continue;
                 }
 
-                //$this->_em->detach($job);
+                $this->_em->detach($job);
             }
         } catch (\Exception $ex) {
             $this->_em->getConnection()->rollback();
