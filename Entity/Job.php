@@ -35,13 +35,44 @@ use Symfony\Component\HttpKernel\Exception\FlattenException;
  */
 class Job
 {
+    /** State if job is inserted, but not yet ready to be started. */
     const STATE_NEW = 'new';
+
+    /**
+     * State if job is inserted, and might be started.
+     *
+     * It is important to note that this does not automatically mean that all
+     * jobs of this state can actually be started, but you have to check
+     * isStartable() to be absolutely sure.
+     *
+     * In contrast to NEW, jobs of this state at least might be started,
+     * while jobs of state NEW never are allowed to be started.
+     */
     const STATE_PENDING = 'pending';
+
+    /** State if job was never started, and will never be started. */
     const STATE_CANCELED = 'canceled';
+
+    /** State if job was started and has not exited, yet. */
     const STATE_RUNNING = 'running';
+
+    /** State if job exists with a successful exit code. */
     const STATE_FINISHED = 'finished';
+
+    /** State if job exits with a non-successful exit code. */
     const STATE_FAILED = 'failed';
+
+    /** State if job exceeds its configured maximum runtime. */
     const STATE_TERMINATED = 'terminated';
+
+    /**
+     * State if an error occurs in the runner command.
+     *
+     * The runner command is the command that actually launches the individual
+     * jobs. If instead an error occurs in the job command, this will result
+     * in a state of FAILED.
+     */
+    const STATE_INCOMPLETE = 'incomplete';
 
     /** @ORM\Id @ORM\GeneratedValue(strategy = "AUTO") @ORM\Column(type = "bigint", options = {"unsigned": true}) */
     private $id;
@@ -187,8 +218,8 @@ class Job
                 break;
 
             case self::STATE_RUNNING:
-                if ( ! in_array($newState, array(self::STATE_FINISHED, self::STATE_FAILED, self::STATE_TERMINATED))) {
-                    throw new InvalidStateTransitionException($this, $newState, array(self::STATE_FINISHED, self::STATE_FAILED));
+                if ( ! in_array($newState, array(self::STATE_FINISHED, self::STATE_FAILED, self::STATE_TERMINATED, self::STATE_INCOMPLETE))) {
+                    throw new InvalidStateTransitionException($this, $newState, array(self::STATE_FINISHED, self::STATE_FAILED, self::STATE_TERMINATED, self::STATE_INCOMPLETE));
                 }
 
                 $this->closedAt = new \DateTime();
@@ -198,6 +229,7 @@ class Job
             case self::STATE_FINISHED:
             case self::STATE_FAILED:
             case self::STATE_TERMINATED:
+            case self::STATE_INCOMPLETE:
                 throw new InvalidStateTransitionException($this, $newState);
 
             default:
@@ -234,7 +266,7 @@ class Job
 
     public function isClosedNonSuccessful()
     {
-        return $this->isCanceled() || $this->isTerminated() || $this->isFailed();
+        return $this->isCanceled() || $this->isTerminated() || $this->isFailed() || $this->isIncomplete();
     }
 
     public function findRelatedEntity($class)
@@ -367,6 +399,17 @@ class Job
         $this->maxRetries = (integer) $tries;
     }
 
+    public function isRetryAllowed()
+    {
+        // If no retries are allowed, we can bail out directly, and we
+        // do not need to initialize the retryJobs relation.
+        if (0 === $this->maxRetries) {
+            return false;
+        }
+
+        return count($this->retryJobs) < $this->maxRetries;
+    }
+
     public function getOriginalJob()
     {
         if (null === $this->originalJob) {
@@ -462,6 +505,11 @@ class Job
     public function isFinished()
     {
         return self::STATE_FINISHED === $this->state;
+    }
+
+    public function isIncomplete()
+    {
+        return self::STATE_INCOMPLETE === $this->state;
     }
 
     public function __toString()

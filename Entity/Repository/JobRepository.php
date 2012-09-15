@@ -185,9 +185,21 @@ class JobRepository extends EntityRepository
     {
         $this->_em->getConnection()->beginTransaction();
         try {
-            $this->closeJobInternal($job, $finalState);
+            $visited = array();
+            $this->closeJobInternal($job, $finalState, $visited);
             $this->_em->flush();
             $this->_em->getConnection()->commit();
+
+            // Clean-up entity manager to allow for garbage collection to kick in.
+            foreach ($visited as $job) {
+                // If the job is an original job which is now being retried, let's
+                // not remove it just yet.
+                if ( ! $job->isClosedNonSuccessful()) {
+                    continue;
+                }
+
+                //$this->_em->detach($job);
+            }
         } catch (\Exception $ex) {
             $this->_em->getConnection()->rollback();
 
@@ -209,25 +221,67 @@ class JobRepository extends EntityRepository
         }
 
         switch ($finalState) {
-            case Job::STATE_CANCELED:
-            case Job::STATE_TERMINATED:
             case Job::STATE_FAILED:
+            case Job::STATE_TERMINATED:
+            case Job::STATE_INCOMPLETE:
+            case Job::STATE_CANCELED:
+                if ($job->isRetryJob()) {
+                    $job->setState($finalState);
+                    $this->_em->persist($job);
+
+                    $originalJob = $job->getOriginalJob();
+                    if ($originalJob->isRetryAllowed()) {
+                        $this->createRetryJob($originalJob);
+
+                        return;
+                    }
+
+                    $this->closeJobInternal($originalJob, $finalState);
+
+                    return;
+                }
+
+                // The original job has failed, and we are allowed to retry it.
+                if ($job->isRetryAllowed()) {
+                    $this->createRetryJob($job);
+
+                    return;
+                }
+
+                $job->setState($finalState);
+                $this->_em->persist($job);
+
+                // The original job has failed, and no retries are allowed.
                 $incomingDeps = $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE :job MEMBER OF j.dependencies")
                     ->setParameter('job', $job)
                     ->getResult();
                 foreach ($incomingDeps as $dep) {
                     $this->closeJobInternal($dep, Job::STATE_CANCELED, $visited);
                 }
-                break;
+
+                return;
 
             case Job::STATE_FINISHED:
-                break;
+                if ($job->isRetryJob()) {
+                    $job->getOriginalJob()->setState($finalState);
+                    $this->_em->persist($job->getOriginalJob());
+                }
+                $job->setState($finalState);
+                $this->_em->persist($job);
+
+                return;
 
             default:
-                throw new \LogicException(sprintf('The previous cases were exhaustive. Unsupported final state "%s".', $finalState));
+                throw new \LogicException(sprintf('Non allowed state "%s" in closeJobInternal().', $finalState));
         }
+    }
 
-        $job->setState($finalState);
+    private function createRetryJob(Job $job)
+    {
+        $retryJob = new Job($job->getCommand(), $job->getArgs());
+        $retryJob->setMaxRuntime($job->getMaxRuntime());
+        $job->addRetryJob($retryJob);
+        $this->_em->persist($retryJob);
         $this->_em->persist($job);
     }
 

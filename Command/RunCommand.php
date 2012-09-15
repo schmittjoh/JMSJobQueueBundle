@@ -68,6 +68,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $this->registry = $this->getContainer()->get('doctrine');
         $this->dispatcher = $this->getContainer()->get('event_dispatcher');
 
+        $this->cleanUpStaleJobs();
+
         while (time() - $startTime < $maxRuntime) {
             $this->checkRunningJobs();
 
@@ -133,9 +135,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             if ($data['job']->getMaxRuntime() > 0 && $runtime > $data['job']->getMaxRuntime()) {
                 $data['process']->stop(5);
 
-                $this->getRepository()->closeJob($data['job'], Job::STATE_TERMINATED);
                 $this->output->writeln($job.' terminated; maximum runtime exceeded.');
-
+                $this->getRepository()->closeJob($data['job'], Job::STATE_TERMINATED);
                 unset($this->runningJobs[$i]);
 
                 continue;
@@ -154,11 +155,10 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             }
 
             $this->output->writeln($data['job'].' finished with exit code '.$data['process']->getExitCode().'.');
-            $em = $this->getEntityManager();
 
             // If the Job exited with an exception, let's reload it so that we
             // get access to the stack trace. This might be useful for listeners.
-            $em->refresh($data['job']);
+            $this->getEntityManager()->refresh($data['job']);
 
             $data['job']->setExitCode($data['process']->getExitCode());
             $data['job']->setOutput($data['process']->getOutput());
@@ -166,77 +166,31 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $data['job']->setRuntime(time() - $data['start_time']);
 
             $newState = 0 === $data['process']->getExitCode() ? Job::STATE_FINISHED : Job::STATE_FAILED;
-            $newState = $this->stateChange($data['job'], $newState);
-
-            // For retry jobs, we set the state directly as we do not need to take care of
-            // dependencies for it.
-            if ($data['job']->isRetryJob()) {
-                $newState = $this->stateChange($data['job'], $newState);
-                $data['job']->setState($newState);
-            }
-
-            // If the job is set to failed, check whether we can schedule a retry job.
-            if (Job::STATE_FAILED === $newState) {
-                $originalJob = $data['job']->getOriginalJob();
-                if (count($originalJob->getRetryJobs()) < $originalJob->getMaxRetries()) {
-                    $retryJob = new Job($originalJob->getCommand(), $originalJob->getArgs());
-                    $retryJob->setMaxRuntime($originalJob->getMaxRuntime());
-                    $originalJob->addRetryJob($retryJob);
-
-                    $em->persist($retryJob);
-                    $em->persist($originalJob);
-                    $em->persist($data['job']);
-                    $em->flush();
-
-                    unset($this->runningJobs[$i]);
-
-                    continue;
-                }
-
-                $em->persist($data['job']);
-                $em->flush($data['job']);
-                $this->getRepository()->closeJob($originalJob, Job::STATE_FAILED);
-                unset($this->runningJobs[$i]);
-
-                continue;
-            }
-
-            if (Job::STATE_FINISHED === $newState) {
-                $this->getRepository()->closeJob($data['job']->getOriginalJob(), Job::STATE_FINISHED);
-
-                unset($this->runningJobs[$i]);
-
-                continue;
-            }
-
-            throw new LogicException(sprintf('The final state must either be finished, or failed, but got "%s".', $newState));
+            $this->getRepository()->closeJob($data['job'], $newState);
+            unset($this->runningJobs[$i]);
         }
-    }
-
-    private function stateChange(Job $job, $newState)
-    {
-        $event = new StateChangeEvent($job, $newState);
-        $this->dispatcher->dispatch('jms_job_queue.job_state_change', $event);
-
-        return $event->getNewState();
     }
 
     private function startJob(Job $job)
     {
         $event = new StateChangeEvent($job, Job::STATE_RUNNING);
         $this->dispatcher->dispatch('jms_job_queue.job_state_change', $event);
-        $job->setState($event->getNewState());
+        $newState = $event->getNewState();
 
+        if (Job::STATE_CANCELED === $newState) {
+            $this->getRepository()->closeJob($job, Job::STATE_CANCELED);
+
+            return;
+        }
+
+        if (Job::STATE_RUNNING !== $newState) {
+            throw new \LogicException(sprintf('Unsupported new state "%s".', $newState));
+        }
+
+        $job->setState(Job::STATE_RUNNING);
         $em = $this->getEntityManager();
         $em->persist($job);
         $em->flush($job);
-
-        // Job was canceled by an event listener.
-        if ($event->getNewState() === Job::STATE_CANCELED) {
-            return;
-        } else if ($event->getNewState() !== Job::STATE_RUNNING) {
-            throw new \LogicException(sprintf('Unsupported state "%s".', $event->getNewState()));
-        }
 
         $pb = new ProcessBuilder();
 
@@ -272,6 +226,23 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             'output_pointer' => 0,
             'error_output_pointer' => 0,
         );
+    }
+
+    /**
+     * Cleans up stale jobs.
+     *
+     * A stale job is a job where this command has exited with an error
+     * condition. Although this command is very robust, there might be cases
+     * where it might be terminated abruptly (like a PHP segfault, a SIGTERM signal, etc.).
+     *
+     * In such an error condition, these jobs are cleaned-up on restart of this command.
+     */
+    private function cleanUpStaleJobs()
+    {
+        $repo = $this->getRepository();
+        foreach ($repo->findBy(array('state' => Job::STATE_RUNNING)) as $job) {
+            $repo->closeJob($job, Job::STATE_INCOMPLETE);
+        }
     }
 
     private function getEntityManager()
