@@ -214,36 +214,48 @@ class JobRepository extends EntityRepository
         }
         $visited[] = $job;
 
-        if (null !== $this->dispatcher) {
+        if (null !== $this->dispatcher && ($job->isRetryJob() || 0 === count($job->getRetryJobs()))) {
             $event = new StateChangeEvent($job, $finalState);
             $this->dispatcher->dispatch('jms_job_queue.job_state_change', $event);
             $finalState = $event->getNewState();
         }
 
         switch ($finalState) {
+            case Job::STATE_CANCELED:
+                $job->setState(Job::STATE_CANCELED);
+                $this->_em->persist($job);
+
+                if ($job->isRetryJob()) {
+                    $this->closeJobInternal($job->getOriginalJob(), Job::STATE_CANCELED, $visited);
+
+                    return;
+                }
+
+                foreach ($this->findIncomingDependencies($job) as $dep) {
+                    $this->closeJobInternal($dep, Job::STATE_CANCELED, $visited);
+                }
+
+                return;
+
             case Job::STATE_FAILED:
             case Job::STATE_TERMINATED:
             case Job::STATE_INCOMPLETE:
-            case Job::STATE_CANCELED:
                 if ($job->isRetryJob()) {
                     $job->setState($finalState);
                     $this->_em->persist($job);
 
-                    $originalJob = $job->getOriginalJob();
-                    if ($originalJob->isRetryAllowed()) {
-                        $this->createRetryJob($originalJob);
-
-                        return;
-                    }
-
-                    $this->closeJobInternal($originalJob, $finalState);
+                    $this->closeJobInternal($job->getOriginalJob(), $finalState);
 
                     return;
                 }
 
                 // The original job has failed, and we are allowed to retry it.
                 if ($job->isRetryAllowed()) {
-                    $this->createRetryJob($job);
+                    $retryJob = new Job($job->getCommand(), $job->getArgs());
+                    $retryJob->setMaxRuntime($job->getMaxRuntime());
+                    $job->addRetryJob($retryJob);
+                    $this->_em->persist($retryJob);
+                    $this->_em->persist($job);
 
                     return;
                 }
@@ -252,10 +264,7 @@ class JobRepository extends EntityRepository
                 $this->_em->persist($job);
 
                 // The original job has failed, and no retries are allowed.
-                $incomingDeps = $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE :job MEMBER OF j.dependencies")
-                    ->setParameter('job', $job)
-                    ->getResult();
-                foreach ($incomingDeps as $dep) {
+                foreach ($this->findIncomingDependencies($job) as $dep) {
                     $this->closeJobInternal($dep, Job::STATE_CANCELED, $visited);
                 }
 
@@ -276,13 +285,11 @@ class JobRepository extends EntityRepository
         }
     }
 
-    private function createRetryJob(Job $job)
+    public function findIncomingDependencies(Job $job)
     {
-        $retryJob = new Job($job->getCommand(), $job->getArgs());
-        $retryJob->setMaxRuntime($job->getMaxRuntime());
-        $job->addRetryJob($retryJob);
-        $this->_em->persist($retryJob);
-        $this->_em->persist($job);
+        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE :job MEMBER OF j.dependencies")
+                    ->setParameter('job', $job)
+                    ->getResult();
     }
 
     public function getIncomingDependencies(Job $job)
