@@ -67,6 +67,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $this->output = $output;
         $this->registry = $this->getContainer()->get('doctrine');
         $this->dispatcher = $this->getContainer()->get('event_dispatcher');
+        $this->getEntityManager()->getConnection()->getConfiguration()->setSQLLogger(null);
 
         $this->cleanUpStaleJobs();
 
@@ -169,6 +170,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $this->getRepository()->closeJob($data['job'], $newState);
             unset($this->runningJobs[$i]);
         }
+
+        gc_collect_cycles();
     }
 
     private function startJob(Job $job)
@@ -241,6 +244,13 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     {
         $repo = $this->getRepository();
         foreach ($repo->findBy(array('state' => Job::STATE_RUNNING)) as $job) {
+            // If the original job has retry jobs, then one of them is still in
+            // running state. We can skip the original job here as it will be
+            // processed automatically once the retry job is processed.
+            if ( ! $job->isRetryJob() && count($job->getRetryJobs()) > 0) {
+                continue;
+            }
+
             $repo->closeJob($job, Job::STATE_INCOMPLETE);
         }
     }
