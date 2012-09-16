@@ -194,7 +194,7 @@ class JobRepository extends EntityRepository
             foreach ($visited as $job) {
                 // If the job is an original job which is now being retried, let's
                 // not remove it just yet.
-                if ( ! $job->isClosedNonSuccessful()) {
+                if ( ! $job->isClosedNonSuccessful() || $job->isRetryJob()) {
                     continue;
                 }
 

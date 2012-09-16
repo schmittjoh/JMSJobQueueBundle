@@ -219,6 +219,20 @@ class JobTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($a->hasDependency($b));
     }
 
+    public function testIsRetryAllowed()
+    {
+        $job = new Job('a');
+        $this->assertFalse($job->isRetryAllowed());
+
+        $job->setMaxRetries(1);
+        $this->assertTrue($job->isRetryAllowed());
+
+        $job->setState('running');
+        $retry = new Job('a');
+        $job->addRetryJob($retry);
+        $this->assertFalse($job->isRetryAllowed());
+    }
+
     private function setField($obj, $field, $value)
     {
         $ref = new \ReflectionProperty($obj, $field);

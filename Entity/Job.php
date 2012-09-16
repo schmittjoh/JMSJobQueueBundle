@@ -125,7 +125,7 @@ class Job
     /** @ORM\ManyToOne(targetEntity = "Job", inversedBy = "retryJobs") */
     private $originalJob;
 
-    /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove"}) */
+    /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove", "detach"}) */
     private $retryJobs;
 
     /** @ORM\Column(type = "object", nullable = true) */

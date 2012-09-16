@@ -145,6 +145,72 @@ class JobRepositoryTest extends BaseTestCase
         $this->assertEquals('canceled', $b->getState());
     }
 
+    public function testCloseJobDoesNotCreateRetryJobsWhenCanceled()
+    {
+        $a = new Job('a');
+        $a->setMaxRetries(4);
+        $b = new Job('b');
+        $b->setMaxRetries(4);
+        $b->addDependency($a);
+        $this->em->persist($a);
+        $this->em->persist($b);
+        $this->em->flush();
+
+        $this->dispatcher->expects($this->at(0))
+            ->method('dispatch')
+            ->with('jms_job_queue.job_state_change', new StateChangeEvent($a, 'canceled'));
+
+        $this->dispatcher->expects($this->at(1))
+            ->method('dispatch')
+            ->with('jms_job_queue.job_state_change', new StateChangeEvent($b, 'canceled'));
+
+        $this->repo->closeJob($a, 'canceled');
+        $this->assertEquals('canceled', $a->getState());
+        $this->assertCount(0, $a->getRetryJobs());
+        $this->assertEquals('canceled', $b->getState());
+        $this->assertCount(0, $b->getRetryJobs());
+    }
+
+    public function testCloseJobDoesNotCreateMoreThanAllowedRetries()
+    {
+        $a = new Job('a');
+        $a->setMaxRetries(2);
+        $a->setState('running');
+        $this->em->persist($a);
+        $this->em->flush();
+
+        $this->dispatcher->expects($this->at(0))
+            ->method('dispatch')
+            ->with('jms_job_queue.job_state_change', new StateChangeEvent($a, 'failed'));
+        $this->dispatcher->expects($this->at(1))
+            ->method('dispatch')
+            ->with('jms_job_queue.job_state_change', new \PHPUnit_Framework_Constraint_Not($this->equalTo(new StateChangeEvent($a, 'failed'))));
+        $this->dispatcher->expects($this->at(2))
+            ->method('dispatch')
+            ->with('jms_job_queue.job_state_change', new \PHPUnit_Framework_Constraint_Not($this->equalTo(new StateChangeEvent($a, 'failed'))));
+
+        $this->assertCount(0, $a->getRetryJobs());
+        $this->repo->closeJob($a, 'failed');
+        $this->assertEquals('running', $a->getState());
+        $this->assertCount(1, $a->getRetryJobs());
+
+        $a->getRetryJobs()->first()->setState('running');
+        $this->repo->closeJob($a->getRetryJobs()->first(), 'failed');
+        $this->assertCount(2, $a->getRetryJobs());
+        $this->assertEquals('failed', $a->getRetryJobs()->first()->getState());
+        $this->assertEquals('running', $a->getState());
+
+        $a->getRetryJobs()->last()->setState('running');
+        $this->repo->closeJob($a->getRetryJobs()->last(), 'terminated');
+        $this->assertCount(2, $a->getRetryJobs());
+        $this->assertEquals('terminated', $a->getRetryJobs()->last()->getState());
+        $this->assertEquals('terminated', $a->getState());
+
+        $this->em->clear();
+        $reloadedA = $this->em->find('JMSJobQueueBundle:Job', $a->getId());
+        $this->assertCount(2, $reloadedA->getRetryJobs());
+    }
+
     protected function setUp()
     {
         $this->createClient();
