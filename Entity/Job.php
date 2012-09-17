@@ -153,6 +153,11 @@ class Job
         return new self($command, $args, $confirmed);
     }
 
+    public static function isNonSuccessfulFinalState($state)
+    {
+        return in_array($state, array(self::STATE_CANCELED, self::STATE_FAILED, self::STATE_INCOMPLETE, self::STATE_TERMINATED), true);
+    }
+
     public function __construct($command, array $args = array(), $confirmed = true)
     {
         $this->command = $command;
@@ -266,7 +271,7 @@ class Job
 
     public function isClosedNonSuccessful()
     {
-        return $this->isCanceled() || $this->isTerminated() || $this->isFailed() || $this->isIncomplete();
+        return self::isNonSuccessfulFinalState($this->state);
     }
 
     public function findRelatedEntity($class)
