@@ -82,27 +82,29 @@ class JobController
                 );
             }
 
-            $statisticData = array(array_merge(array('Time'), $chars = array_keys($dataPerCharacteristic)));
-            $startTime = strtotime($dataPerCharacteristic[$chars[0]][0][0]);
-            $endTime = strtotime($dataPerCharacteristic[$chars[0]][count($dataPerCharacteristic[$chars[0]])-1][0]);
-            $scaleFactor = $endTime - $startTime > 300 ? 1/60 : 1;
+            if ($dataPerCharacteristic) {
+                $statisticData = array(array_merge(array('Time'), $chars = array_keys($dataPerCharacteristic)));
+                $startTime = strtotime($dataPerCharacteristic[$chars[0]][0][0]);
+                $endTime = strtotime($dataPerCharacteristic[$chars[0]][count($dataPerCharacteristic[$chars[0]])-1][0]);
+                $scaleFactor = $endTime - $startTime > 300 ? 1/60 : 1;
 
-            // This assumes that we have the same number of rows for each characteristic.
-            for ($i=0,$c=count(reset($dataPerCharacteristic)); $i<$c; $i++) {
-                $row = array((strtotime($dataPerCharacteristic[$chars[0]][$i][0]) - $startTime) * $scaleFactor);
-                foreach ($chars as $name) {
-                    $value = (float) $dataPerCharacteristic[$name][$i][1];
+                // This assumes that we have the same number of rows for each characteristic.
+                for ($i=0,$c=count(reset($dataPerCharacteristic)); $i<$c; $i++) {
+                    $row = array((strtotime($dataPerCharacteristic[$chars[0]][$i][0]) - $startTime) * $scaleFactor);
+                    foreach ($chars as $name) {
+                        $value = (float) $dataPerCharacteristic[$name][$i][1];
 
-                    switch ($name) {
-                        case 'memory':
-                            $value /= 1024 * 1024;
-                            break;
+                        switch ($name) {
+                            case 'memory':
+                                $value /= 1024 * 1024;
+                                break;
+                        }
+
+                        $row[] = $value;
                     }
 
-                    $row[] = $value;
+                    $statisticData[] = $row;
                 }
-
-                $statisticData[] = $row;
             }
         }
 
