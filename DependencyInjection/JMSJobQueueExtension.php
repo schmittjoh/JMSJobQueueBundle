@@ -40,5 +40,10 @@ class JMSJobQueueExtension extends Extension
 
         $loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
         $loader->load('services.xml');
+
+        $container->setParameter('jms_job_queue.statistics', $config['statistics']);
+        if ($config['statistics']) {
+            $loader->load('statistics.xml');
+        }
     }
 }

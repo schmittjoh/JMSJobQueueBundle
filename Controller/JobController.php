@@ -17,6 +17,9 @@ class JobController
     /** @DI\Inject */
     private $router;
 
+    /** @DI\Inject("%jms_job_queue.statistics%") */
+    private $statisticsEnabled;
+
     /**
      * @Route("/", name = "jms_jobs_overview")
      * @Template
@@ -69,10 +72,46 @@ class JobController
             );
         }
 
+        $statisticData = $statisticOptions = array();
+        if ($this->statisticsEnabled) {
+            $dataPerCharacteristic = array();
+            foreach ($this->registry->getManagerForClass('JMSJobQueueBundle:Job')->getConnection()->query("SELECT * FROM jms_job_statistics WHERE job_id = ".$job->getId()) as $row) {
+                $dataPerCharacteristic[$row['characteristic']][] = array(
+                    $row['createdAt'],
+                    $row['charValue'],
+                );
+            }
+
+            $statisticData = array(array_merge(array('Time'), $chars = array_keys($dataPerCharacteristic)));
+            $startTime = strtotime($dataPerCharacteristic[$chars[0]][0][0]);
+            $endTime = strtotime($dataPerCharacteristic[$chars[0]][count($dataPerCharacteristic[$chars[0]])-1][0]);
+            $scaleFactor = $endTime - $startTime > 300 ? 1/60 : 1;
+
+            // This assumes that we have the same number of rows for each characteristic.
+            for ($i=0,$c=count(reset($dataPerCharacteristic)); $i<$c; $i++) {
+                $row = array((strtotime($dataPerCharacteristic[$chars[0]][$i][0]) - $startTime) * $scaleFactor);
+                foreach ($chars as $name) {
+                    $value = (float) $dataPerCharacteristic[$name][$i][1];
+
+                    switch ($name) {
+                        case 'memory':
+                            $value /= 1024 * 1024;
+                            break;
+                    }
+
+                    $row[] = $value;
+                }
+
+                $statisticData[] = $row;
+            }
+        }
+
         return array(
             'job' => $job,
             'relatedEntities' => $relatedEntities,
             'incomingDependencies' => $this->getRepo()->getIncomingDependencies($job),
+            'statisticData' => $statisticData,
+            'statisticOptions' => $statisticOptions,
         );
     }
 

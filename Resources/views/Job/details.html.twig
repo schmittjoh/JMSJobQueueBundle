@@ -129,10 +129,26 @@
 <pre style="max-height:300px; overflow:auto;">{{ job.errorOutput }}</pre>
 {% endif %}
 
+{% if statisticData is not empty %}
+<h3>Statistics</h3>
+<div id="statistics" style="width:900px; height:300px;"></div>
+{% endif %}
+
 {% endblock %}
 
 {% block javascripts %}
     {{ parent() }}
+
+    {% if statisticData is not empty %}
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+        google.load("visualization", "1", {packages:["corechart"]});
+        google.setOnLoadCallback(function() {
+            var chart = new google.visualization.LineChart($('#statistics').get(0));
+            chart.draw(google.visualization.arrayToDataTable({{ statisticData|json_encode|raw }}), {{ statisticOptions|json_encode|raw }});
+        });
+    </script>
+    {% endif %}
 
     <script language="javascript" type="text/javascript">//<![CDATA[
 
