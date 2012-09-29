@@ -29,7 +29,24 @@ class JobQueueExtension extends \Twig_Extension
     {
         return array(
             'jms_job_queue_linkname' => new \Twig_Filter_Method($this, 'getLinkname'),
+            'jms_job_queue_args' => new \Twig_Filter_Method($this, 'formatArgs'),
         );
+    }
+
+    public function formatArgs(array $args, $maxLength = 60)
+    {
+        $str = '';
+        foreach ($args as $arg) {
+            $argLength = strlen($arg);
+            if (strlen($str) + $argLength > $maxLength) {
+                $str .= substr($arg, 0, $maxLength - strlen($str) - 4).'...';
+                break;
+            }
+
+            $str .= $arg;
+        }
+
+        return $str;
     }
 
     public function isLinkable($entity)

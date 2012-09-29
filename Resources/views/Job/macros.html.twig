@@ -21,9 +21,7 @@
 {%- endmacro %}
 
 {% macro command(job) -%}
-    <code>{{ job.command }}
-        {%- for arg in job.args %} {{ arg }}{% endfor -%}
-    </code>
+    <code style="width:300px; overflow:hidden; white-space:nowrap;">{{ job.command }} {{ job.args|jms_job_queue_args }}</code>
 {%- endmacro %}
 
 {% macro ago(time, format) -%}
