@@ -36,8 +36,15 @@ class JobQueueExtension extends \Twig_Extension
     public function formatArgs(array $args, $maxLength = 60)
     {
         $str = '';
+        $first = true;
         foreach ($args as $arg) {
             $argLength = strlen($arg);
+
+            if ( ! $first) {
+                $str .= ' ';
+            }
+            $first = false;
+
             if (strlen($str) + $argLength > $maxLength) {
                 $str .= substr($arg, 0, $maxLength - strlen($str) - 4).'...';
                 break;
