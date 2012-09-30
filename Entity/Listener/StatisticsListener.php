@@ -10,6 +10,11 @@ class StatisticsListener
     {
         $schema = $event->getSchema();
 
+        // When using multiple entity managers ignore events that are triggered by other entity managers.
+        if ($event->getEntityManager()->getMetadataFactory()->isTransient('JMS\JobQueueBundle\Entity\Job')) {
+            return;
+        }
+
         $table = $schema->createTable('jms_job_statistics');
         $table->addColumn('job_id', 'bigint', array('nullable' => false));
         $table->addColumn('characteristic', 'string', array('length' => 30, 'nullable' => false));

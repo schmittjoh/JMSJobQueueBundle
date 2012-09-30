@@ -4,7 +4,16 @@ doctrine:
         memory:   true
 
     orm:
-        auto_generate_proxy_classes: %kernel.debug%
+        auto_generate_proxy_classes: "%kernel.debug%"
         entity_managers:
+            jobs:
+                mappings:
+                    JMSJobQueueBundle:
+                        is_bundle: true
+                        type: annotation
+
             default:
-                auto_mapping: true
+                mappings:
+                    TestBundle:
+                        is_bundle: true
+                        type: annotation                        

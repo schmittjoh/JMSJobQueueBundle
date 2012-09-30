@@ -2,6 +2,10 @@
 
 namespace JMS\JobQueueBundle\Tests\Functional;
 
+use JMS\JobQueueBundle\Tests\Functional\TestBundle\Entity\Train;
+
+use JMS\JobQueueBundle\Tests\Functional\TestBundle\Entity\Wagon;
+
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Doctrine\ORM\EntityManager;
 use JMS\JobQueueBundle\Entity\Repository\JobRepository;
@@ -209,6 +213,36 @@ class JobRepositoryTest extends BaseTestCase
         $this->em->clear();
         $reloadedA = $this->em->find('JMSJobQueueBundle:Job', $a->getId());
         $this->assertCount(2, $reloadedA->getRetryJobs());
+    }
+
+    public function testModifyingRelatedEntity()
+    {
+        $wagon = new Wagon();
+        $train = new Train();
+        $wagon->train = $train;
+
+        $defEm = self::$kernel->getContainer()->get('doctrine')->getManager('default');
+        $defEm->persist($wagon);
+        $defEm->persist($train);
+        $defEm->flush();
+
+        $j = new Job('j');
+        $j->addRelatedEntity($wagon);
+        $this->em->persist($j);
+        $this->em->flush();
+
+        $defEm->clear();
+        $this->em->clear();
+        $this->assertNotSame($defEm, $this->em);
+
+        $reloadedJ = $this->em->find('JMSJobQueueBundle:Job', $j->getId());
+
+        $reloadedWagon = $reloadedJ->findRelatedEntity('JMS\JobQueueBundle\Tests\Functional\TestBundle\Entity\Wagon');
+        $reloadedWagon->state = 'broken';
+        $defEm->persist($reloadedWagon);
+        $defEm->flush();
+
+        $this->assertTrue($defEm->contains($reloadedWagon->train));
     }
 
     protected function setUp()

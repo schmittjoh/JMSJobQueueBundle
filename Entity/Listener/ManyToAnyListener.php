@@ -63,6 +63,11 @@ class ManyToAnyListener
     {
         $schema = $event->getSchema();
 
+        // When using multiple entity managers ignore events that are triggered by other entity managers.
+        if ($event->getEntityManager()->getMetadataFactory()->isTransient('JMS\JobQueueBundle\Entity\Job')) {
+            return;
+        }
+
         $table = $schema->createTable('jms_job_related_entities');
         $table->addColumn('job_id', 'bigint', array('nullable' => false));
         $table->addColumn('related_class', 'string', array('nullable' => false, 'length' => '150'));

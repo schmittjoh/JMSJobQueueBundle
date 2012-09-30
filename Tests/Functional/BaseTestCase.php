@@ -2,6 +2,8 @@
 
 namespace JMS\JobQueueBundle\Tests\Functional;
 
+use Doctrine\ORM\EntityManager;
+
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class BaseTestCase extends WebTestCase
@@ -12,10 +14,16 @@ class BaseTestCase extends WebTestCase
 
         return new AppKernel($config);
     }
+
     protected final function importDatabaseSchema()
     {
-        $em = self::$kernel->getContainer()->get('doctrine.orm.entity_manager');
+        foreach (self::$kernel->getContainer()->get('doctrine')->getManagers() as $em) {
+            $this->importSchemaForEm($em);
+        }
+    }
 
+    private function importSchemaForEm(EntityManager $em)
+    {
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         if (!empty($metadata)) {
             $schemaTool = new \Doctrine\ORM\Tools\SchemaTool($em);
