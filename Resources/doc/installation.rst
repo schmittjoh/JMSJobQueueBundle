@@ -64,6 +64,27 @@ exception stack traces for your jobs, you need to add the following to your
         type: annotation
         prefix: /jobs
 
+and include the ``pagerfanta/pagerfanta`` package in your composer file:
+
+.. code-block :: js
+
+    // composer.json
+    {
+        // ...
+        require: {
+            // ...
+            "jms/job-queue-bundle": "dev-master",
+            "pagerfanta/pagerfanta": "dev-master"
+        }
+    }
+
+then update your dependencies using
+
+.. code-block :: bash
+
+    php composer.phar update
+
+
 Typically, you would also want to add some access control restrictions for these
 actions. If you are using ``JMSSecurityExtraBundle`` this could look like this:
 
