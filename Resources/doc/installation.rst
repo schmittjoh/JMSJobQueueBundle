@@ -48,7 +48,7 @@ register the new bundle:
 In order to gather debugging information like exceptions, you also need to
 replace the default Application class in your ``app/console`` file. Simply,
 exchange the namespace ``Symfony\Bundle\FrameworkBundle\Console\Application``
-for ``JMS\JobQueueBundle\Console\Application`` in ``app/console``.
+for ``JMS\JobQueueBundle\Console\Application`` in ``app/console``, and add ``$kernel->boot();`` before the ``$application = ...`` line
 
 
 Enabling the Webinterface
