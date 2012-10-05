@@ -18,6 +18,8 @@
 
 namespace JMS\JobQueueBundle\Command;
 
+use Symfony\Component\Process\Exception\ProcessFailedException;
+
 use JMS\JobQueueBundle\Exception\LogicException;
 use JMS\JobQueueBundle\Exception\InvalidArgumentException;
 use JMS\JobQueueBundle\Event\NewOutputEvent;
@@ -195,25 +197,11 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $em->persist($job);
         $em->flush($job);
 
-        $pb = new ProcessBuilder();
-
-        // PHP wraps the process in "sh -c" by default, but we need to control
-        // the process directly.
-        if ( ! defined('PHP_WINDOWS_VERSION_MAJOR')) {
-            $pb->add('exec');
-        }
-
+        $pb = $this->getCommandProcessBuilder();
         $pb
-            ->add('php')
-            ->add($this->getContainer()->getParameter('kernel.root_dir').'/console')
             ->add($job->getCommand())
-            ->add('--env='.$this->env)
             ->add('--jms-job-id='.$job->getId())
         ;
-
-        if ($this->verbose) {
-            $pb->add('--verbose');
-        }
 
         foreach ($job->getArgs() as $arg) {
             $pb->add($arg);
@@ -251,8 +239,43 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
                 continue;
             }
 
-            $repo->closeJob($job, Job::STATE_INCOMPLETE);
+            $pb = $this->getCommandProcessBuilder();
+            $pb
+                ->add('jms-job-queue:mark-incomplete')
+                ->add($job->getId())
+            ;
+
+            // We use a separate process to clean up.
+            $proc = $pb->getProcess();
+            if (0 !== $proc->run()) {
+                $ex = new ProcessFailedException($proc);
+
+                $this->output->writeln(sprintf('There was an error when marking %s as incomplete: %s', $job, $ex->getMessage()));
+            }
         }
+    }
+
+    private function getCommandProcessBuilder()
+    {
+        $pb = new ProcessBuilder();
+
+        // PHP wraps the process in "sh -c" by default, but we need to control
+        // the process directly.
+        if ( ! defined('PHP_WINDOWS_VERSION_MAJOR')) {
+            $pb->add('exec');
+        }
+
+        $pb
+            ->add('php')
+            ->add($this->getContainer()->getParameter('kernel.root_dir').'/console')
+            ->add('--env='.$this->env)
+        ;
+
+        if ($this->verbose) {
+            $pb->add('--verbose');
+        }
+
+        return $pb;
     }
 
     private function getEntityManager()
