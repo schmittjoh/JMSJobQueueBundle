@@ -243,6 +243,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $pb
                 ->add('jms-job-queue:mark-incomplete')
                 ->add($job->getId())
+                ->add('--env='.$this->env)
+                ->add('--verbose')
             ;
 
             // We use a separate process to clean up.
