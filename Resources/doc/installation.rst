@@ -31,8 +31,8 @@ command from the directory where your ``composer.json`` file is located:
     composer update jms/job-queue-bundle
 
 Now, Composer will automatically download all required files, and install them
-for you. All that is left to do is to update your ``AppKernel.php`` file, and
-register the new bundle:
+for you. Next you need to update your ``AppKernel.php`` file, and register the
+new bundle:
 
 .. code-block :: php
 
@@ -45,10 +45,12 @@ register the new bundle:
         // ...
     );
 
-In order to gather debugging information like exceptions, you also need to
-replace the default Application class in your ``app/console`` file. Simply,
-exchange the namespace ``Symfony\Bundle\FrameworkBundle\Console\Application``
-for ``JMS\JobQueueBundle\Console\Application`` in ``app/console``.
+Finally, have your ``app/console`` use JMSJobQueueBundle's ``Application``:
+
+.. code-block :: php
+
+    // use Symfony\Bundle\FrameworkBundle\Console\Application;
+    use JMS\JobQueueBundle\Console\Application;
 
 
 Enabling the Webinterface
