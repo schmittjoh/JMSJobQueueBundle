@@ -48,7 +48,7 @@ register the new bundle:
 In order to gather debugging information like exceptions, you also need to
 replace the default Application class in your ``app/console`` file. Simply,
 exchange the namespace ``Symfony\Bundle\FrameworkBundle\Console\Application``
-for ``JMS\JobQueueBundle\Console\Application`` in ``app/console``.
+for ``JMS\JobQueueBundle\Console\Application`` in ``app/console``, and add ``$kernel->boot();`` before the ``$application = ...`` line
 
 
 Enabling the Webinterface
@@ -63,6 +63,27 @@ exception stack traces for your jobs, you need to add the following to your
         resource: "@JMSJobQueueBundle/Controller/"
         type: annotation
         prefix: /jobs
+
+and include the ``pagerfanta/pagerfanta`` package in your composer file:
+
+.. code-block :: js
+
+    // composer.json
+    {
+        // ...
+        require: {
+            // ...
+            "jms/job-queue-bundle": "dev-master",
+            "pagerfanta/pagerfanta": "dev-master"
+        }
+    }
+
+then update your dependencies using
+
+.. code-block :: bash
+
+    php composer.phar update
+
 
 Typically, you would also want to add some access control restrictions for these
 actions. If you are using ``JMSSecurityExtraBundle`` this could look like this:
