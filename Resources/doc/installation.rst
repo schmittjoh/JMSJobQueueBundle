@@ -57,6 +57,7 @@ Enabling the Webinterface
 =========================
 If you also want to use the webinterface where you can view the outputs, and
 exception stack traces for your jobs, you need to add the following to your
+
 ``routing.yml``:
 
 .. code-block :: yaml
@@ -65,6 +66,26 @@ exception stack traces for your jobs, you need to add the following to your
         resource: "@JMSJobQueueBundle/Controller/"
         type: annotation
         prefix: /jobs
+
+and also include the ``pagerfanta/pagerfanta`` package in your composer file:
+
+.. code-block :: js
+
+    // composer.json
+    {
+        // ...
+        require: {
+            // ...
+            "jms/job-queue-bundle": "dev-master",
+            "pagerfanta/pagerfanta": "dev-master"
+        }
+    }
+
+Then, update your dependencies using
+
+.. code-block :: bash
+
+    php composer.phar update
 
 Typically, you would also want to add some access control restrictions for these
 actions. If you are using ``JMSSecurityExtraBundle`` this could look like this:
