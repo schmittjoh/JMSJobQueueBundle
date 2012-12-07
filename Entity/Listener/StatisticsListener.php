@@ -16,7 +16,7 @@ class StatisticsListener
         }
 
         $table = $schema->createTable('jms_job_statistics');
-        $table->addColumn('job_id', 'bigint', array('nullable' => false));
+        $table->addColumn('job_id', 'bigint', array('nullable' => false, 'unsigned' => true));
         $table->addColumn('characteristic', 'string', array('length' => 30, 'nullable' => false));
         $table->addColumn('createdAt', 'datetime', array('nullable' => false));
         $table->addColumn('charValue', 'float', array('nullable' => false));
