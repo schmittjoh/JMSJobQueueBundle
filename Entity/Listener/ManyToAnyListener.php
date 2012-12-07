@@ -69,7 +69,7 @@ class ManyToAnyListener
         }
 
         $table = $schema->createTable('jms_job_related_entities');
-        $table->addColumn('job_id', 'bigint', array('nullable' => false));
+        $table->addColumn('job_id', 'bigint', array('nullable' => false, 'unsigned' => true));
         $table->addColumn('related_class', 'string', array('nullable' => false, 'length' => '150'));
         $table->addColumn('related_id', 'string', array('nullable' => false, 'length' => '100'));
         $table->setPrimaryKey(array('job_id', 'related_class', 'related_id'));
