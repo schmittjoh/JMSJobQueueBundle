@@ -169,6 +169,22 @@ class Job
         $this->relatedEntities = new ArrayCollection();
     }
 
+    public function __clone()
+    {
+        $this->state = self::STATE_PENDING;
+        $this->createdAt = new \DateTime();
+        $this->startedAt = null;
+        $this->checkedAt = null;
+        $this->closedAt = null;
+        $this->output = null;
+        $this->errorOutput = null;
+        $this->exitCode = null;
+        $this->stackTrace = null;
+        $this->runtime = null;
+        $this->memoryUsage = null;
+        $this->memoryUsageReal = null;
+    }
+
     public function getId()
     {
         return $this->id;

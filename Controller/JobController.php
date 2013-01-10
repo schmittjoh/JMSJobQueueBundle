@@ -132,20 +132,7 @@ class JobController
             throw new \Symfony\Component\HttpKernel\Exception\HttpException(400, 'Given job can\'t be retried');
         }
 
-        $retryJob = new \JMS\JobQueueBundle\Entity\Job(
-            $job->getCommand(),
-            $job->getArgs()
-        );
-
-        $retryJob->setMaxRuntime($job->getMaxRuntime());
-
-        foreach ($job->getDependencies() as $dependency) {
-            $retryJob->addDependency($dependency);
-        }
-
-        foreach ($job->getRelatedEntities() as $entity) {
-            $retryJob->addRelatedEntity($entity);
-        }
+        $retryJob = clone $job;
 
         $this->getEm()->persist($retryJob);
         $this->getEm()->flush();
