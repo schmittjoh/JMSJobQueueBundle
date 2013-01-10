@@ -117,6 +117,44 @@ class JobController
         );
     }
 
+    /**
+     * @Route("/{id}/retry", name = "jms_jobs_retry_job")
+     */
+    public function retryJobAction(\JMS\JobQueueBundle\Entity\Job $job)
+    {
+        $state = $job->getState();
+
+        if (
+            \JMS\JobQueueBundle\Entity\Job::STATE_FAILED !== $state &&
+            \JMS\JobQueueBundle\Entity\Job::STATE_TERMINATED !== $state &&
+            \JMS\JobQueueBundle\Entity\Job::STATE_INCOMPLETE !== $state
+        ) {
+            throw new \Symfony\Component\HttpKernel\Exception\HttpException(400, 'Given job can\'t be retried');
+        }
+
+        $retryJob = new \JMS\JobQueueBundle\Entity\Job(
+            $job->getCommand(),
+            $job->getArgs()
+        );
+
+        $retryJob->setMaxRuntime($job->getMaxRuntime());
+
+        foreach ($job->getDependencies() as $dependency) {
+            $retryJob->addDependency($dependency);
+        }
+
+        foreach ($job->getRelatedEntities() as $entity) {
+            $retryJob->addRelatedEntity($entity);
+        }
+
+        $this->getEm()->persist($retryJob);
+        $this->getEm()->flush();
+
+        $url = $this->router->generate('jms_jobs_details', array('id' => $retryJob->getId()), false);
+
+        return new \Symfony\Component\HttpFoundation\RedirectResponse($url, 201);
+    }
+
     /** @return \Doctrine\ORM\EntityManager */
     private function getEm()
     {
