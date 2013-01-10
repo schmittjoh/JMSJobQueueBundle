@@ -2,9 +2,16 @@
 
 namespace JMS\JobQueueBundle\Controller;
 
+use Doctrine\Common\Util\ClassUtils;
 use JMS\DiExtraBundle\Annotation as DI;
+use JMS\JobQueueBundle\Entity\Job;
+use Pagerfanta\Adapter\DoctrineORMAdapter;
+use Pagerfanta\Pagerfanta;
+use Pagerfanta\View\TwitterBootstrapView;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class JobController
 {
@@ -38,11 +45,11 @@ class JobController
             $qb->setParameter($i, $job->getId());
         }
 
-        $pager = new \Pagerfanta\Pagerfanta(new \Pagerfanta\Adapter\DoctrineORMAdapter($qb));
+        $pager = new Pagerfanta(new DoctrineORMAdapter($qb));
         $pager->setCurrentPage(max(1, (integer) $this->request->query->get('page', 1)));
         $pager->setMaxPerPage(max(5, min(50, (integer) $this->request->query->get('per_page', 20))));
 
-        $pagerView = new \Pagerfanta\View\TwitterBootstrapView();
+        $pagerView = new TwitterBootstrapView();
         $router = $this->router;
         $routeGenerator = function($page) use ($router, $pager) {
             return $router->generate('jms_jobs_overview', array('page' => $page, 'per_page' => $pager->getMaxPerPage()));
@@ -60,11 +67,11 @@ class JobController
      * @Route("/{id}", name = "jms_jobs_details")
      * @Template
      */
-    public function detailsAction(\JMS\JobQueueBundle\Entity\Job $job)
+    public function detailsAction(Job $job)
     {
         $relatedEntities = array();
         foreach ($job->getRelatedEntities() as $entity) {
-            $class = \Doctrine\Common\Util\ClassUtils::getClass($entity);
+            $class = ClassUtils::getClass($entity);
             $relatedEntities[] = array(
                 'class' => $class,
                 'id' => json_encode($this->registry->getManagerForClass($class)->getClassMetadata($class)->getIdentifierValues($entity)),
@@ -120,16 +127,16 @@ class JobController
     /**
      * @Route("/{id}/retry", name = "jms_jobs_retry_job")
      */
-    public function retryJobAction(\JMS\JobQueueBundle\Entity\Job $job)
+    public function retryJobAction(Job $job)
     {
         $state = $job->getState();
 
         if (
-            \JMS\JobQueueBundle\Entity\Job::STATE_FAILED !== $state &&
-            \JMS\JobQueueBundle\Entity\Job::STATE_TERMINATED !== $state &&
-            \JMS\JobQueueBundle\Entity\Job::STATE_INCOMPLETE !== $state
+            Job::STATE_FAILED !== $state &&
+            Job::STATE_TERMINATED !== $state &&
+            Job::STATE_INCOMPLETE !== $state
         ) {
-            throw new \Symfony\Component\HttpKernel\Exception\HttpException(400, 'Given job can\'t be retried');
+            throw new HttpException(400, 'Given job can\'t be retried');
         }
 
         $retryJob = clone $job;
@@ -139,7 +146,7 @@ class JobController
 
         $url = $this->router->generate('jms_jobs_details', array('id' => $retryJob->getId()), false);
 
-        return new \Symfony\Component\HttpFoundation\RedirectResponse($url, 201);
+        return new RedirectResponse($url, 201);
     }
 
     /** @return \Doctrine\ORM\EntityManager */
