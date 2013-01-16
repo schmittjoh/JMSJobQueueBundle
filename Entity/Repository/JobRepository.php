@@ -174,7 +174,7 @@ class JobRepository extends EntityRepository
             $excludedIds = array(-1);
         }
 
-        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE j.state = :state AND j.id NOT IN (:excludedIds) ORDER BY j.id ASC")
+        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE j.executeAt < CURRENT_TIMESTAMP() AND j.state = :state AND j.id NOT IN (:excludedIds) ORDER BY j.id ASC")
                     ->setParameter('state', Job::STATE_PENDING)
                     ->setParameter('excludedIds', $excludedIds)
                     ->setMaxResults(1)
