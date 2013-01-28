@@ -56,6 +56,6 @@ If you want to schedule a job :
     $job = new Job('a');
     $date = new DateTime();
     $date->add(new DateInterval('PT30M'));
-    $job->setExecuteAt($date);
+    $job->setExecuteAfter($date);
     $em->persist($job);
     $em->flush();

@@ -90,7 +90,7 @@ class Job
     private $checkedAt;
 
     /** @ORM\Column(type = "datetime", nullable = true) */
-    private $executeAt;
+    private $executeAfter;
 
     /** @ORM\Column(type = "datetime", nullable = true) */
     private $closedAt;
@@ -274,14 +274,14 @@ class Job
         return $this->closedAt;
     }
 
-    public function getExecuteAt()
+    public function getExecuteAfter()
     {
-        return $this->executeAt;
+        return $this->executeAfter;
     }
 
-    public function setExecuteAt(\DateTime $executeAt)
+    public function setExecuteAfter(\DateTime $executeAfter)
     {
-        $this->executeAt = $executeAt;
+        $this->executeAfter = $executeAfter;
     }
 
     public function getCommand()
