@@ -167,7 +167,7 @@ class Job
         $this->args = $args;
         $this->state = $confirmed ? self::STATE_PENDING : self::STATE_NEW;
         $this->createdAt = new \DateTime();
-        $this->executeAt = new \DateTime();
+        $this->executeAfter = new \DateTime();
         $this->dependencies = new ArrayCollection();
         $this->retryJobs = new ArrayCollection();
         $this->relatedEntities = new ArrayCollection();
