@@ -64,6 +64,7 @@ class JobTest extends \PHPUnit_Framework_TestCase
     public function testStateToFailed(Job $job)
     {
         $job = clone $job;
+        $job->setState('running');
         $job->setState('failed');
         $this->assertEquals('failed', $job->getState());
     }
@@ -74,6 +75,7 @@ class JobTest extends \PHPUnit_Framework_TestCase
     public function testStateToTerminated(Job $job)
     {
         $job = clone $job;
+        $job->setState('running');
         $job->setState('terminated');
         $this->assertEquals('terminated', $job->getState());
     }
@@ -84,6 +86,7 @@ class JobTest extends \PHPUnit_Framework_TestCase
     public function testStateToFinished(Job $job)
     {
         $job = clone $job;
+        $job->setState('running');
         $job->setState('finished');
         $this->assertEquals('finished', $job->getState());
     }
