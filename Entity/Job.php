@@ -90,6 +90,9 @@ class Job
     private $checkedAt;
 
     /** @ORM\Column(type = "datetime", nullable = true) */
+    private $executeAfter;
+
+    /** @ORM\Column(type = "datetime", nullable = true) */
     private $closedAt;
 
     /** @ORM\Column(type = "string") */
@@ -164,6 +167,7 @@ class Job
         $this->args = $args;
         $this->state = $confirmed ? self::STATE_PENDING : self::STATE_NEW;
         $this->createdAt = new \DateTime();
+        $this->executeAfter = new \DateTime();
         $this->dependencies = new ArrayCollection();
         $this->retryJobs = new ArrayCollection();
         $this->relatedEntities = new ArrayCollection();
@@ -268,6 +272,16 @@ class Job
     public function getClosedAt()
     {
         return $this->closedAt;
+    }
+
+    public function getExecuteAfter()
+    {
+        return $this->executeAfter;
+    }
+
+    public function setExecuteAfter(\DateTime $executeAfter)
+    {
+        $this->executeAfter = $executeAfter;
     }
 
     public function getCommand()

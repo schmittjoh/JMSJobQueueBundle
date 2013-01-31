@@ -44,3 +44,18 @@ easily, the job provides a special many-to-any association:
     $em->flush();
 
     $em->getRepository('JMSJobQueueBundle:Job')->findJobForRelatedEntity('a', $anyEntity);
+
+Schedule a Jobs
+===============
+If you want to schedule a job :
+
+.. code-block :: php
+
+    <?php
+
+    $job = new Job('a');
+    $date = new DateTime();
+    $date->add(new DateInterval('PT30M'));
+    $job->setExecuteAfter($date);
+    $em->persist($job);
+    $em->flush();
