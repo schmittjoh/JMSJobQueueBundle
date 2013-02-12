@@ -119,7 +119,9 @@ class JobRepositoryTest extends BaseTestCase
         $this->assertTrue($this->em->contains($b));
 
         $excludedIds = array();
-        $this->assertEquals($b->getId(), $this->repo->findStartableJob($excludedIds)->getId());
+        $startableJob = $this->repo->findStartableJob($excludedIds);
+        $this->assertNotNull($startableJob);
+        $this->assertEquals($b->getId(), $startableJob->getId());
         $this->assertEquals(array($a->getId()), $excludedIds);
         $this->assertFalse($this->em->contains($a));
         $this->assertTrue($this->em->contains($b));
