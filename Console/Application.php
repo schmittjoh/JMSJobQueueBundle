@@ -82,7 +82,9 @@ class Application extends BaseApplication
             'id' => $jobId,
             'memoryUsage' => memory_get_peak_usage(),
             'memoryUsageReal' => memory_get_peak_usage(true),
-            'trace' => serialize($ex ? FlattenException::create($ex) : null),
+            'trace' => $ex ? FlattenException::create($ex) : null,
+        ), array(
+            'trace' => 'object',
         ));
     }
 
