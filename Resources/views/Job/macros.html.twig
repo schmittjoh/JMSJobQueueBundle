@@ -27,3 +27,9 @@
 {% macro ago(time, format) -%}
     <time class="timeago" datetime="{{ time.format(constant("DateTime::ISO8601")) }}">{{ time.format(format|default("Y-m-d H:i:s")) }}</time>
 {%- endmacro %}
+
+{% macro runtime(job) -%}
+    {%- if job.canceled or job.terminated or job.failed or job.incomplete or job.finished -%}
+        <span>{{ job.runTime }} s</span>
+    {%- endif %}
+{%- endmacro %}
