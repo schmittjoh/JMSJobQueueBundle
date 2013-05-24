@@ -1,6 +1,8 @@
 <?php
 
 namespace JMS\JobQueueBundle\Entity\Listener;
+use Doctrine\ORM\Event\LifecycleEventArgs;
+use JMS\JobQueueBundle\Entity\Job;
 
 /**
  * Provides many-to-any association support for jobs.
@@ -32,6 +34,19 @@ class ManyToAnyListener
         }
 
         $this->ref->setValue($entity, new PersistentRelatedEntitiesCollection($this->registry, $entity));
+    }
+
+    public function preRemove(LifecycleEventArgs $event)
+    {
+        $entity = $event->getEntity();
+        if ( ! $entity instanceof Job) {
+            return;
+        }
+
+        $con = $event->getEntityManager()->getConnection();
+        $con->executeUpdate("DELETE FROM jms_job_related_entities WHERE job_id = :id", array(
+            'id' => $entity->getId(),
+        ));
     }
 
     public function postPersist(\Doctrine\ORM\Event\LifecycleEventArgs $event)

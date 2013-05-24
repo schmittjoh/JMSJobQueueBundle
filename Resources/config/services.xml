@@ -15,6 +15,7 @@
             <tag name="doctrine.event_listener" lazy="true" event="postGenerateSchema" />
             <tag name="doctrine.event_listener" lazy="true" event="postLoad" />
             <tag name="doctrine.event_listener" lazy="true" event="postPersist" />
+            <tag name="doctrine.event_listener" lazy="true" event="preRemove" />
         </service>
 
         <service id="jms_job_queue.twig.extension" class="%jms_job_queue.twig.extension.class%">
