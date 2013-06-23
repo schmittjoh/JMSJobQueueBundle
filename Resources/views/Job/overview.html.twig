@@ -18,6 +18,7 @@
             <th>Command</th>
             <th>State</th>
             <th>Created At</th>
+            <th>Runtime</th>
         </tr>
     </thead>
 
@@ -29,10 +30,11 @@
             <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ macros.command(job) }}</a></td>
             <td>{{ macros.state(job) }}</td>
             <td>{{ macros.ago(job.createdAt) }}</td>
+            <td>{{ macros.runtime(job) }}</td>
         </tr>
         {% endfor %}
         <tr>
-            <td style="height:4px; background-color: #ccc;" colspan="4"></td>
+            <td style="height:4px; background-color: #ccc;" colspan="5"></td>
         </tr>
         {% endif %}
 
@@ -42,6 +44,7 @@
             <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ macros.command(job) }}</a></td>
             <td>{{ macros.state(job) }}</td>
             <td>{{ macros.ago(job.createdAt) }}</td>
+            <td>{{ macros.runtime(job) }}</td>
         </tr>
         {% else %}
         <tr>

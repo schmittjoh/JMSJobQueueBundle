@@ -26,6 +26,16 @@
         <th>Created</th>
         <td>{{ macros.ago(job.createdAt) }}</td>
     </tr>
+    {% if job.closedAt %}
+    <tr>
+        <th>Runtime</th>
+        <td>{{ macros.runtime(job) }}</td>
+    </tr>
+    <tr>
+        <th>Closed</th>
+        <td>{{ macros.ago(job.closedAt) }}</td>
+    </tr>
+    {% endif %}
     {% if job.isRetryJob() %}
     <tr>
         <th>Original Job</th>
