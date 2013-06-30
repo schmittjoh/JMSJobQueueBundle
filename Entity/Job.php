@@ -127,7 +127,7 @@ class Job
 
     /**
      * @ORM\ManyToOne(targetEntity = "Job", inversedBy = "retryJobs")
-     * @ORM\JoinColumn(name="originalJobId", referencedColumnName="id")
+     * @ORM\JoinColumn(name="originalJob_id", referencedColumnName="id")
      */
     private $originalJob;
 
