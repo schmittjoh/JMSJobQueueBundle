@@ -138,7 +138,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             if ($data['job']->getMaxRuntime() > 0 && $runtime > $data['job']->getMaxRuntime()) {
                 $data['process']->stop(5);
 
-                $this->output->writeln($job.' terminated; maximum runtime exceeded.');
+                $this->output->writeln($data['job'].' terminated; maximum runtime exceeded.');
                 $this->getRepository()->closeJob($data['job'], Job::STATE_TERMINATED);
                 unset($this->runningJobs[$i]);
 
