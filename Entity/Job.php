@@ -28,6 +28,7 @@ use Symfony\Component\HttpKernel\Exception\FlattenException;
  * @ORM\Entity(repositoryClass = "JMS\JobQueueBundle\Entity\Repository\JobRepository")
  * @ORM\Table(name = "jms_jobs", indexes = {
  *     @ORM\Index(columns = {"command"}),
+ *     @ORM\Index("job_runner", columns = {"executeAfter", "state"}),
  * })
  * @ORM\ChangeTrackingPolicy("DEFERRED_EXPLICIT")
  *
@@ -134,7 +135,7 @@ class Job
     /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove", "detach"}) */
     private $retryJobs;
 
-    /** @ORM\Column(type = "object", name="stackTrace", nullable = true) */
+    /** @ORM\Column(type = "jms_job_safe_object", name="stackTrace", nullable = true) */
     private $stackTrace;
 
     /** @ORM\Column(type = "smallint", nullable = true, options = {"unsigned": true}) */
