@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class JobController
-{
+{//only one comment
     /** @DI\Inject("doctrine") */
     private $registry;
 
