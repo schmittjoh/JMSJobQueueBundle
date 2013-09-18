@@ -132,7 +132,8 @@ class Job
     /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove", "detach"}) */
     private $retryJobs;
 
-    /** @ORM\Column(type = "jms_job_safe_object", nullable = true) */
+    // modify this field type from jms_job_safe_object to text in order it works with postgres
+    /** @ORM\Column(type = "text", nullable = true) */
     private $stackTrace;
 
     /** @ORM\Column(type = "smallint", nullable = true, options = {"unsigned": true}) */
