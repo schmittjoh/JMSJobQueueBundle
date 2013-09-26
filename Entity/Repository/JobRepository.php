@@ -308,4 +308,12 @@ class JobRepository extends EntityRepository
                     ->setMaxResults($nbJobs)
                     ->getResult();
     }
+
+    public function findAllRunningByCommand($command)
+    {
+        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.command = :command AND j.state = :state ")
+            ->setParameter('command', $command)
+            ->setParameter('state', Job::STATE_RUNNING)
+            ->getResult();
+    }    
 }
