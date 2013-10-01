@@ -317,7 +317,7 @@ class JobRepository extends EntityRepository
             ->getResult();
     }    
 
-    public function findAllRunningByCommandAndBase(($command, $base)
+    public function findAllRunningByCommandAndBase($command, $base)
     {
         list($relClass, $relId) = $this->getRelatedEntityIdentifier($base);
 
