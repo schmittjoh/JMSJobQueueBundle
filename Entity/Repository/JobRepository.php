@@ -316,4 +316,23 @@ class JobRepository extends EntityRepository
             ->setParameter('state', Job::STATE_RUNNING)
             ->getResult();
     }    
+
+    public function findAllRunningByCommandAndBase(($command, $base)
+    {
+        list($relClass, $relId) = $this->getRelatedEntityIdentifier($base);
+
+        $rsm = new ResultSetMappingBuilder($this->_em);
+        $rsm->addRootEntityFromClassMetadata('JMSJobQueueBundle:Job', 'j');
+
+        return $this->_em->createNativeQuery("SELECT j.* FROM jms_jobs j INNER JOIN jms_job_related_entities r ON r.job_id = j.id 
+                                                WHERE j.command = :command 
+                                                    AND j.state = :state 
+                                                    AND r.related_class = :relClass 
+                                                    AND r.related_id = :relId", $rsm)
+                    ->setParameter('command', $command)
+                    ->setParameter('state', Job::STATE_RUNNING)        
+                    ->setParameter('relClass', $relClass)
+                    ->setParameter('relId', $relId)
+                    ->getResult();
+    }
 }
