@@ -1,0 +1,61 @@
+{% extends "JMSJobQueueBundle::base.html.twig" %}
+{% import "JMSJobQueueBundle:Job:macros.html.twig" as macros %}
+
+{% block title %}Overview - {{ parent() }}{% endblock %}
+
+{% block content %}
+
+<h1><div class="page-header">Overview</div></h1>
+
+{% if jobPager.haveToPaginate %}
+    {{ jobPagerView.render(jobPager, jobPagerGenerator)|raw }}
+{% endif %}
+
+<table class="table table-bordered table-striped table-condensed">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Command</th>
+            <th>State</th>
+            <th>Created At</th>
+            <th>Runtime</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% if jobPager.currentPage == 1 and jobsWithError|length > 0 %}
+        {% for job in jobsWithError %}
+        <tr>
+            <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ job.id }}</a></td>
+            <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ macros.command(job) }}</a></td>
+            <td>{{ macros.state(job) }}</td>
+            <td>{{ macros.ago(job.createdAt) }}</td>
+            <td>{{ macros.runtime(job) }}</td>
+        </tr>
+        {% endfor %}
+        <tr>
+            <td style="height:4px; background-color: #ccc;" colspan="5"></td>
+        </tr>
+        {% endif %}
+
+        {% for job in jobPager %}
+        <tr>
+            <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ job.id }}</a></td>
+            <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ macros.command(job) }}</a></td>
+            <td>{{ macros.state(job) }}</td>
+            <td>{{ macros.ago(job.createdAt) }}</td>
+            <td>{{ macros.runtime(job) }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4">There are no jobs.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if jobPager.haveToPaginate %}
+    {{ jobPagerView.render(jobPager, jobPagerGenerator)|raw }}
+{% endif %}
+
+{% endblock %}

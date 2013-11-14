@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <parameters>
+        <parameter key="jms_job_queue.entity.many_to_any_listener.class">JMS\JobQueueBundle\Entity\Listener\ManyToAnyListener</parameter>
+        <parameter key="jms_job_queue.twig.extension.class">JMS\JobQueueBundle\Twig\JobQueueExtension</parameter>
+    </parameters>
+
+    <services>
+        <service id="jms_job_queue.entity.many_to_any_listener" class="%jms_job_queue.entity.many_to_any_listener.class%">
+            <argument type="service" id="doctrine" />
+            <tag name="doctrine.event_listener" lazy="true" event="postGenerateSchema" />
+            <tag name="doctrine.event_listener" lazy="true" event="postLoad" />
+            <tag name="doctrine.event_listener" lazy="true" event="postPersist" />
+            <tag name="doctrine.event_listener" lazy="true" event="preRemove" />
+        </service>
+
+        <service id="jms_job_queue.twig.extension" class="%jms_job_queue.twig.extension.class%">
+            <tag name="twig.extension" />
+        </service>
+    </services>
+</container>

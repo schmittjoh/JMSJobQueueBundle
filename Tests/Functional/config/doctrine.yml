@@ -1,0 +1,19 @@
+doctrine:
+    dbal:
+        driver:   pdo_sqlite
+        memory:   true
+
+    orm:
+        auto_generate_proxy_classes: "%kernel.debug%"
+        entity_managers:
+            jobs:
+                mappings:
+                    JMSJobQueueBundle:
+                        is_bundle: true
+                        type: annotation
+
+            default:
+                mappings:
+                    TestBundle:
+                        is_bundle: true
+                        type: annotation                        

@@ -1,0 +1,35 @@
+{% macro state(job) -%}
+    {% if job.new -%}
+        <span class="label">New</span>
+    {%- elseif job.pending -%}
+        <span class="label">Pending</span>
+    {%- elseif job.running -%}
+        <span class="label label-info">Running</span>
+    {%- elseif job.canceled -%}
+        <span class="label label-inverse">Canceled</span>
+    {%- elseif job.terminated -%}
+        <span class="label label-important">Terminated</span>
+    {%- elseif job.failed -%}
+        <span class="label label-important">Failed</span>
+    {%- elseif job.incomplete -%}
+        <span class="label label-important">Incomplete</span>
+    {%- elseif job.finished -%}
+        <span class="label label-success">Finished</span>
+    {%- else -%}
+        <span class="label label-warning">Unknown</span>
+    {%- endif %}
+{%- endmacro %}
+
+{% macro command(job) -%}
+    <code style="width:300px; overflow:hidden; white-space:nowrap;">{{ job.command }} {{ job.args|jms_job_queue_args }}</code>
+{%- endmacro %}
+
+{% macro ago(time, format) -%}
+    <time class="timeago" datetime="{{ time.format(constant("DateTime::ISO8601")) }}">{{ time.format(format|default("Y-m-d H:i:s")) }}</time>
+{%- endmacro %}
+
+{% macro runtime(job) -%}
+    {%- if job.canceled or job.terminated or job.failed or job.incomplete or job.finished -%}
+        <span>{{ job.runTime }} s</span>
+    {%- endif %}
+{%- endmacro %}
