@@ -81,19 +81,19 @@ class Job
     /** @ORM\Column(type = "string") */
     private $state;
 
-    /** @ORM\Column(type = "datetime") */
+    /** @ORM\Column(type = "datetime", name="createdAt") */
     private $createdAt;
 
-    /** @ORM\Column(type = "datetime", nullable = true) */
+    /** @ORM\Column(type = "datetime", name="startedAt", nullable = true) */
     private $startedAt;
 
-    /** @ORM\Column(type = "datetime", nullable = true) */
+    /** @ORM\Column(type = "datetime", name="checkedAt", nullable = true) */
     private $checkedAt;
 
-    /** @ORM\Column(type = "datetime", nullable = true) */
+    /** @ORM\Column(type = "datetime", name="executeAfter", nullable = true) */
     private $executeAfter;
 
-    /** @ORM\Column(type = "datetime", nullable = true) */
+    /** @ORM\Column(type = "datetime", name="closedAt", nullable = true) */
     private $closedAt;
 
     /** @ORM\Column(type = "string") */
@@ -114,34 +114,37 @@ class Job
     /** @ORM\Column(type = "text", nullable = true) */
     private $output;
 
-    /** @ORM\Column(type = "text", nullable = true) */
+    /** @ORM\Column(type = "text", name="errorOutput", nullable = true) */
     private $errorOutput;
 
-    /** @ORM\Column(type = "smallint", nullable = true, options = {"unsigned": true}) */
+    /** @ORM\Column(type = "smallint", name="exitCode", nullable = true, options = {"unsigned": true}) */
     private $exitCode;
 
-    /** @ORM\Column(type = "smallint", options = {"unsigned": true}) */
+    /** @ORM\Column(type = "smallint", name="maxRuntime", options = {"unsigned": true}) */
     private $maxRuntime = 0;
 
-    /** @ORM\Column(type = "smallint", options = {"unsigned": true}) */
+    /** @ORM\Column(type = "smallint", name="maxRetries", options = {"unsigned": true}) */
     private $maxRetries = 0;
 
-    /** @ORM\ManyToOne(targetEntity = "Job", inversedBy = "retryJobs") */
+    /**
+     * @ORM\ManyToOne(targetEntity = "Job", inversedBy = "retryJobs")
+     * @ORM\JoinColumn(name="originalJob_id", referencedColumnName="id")
+     */
     private $originalJob;
 
     /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove", "detach"}) */
     private $retryJobs;
 
-    /** @ORM\Column(type = "jms_job_safe_object", nullable = true) */
+    /** @ORM\Column(type = "jms_job_safe_object", name="stackTrace", nullable = true) */
     private $stackTrace;
 
     /** @ORM\Column(type = "smallint", nullable = true, options = {"unsigned": true}) */
     private $runtime;
 
-    /** @ORM\Column(type = "integer", nullable = true, options = {"unsigned": true}) */
+    /** @ORM\Column(type = "integer", name="memoryUsage", nullable = true, options = {"unsigned": true}) */
     private $memoryUsage;
 
-    /** @ORM\Column(type = "integer", nullable = true, options = {"unsigned": true}) */
+    /** @ORM\Column(type = "integer", name="memoryUsageReal", nullable = true, options = {"unsigned": true}) */
     private $memoryUsageReal;
 
     /**

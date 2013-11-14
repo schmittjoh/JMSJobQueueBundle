@@ -24,7 +24,7 @@ quite easily:
 
     $job = new Job('a');
     $dependentJob = new Job('b');
-    $dependentJob->addJobDependency($job);
+    $dependentJob->addDependency($job);
     $em->persist($job);
     $em->persist($dependentJob);
     $em->flush();
