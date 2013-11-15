@@ -11,6 +11,15 @@
 
 <div class="page-header">
     <h1>Job "{{ job.command }}" <small>(ID: {{ job.id }})</small></h1>
+    {% if job.isNew or job.isPending %}
+        <div>
+            <a href="{{ path("jms_jobs_cancel_job", {"id": job.id}) }}" class="pull-right btn btn-info">
+                <i class="icon-trash icon-white"></i>
+                Cancel Job
+            </a>
+        </div>
+        <div class="clearfix"></div>
+    {% endif %}
 </div>
 
 <table class="table table-bordered table-striped">
@@ -25,6 +34,10 @@
     <tr>
         <th>Created</th>
         <td>{{ macros.ago(job.createdAt) }}</td>
+    </tr>
+    <tr>
+        <th>Execute After</th>
+        <td>{{ macros.ago(job.executeAfter) }}</td>
     </tr>
     {% if job.closedAt %}
     <tr>
@@ -145,6 +158,7 @@
     <p style="margin-bottom: 0; line-height: 30px">Click on the next button to create a new job to retry this failed one.</p>
 </div>
 {% endif %}
+
 
 {% if statisticData is not empty %}
 <h3>Statistics</h3>
