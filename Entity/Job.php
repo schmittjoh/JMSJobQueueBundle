@@ -192,6 +192,7 @@ class Job
         $this->runtime = null;
         $this->memoryUsage = null;
         $this->memoryUsageReal = null;
+        $this->relatedEntities = new ArrayCollection();
     }
 
     public function getId()
