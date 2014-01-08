@@ -75,7 +75,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
         $this->cleanUpStaleJobs();
 
-        $queue = (integer) $input->getOption('queue');
+        $queue = $input->getOption('queue');
 
         while (time() - $startTime < $maxRuntime) {
             $this->checkRunningJobs();
