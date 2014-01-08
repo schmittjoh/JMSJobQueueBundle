@@ -51,6 +51,23 @@ class RunCommandTest extends BaseTestCase
         $this->assertEquals('finished', $job->getState());
     }
 
+
+    public function testMultipleQueue()
+    {
+        $job = new Job('jms-job-queue:successful-cmd');
+        $this->em->persist($job);
+
+        $job2 = new Job('jms-job-queue:successful-cmd');
+        $job2->setQueue("queue2");
+        $this->em->persist($job2);
+
+        $this->em->flush();
+
+        $this->doRun(array('--max-runtime' => 1));
+        $this->assertEquals('finished', $job->getState());
+        $this->assertEquals('finished', $job2->getState());
+    }
+
     /**
      * @group retry
      */

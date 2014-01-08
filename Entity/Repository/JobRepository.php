@@ -309,4 +309,29 @@ class JobRepository extends EntityRepository
                     ->setMaxResults($nbJobs)
                     ->getResult();
     }
+
+    public function getAvailableQueueList()
+    {
+        $queues =  $this->_em->createQuery("SELECT DISTINCT j.queue FROM JMSJobQueueBundle:Job j WHERE j.state IN (:availableStates)  GROUP BY j.queue")
+            ->setParameter('availableStates', array(Job::STATE_RUNNING, Job::STATE_NEW, Job::STATE_PENDING))
+            ->getResult();
+
+        $newQueueArray = array();
+
+        foreach($queues as $queue) {
+            $newQueue = $queue['queue'];
+            $newQueueArray[] = $newQueue;
+        }
+
+        return $newQueueArray;
+    }
+
+
+    public function getAvailableJobsForQueueCount($jobQueue)
+    {
+        return count($this->_em->createQuery("SELECT j.queue FROM JMSJobQueueBundle:Job j WHERE j.state IN (:availableStates) AND j.queue = :queue")
+            ->setParameter('availableStates', array(Job::STATE_RUNNING, Job::STATE_NEW, Job::STATE_PENDING))
+            ->setParameter('queue', $jobQueue)
+            ->getResult());
+    }
 }

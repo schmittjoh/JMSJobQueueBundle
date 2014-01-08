@@ -39,6 +39,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     private $registry;
     private $dispatcher;
     private $runningJobs = array();
+    private $runningJobQueueCount = array();
 
     protected function configure()
     {
@@ -47,7 +48,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             ->setDescription('Runs jobs from the queue.')
             ->addOption('max-runtime', 'r', InputOption::VALUE_REQUIRED, 'The maximum runtime in seconds.', 900)
             ->addOption('max-concurrent-jobs', 'j', InputOption::VALUE_REQUIRED, 'The maximum number of concurrent jobs.', 5)
-            ->addOption('queue', 'q', InputOption::VALUE_REQUIRED, 'The queue to run this command for.', "default")
+            ->addOption('queue', 'qu', InputOption::VALUE_OPTIONAL, 'The queue to run this command for.',null)
 
         ;
     }
@@ -80,17 +81,33 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         while (time() - $startTime < $maxRuntime) {
             $this->checkRunningJobs();
 
-            $excludedIds = array();
-            while (count($this->runningJobs) < $maxConcurrentJobs) {
-                if (null === $pendingJob = $this->getRepository()->findStartableJob($excludedIds,$queue)) {
-                    sleep(2);
-                    continue 2; // Check if the maximum runtime has been exceeded.
+            $jobQueueList = null;
+
+            if($queue == null) {
+                $jobQueueList  = $this->getRepository()->getAvailableQueueList();
+            } else {
+                $jobQueueList  = array("default");
+            }
+
+            foreach($jobQueueList as $jobQueue) {
+                $excludedIds = array();
+
+                if(!isset($this->runningJobQueueCount[$jobQueue])) {
+                    $this->runningJobQueueCount[$jobQueue] = 0;
                 }
 
-                $this->startJob($pendingJob);
-                sleep(1);
-                $this->checkRunningJobs();
+                while ($this->runningJobQueueCount[$jobQueue] < $maxConcurrentJobs && $this->getRepository()->getAvailableJobsForQueueCount($jobQueue) > 0) {
+                    if (null === $pendingJob = $this->getRepository()->findStartableJob($excludedIds,$jobQueue)) {
+                        sleep(2);
+                        continue 2;
+                    }
+
+                    $this->startJob($pendingJob);
+                    sleep(1);
+                    $this->checkRunningJobs();
+                }
             }
+
 
             sleep(2);
         }
@@ -144,6 +161,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
                 $this->output->writeln($data['job'].' terminated; maximum runtime exceeded.');
                 $this->getRepository()->closeJob($data['job'], Job::STATE_TERMINATED);
+                $jobQueue = $data['job']->getQueue();
+                $this->runningQueueJobCount[$jobQueue] = $this->runningQueueJobCount[$jobQueue]--;
                 unset($this->runningJobs[$i]);
 
                 continue;
@@ -174,6 +193,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
             $newState = 0 === $data['process']->getExitCode() ? Job::STATE_FINISHED : Job::STATE_FAILED;
             $this->getRepository()->closeJob($data['job'], $newState);
+            $jobQueue = $data['job']->getQueue();
+            $this->runningJobQueueCount[$jobQueue] = $this->runningJobQueueCount[$jobQueue]--;
             unset($this->runningJobs[$i]);
         }
 
@@ -221,6 +242,14 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             'output_pointer' => 0,
             'error_output_pointer' => 0,
         );
+
+        $jobQueue = $job->getQueue();
+        if(isset($this->runningJobQueueCount[$jobQueue])) {
+            $this->runningJobQueueCount[$jobQueue] = $this->runningJobQueueCount[$jobQueue] + 1;
+        } else {
+            $this->runningJobQueueCount[$jobQueue] = 1;
+        }
+
     }
 
     /**
