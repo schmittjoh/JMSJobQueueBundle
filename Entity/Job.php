@@ -81,6 +81,9 @@ class Job
     /** @ORM\Column(type = "string") */
     private $state;
 
+    /** @ORM\Column(type = "string") */
+    private $queue;
+
     /** @ORM\Column(type = "datetime", name="createdAt") */
     private $createdAt;
 
@@ -155,9 +158,9 @@ class Job
      */
     private $relatedEntities;
 
-    public static function create($command, array $args = array(), $confirmed = true)
+    public static function create($command, array $args = array(), $confirmed = true, $queue = "default")
     {
-        return new self($command, $args, $confirmed);
+        return new self($command, $args, $confirmed, $queue);
     }
 
     public static function isNonSuccessfulFinalState($state)
@@ -165,11 +168,12 @@ class Job
         return in_array($state, array(self::STATE_CANCELED, self::STATE_FAILED, self::STATE_INCOMPLETE, self::STATE_TERMINATED), true);
     }
 
-    public function __construct($command, array $args = array(), $confirmed = true)
+    public function __construct($command, array $args = array(), $confirmed = true, $queue = "default")
     {
         $this->command = $command;
         $this->args = $args;
         $this->state = $confirmed ? self::STATE_PENDING : self::STATE_NEW;
+        $this->queue = $queue;
         $this->createdAt = new \DateTime();
         $this->executeAfter = new \DateTime();
         $this->executeAfter = $this->executeAfter->modify('-1 second');
@@ -181,6 +185,7 @@ class Job
     public function __clone()
     {
         $this->state = self::STATE_PENDING;
+        $this->queue = "default";
         $this->createdAt = new \DateTime();
         $this->startedAt = null;
         $this->checkedAt = null;
@@ -511,6 +516,16 @@ class Job
     public function getStackTrace()
     {
         return $this->stackTrace;
+    }
+
+    public function setQueue($queue)
+    {
+        $this->queue = $queue;
+    }
+
+    public function getQueue()
+    {
+        return $this->queue;
     }
 
     public function isNew()
