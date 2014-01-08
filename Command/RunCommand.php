@@ -86,7 +86,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             if($queue == null) {
                 $jobQueueList  = $this->getRepository()->getAvailableQueueList();
             } else {
-                $jobQueueList  = array("default");
+                $jobQueueList  = array($queue);
             }
 
             foreach($jobQueueList as $jobQueue) {
