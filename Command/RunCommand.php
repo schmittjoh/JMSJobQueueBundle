@@ -75,12 +75,14 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
         $this->cleanUpStaleJobs();
 
+        $queue = (integer) $input->getOption('queue');
+
         while (time() - $startTime < $maxRuntime) {
             $this->checkRunningJobs();
 
             $excludedIds = array();
             while (count($this->runningJobs) < $maxConcurrentJobs) {
-                if (null === $pendingJob = $this->getRepository()->findStartableJob($excludedIds)) {
+                if (null === $pendingJob = $this->getRepository()->findStartableJob($excludedIds,$queue)) {
                     sleep(2);
                     continue 2; // Check if the maximum runtime has been exceeded.
                 }

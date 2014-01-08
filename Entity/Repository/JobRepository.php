@@ -104,9 +104,9 @@ class JobRepository extends EntityRepository
         return $firstJob;
     }
 
-    public function findStartableJob(array &$excludedIds = array())
+    public function findStartableJob(array &$excludedIds = array(), $queue = "default")
     {
-        while (null !== $job = $this->findPendingJob($excludedIds)) {
+        while (null !== $job = $this->findPendingJob($excludedIds, $queue)) {
             if ($job->isStartable()) {
                 return $job;
             }
@@ -169,16 +169,17 @@ class JobRepository extends EntityRepository
         return array($relClass, json_encode($relId));
     }
 
-    public function findPendingJob(array $excludedIds = array())
+    public function findPendingJob(array $excludedIds = array(), $queue = "default")
     {
         if ( ! $excludedIds) {
             $excludedIds = array(-1);
         }
 
-        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE j.executeAfter < :now AND j.state = :state AND j.id NOT IN (:excludedIds) ORDER BY j.id ASC")
+        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE j.executeAfter < :now AND j.state = :state AND j.queue = :queue AND j.id NOT IN (:excludedIds) ORDER BY j.id ASC")
                     ->setParameter('state', Job::STATE_PENDING)
                     ->setParameter('excludedIds', $excludedIds)
                     ->setParameter('now', new DateTime())
+                    ->setParameter('queue', $queue)
                     ->setMaxResults(1)
                     ->getOneOrNullResult();
     }
