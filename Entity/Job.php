@@ -28,7 +28,7 @@ use Symfony\Component\HttpKernel\Exception\FlattenException;
  * @ORM\Entity(repositoryClass = "JMS\JobQueueBundle\Entity\Repository\JobRepository")
  * @ORM\Table(name = "jms_jobs", indexes = {
  *     @ORM\Index(columns = {"command"}),
- *     @ORM\Index("job_runner", columns = {"executeAfter", "state"}),
+ *     @ORM\Index("job_runner", columns = {"executeAfter", "state","queue"}),
  * })
  * @ORM\ChangeTrackingPolicy("DEFERRED_EXPLICIT")
  *
@@ -74,6 +74,15 @@ class Job
      * in a state of FAILED.
      */
     const STATE_INCOMPLETE = 'incomplete';
+
+    /**
+     * State if an error occurs in the runner command.
+     *
+     * The runner command is the command that actually launches the individual
+     * jobs. If instead an error occurs in the job command, this will result
+     * in a state of FAILED.
+     */
+    const DEFAULT_QUEUE = 'default';
 
     /** @ORM\Id @ORM\GeneratedValue(strategy = "AUTO") @ORM\Column(type = "bigint", options = {"unsigned": true}) */
     private $id;
@@ -168,7 +177,7 @@ class Job
         return in_array($state, array(self::STATE_CANCELED, self::STATE_FAILED, self::STATE_INCOMPLETE, self::STATE_TERMINATED), true);
     }
 
-    public function __construct($command, array $args = array(), $confirmed = true, $queue = "default")
+    public function __construct($command, array $args = array(), $confirmed = true, $queue = self::DEFAULT_QUEUE)
     {
         $this->command = $command;
         $this->args = $args;
@@ -185,7 +194,7 @@ class Job
     public function __clone()
     {
         $this->state = self::STATE_PENDING;
-        $this->queue = "default";
+        $this->queue = self::DEFAULT_QUEUE;
         $this->createdAt = new \DateTime();
         $this->startedAt = null;
         $this->checkedAt = null;
@@ -516,11 +525,6 @@ class Job
     public function getStackTrace()
     {
         return $this->stackTrace;
-    }
-
-    public function setQueue($queue)
-    {
-        $this->queue = $queue;
     }
 
     public function getQueue()
