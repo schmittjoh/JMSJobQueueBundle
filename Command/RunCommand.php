@@ -166,7 +166,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
                 $this->output->writeln($data['job'].' terminated; maximum runtime exceeded.');
                 $this->getRepository()->closeJob($data['job'], Job::STATE_TERMINATED);
                 $jobQueue = $data['job']->getQueue();
-                $this->runningQueueJobCount[$jobQueue] = $this->runningQueueJobCount[$jobQueue]--;
+                $this->runningJobQueueCount[$jobQueue]--;
                 unset($this->runningJobs[$i]);
 
                 continue;
@@ -198,7 +198,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $newState = 0 === $data['process']->getExitCode() ? Job::STATE_FINISHED : Job::STATE_FAILED;
             $this->getRepository()->closeJob($data['job'], $newState);
             $jobQueue = $data['job']->getQueue();
-            $this->runningJobQueueCount[$jobQueue] = $this->runningJobQueueCount[$jobQueue]--;
+            $this->runningJobQueueCount[$jobQueue]--;
             unset($this->runningJobs[$i]);
         }
 
