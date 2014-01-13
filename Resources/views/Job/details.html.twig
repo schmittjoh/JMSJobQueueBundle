@@ -137,6 +137,9 @@
 {% if job.errorOutput is not empty %}
 <h3>Error Output</h3>
 <pre style="max-height:300px; overflow:auto;">{{ job.errorOutput }}</pre>
+{% endif %}
+
+{% if job.state == 'failed' or job.errorOutput is not empty %}
 <div class="alert alert-warn">
     <a href="{{ path("jms_jobs_retry_job", {"id": job.id}) }}" class="pull-right btn btn-danger">
         <i class="icon-repeat icon-white"></i>
