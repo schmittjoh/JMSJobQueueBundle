@@ -355,7 +355,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $runningCount = 0;
         foreach($this->runningJobQueueCount as $key => $queueCount){
             if($queueCount > 0) {
-                $runningCount = $runningCount + $queueCount;
+                $runningCount += $queueCount;
             }
         }
 

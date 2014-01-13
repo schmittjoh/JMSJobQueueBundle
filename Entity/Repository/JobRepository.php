@@ -336,10 +336,8 @@ class JobRepository extends EntityRepository
 
         if(!is_null($result)) {
             return 1;
-        } else {
-            return 0;
         }
-
-
+        
+        return 0;
     }
 }
