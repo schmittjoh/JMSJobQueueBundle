@@ -192,7 +192,6 @@ class Job
         $this->runtime = null;
         $this->memoryUsage = null;
         $this->memoryUsageReal = null;
-        $this->relatedEntities = new ArrayCollection();
     }
 
     public function getId()
@@ -466,11 +465,9 @@ class Job
             throw new \LogicException($this.' must be in state "PENDING".');
         }
 
-        if (null !== $this->originalJob) {
-            throw new \LogicException($this.' already has an original job set.');
+        if (null === $this->originalJob) {
+            $this->originalJob = $job;
         }
-
-        $this->originalJob = $job;
     }
 
     public function addRetryJob(Job $job)
