@@ -129,7 +129,7 @@ class JobController
      */
     public function retryJobAction(Job $job)
     {
-        $state = $job->getState();
+        $state = $job->getOriginalJob()->getState();
 
         if (
             Job::STATE_FAILED !== $state &&
