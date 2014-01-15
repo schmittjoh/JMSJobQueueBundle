@@ -332,12 +332,9 @@ class JobRepository extends EntityRepository
         $result = $this->_em->createQuery("SELECT j.queue FROM JMSJobQueueBundle:Job j WHERE j.state IN (:availableStates) AND j.queue = :queue")
             ->setParameter('availableStates', array(Job::STATE_RUNNING, Job::STATE_NEW, Job::STATE_PENDING))
             ->setParameter('queue', $jobQueue)
+            ->setMaxResults(1)
             ->getOneOrNullResult();
 
-        if(!is_null($result)) {
-            return 1;
-        }
-        
-        return 0;
+        return count($result);
     }
 }

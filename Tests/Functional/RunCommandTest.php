@@ -83,6 +83,70 @@ class RunCommandTest extends BaseTestCase
         $this->assertEquals('finished', $job6->getState());
     }
 
+
+    public function testOneQueueRunning()
+    {
+        $job = new Job('jms-job-queue:successful-cmd');
+        $this->em->persist($job);
+
+        $job2 = new Job('jms-job-queue:successful-cmd',array(),true, "queue1");
+        $this->em->persist($job2);
+
+        $job3 = new Job('jms-job-queue:successful-cmd',array(),true, "queue1");
+        $this->em->persist($job3);
+
+        $job4 = new Job('jms-job-queue:successful-cmd',array(),true, "queue1");
+        $this->em->persist($job4);
+
+        $job5 = new Job('jms-job-queue:successful-cmd',array(),true, "queue1");
+        $this->em->persist($job5);
+
+        $job6 = new Job('jms-job-queue:successful-cmd',array(),true, "queue5");
+        $this->em->persist($job6);
+
+        $this->em->flush();
+
+        $this->doRun(array('--max-runtime' => 1,'--queue' => "queue1"));
+        $this->assertEquals('pending', $job->getState());
+        $this->assertEquals('finished', $job2->getState());
+        $this->assertEquals('finished', $job3->getState());
+        $this->assertEquals('finished', $job4->getState());
+        $this->assertEquals('finished', $job5->getState());
+        $this->assertEquals('pending', $job6->getState());
+    }
+
+    public function testDefaultQueueRunning()
+    {
+        $job = new Job('jms-job-queue:successful-cmd');
+        $this->em->persist($job);
+
+        $job2 = new Job('jms-job-queue:successful-cmd');
+        $this->em->persist($job2);
+
+        $job3 = new Job('jms-job-queue:successful-cmd');
+        $this->em->persist($job3);
+
+        $job4 = new Job('jms-job-queue:successful-cmd');
+        $this->em->persist($job4);
+
+        $job5 = new Job('jms-job-queue:successful-cmd');
+        $this->em->persist($job5);
+
+        $job6 = new Job('jms-job-queue:successful-cmd');
+        $this->em->persist($job6);
+
+        $this->em->flush();
+
+        $this->doRun(array('--max-runtime' => 1));
+        $this->assertEquals('finished', $job->getState());
+        $this->assertEquals('finished', $job2->getState());
+        $this->assertEquals('finished', $job3->getState());
+        $this->assertEquals('finished', $job4->getState());
+        $this->assertEquals('finished', $job5->getState());
+        $this->assertEquals('finished', $job6->getState());
+    }
+
+
     /**
      * @group retry
      */
