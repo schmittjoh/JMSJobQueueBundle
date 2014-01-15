@@ -33,3 +33,7 @@
         <span>{{ job.runTime }} s</span>
     {%- endif %}
 {%- endmacro %}
+
+{% macro queue(job) -%}
+        <span>{{ job.queue }} s</span>
+{%- endmacro %}

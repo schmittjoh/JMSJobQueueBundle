@@ -29,7 +29,7 @@ class JobController
 
     /**
      * @Route("/", name = "jms_jobs_overview")
-     * @Template
+     * @Template("JMSJobQueueBundle:Job:overview.html.twig")
      */
     public function overviewAction()
     {
@@ -65,7 +65,7 @@ class JobController
 
     /**
      * @Route("/{id}", name = "jms_jobs_details")
-     * @Template
+     * @Template("JMSJobQueueBundle:Job:details.html.twig")
      */
     public function detailsAction(Job $job)
     {

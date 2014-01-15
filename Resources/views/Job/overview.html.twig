@@ -19,6 +19,7 @@
             <th>State</th>
             <th>Created At</th>
             <th>Runtime</th>
+            <th>Queue</th>
         </tr>
     </thead>
 
@@ -31,6 +32,7 @@
             <td>{{ macros.state(job) }}</td>
             <td>{{ macros.ago(job.createdAt) }}</td>
             <td>{{ macros.runtime(job) }}</td>
+            <td>{{ macros.queue(job) }}</td>
         </tr>
         {% endfor %}
         <tr>
@@ -45,6 +47,7 @@
             <td>{{ macros.state(job) }}</td>
             <td>{{ macros.ago(job.createdAt) }}</td>
             <td>{{ macros.runtime(job) }}</td>
+            <td>{{ macros.queue(job) }}</td>
         </tr>
         {% else %}
         <tr>
