@@ -59,3 +59,15 @@ If you want to schedule a job :
     $job->setExecuteAfter($date);
     $em->persist($job);
     $em->flush();
+    
+Use A Specific Queue
+====================
+If you want to use a specific queue :
+
+.. code-block :: php
+
+    <?php
+
+    $job = new Job('a', array(), true, "aCoolQueue");
+    $em->persist($job);
+    $em->flush();
