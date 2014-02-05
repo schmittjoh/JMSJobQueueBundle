@@ -140,11 +140,33 @@ class JobController
         }
 
         $retryJob = clone $job;
+        $retryJob->setOriginalJob($job);
 
         $this->getEm()->persist($retryJob);
         $this->getEm()->flush();
 
         $url = $this->router->generate('jms_jobs_details', array('id' => $retryJob->getId()), false);
+
+        return new RedirectResponse($url, 201);
+    }
+
+    /**
+     * @Route("/{id}/cancel", name = "jms_jobs_cancel_job")
+     */
+    public function cancelJobAction(Job $job)
+    {
+        $state = $job->getState();
+
+        if (
+            Job::STATE_NEW !== $state &&
+            Job::STATE_PENDING !== $state
+        ) {
+            throw new HttpException(400, 'Given job can\'t be canceled');
+        }
+
+        $this->getRepo()->closeJob($job, Job::STATE_CANCELED);
+
+        $url = $this->router->generate('jms_jobs_details', array('id' => $job->getId()), false);
 
         return new RedirectResponse($url, 201);
     }

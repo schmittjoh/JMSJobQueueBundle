@@ -216,9 +216,14 @@ class Job
         return true;
     }
 
-    public function setState($newState)
+    public function setState($newState, $force=False)
     {
         if ($newState === $this->state) {
+            return;
+        }
+        if ($force === True) {
+            $this->state = $newState;
+            $this->closedAt = new \DateTime();
             return;
         }
 
@@ -256,11 +261,15 @@ class Job
                 $this->closedAt = new \DateTime();
 
                 break;
+            case self::STATE_FAILED:
+            case self::STATE_INCOMPLETE:
+                if ( ! in_array($newState, array(self::STATE_INCOMPLETE, self::STATE_CANCELED), true)) {
+                    throw new InvalidStateTransitionException($this, $newState, array(self::STATE_INCOMPLETE, self::STATE_CANCELED));
+                }
+                break;
 
             case self::STATE_FINISHED:
-            case self::STATE_FAILED:
             case self::STATE_TERMINATED:
-            case self::STATE_INCOMPLETE:
                 throw new InvalidStateTransitionException($this, $newState);
 
             default:
