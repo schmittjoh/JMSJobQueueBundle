@@ -28,7 +28,7 @@ use Symfony\Component\HttpKernel\Exception\FlattenException;
  * @ORM\Entity(repositoryClass = "JMS\JobQueueBundle\Entity\Repository\JobRepository")
  * @ORM\Table(name = "jms_jobs", indexes = {
  *     @ORM\Index(columns = {"command"}),
- *     @ORM\Index("job_runner", columns = {"executeAfter", "state"}),
+ *     @ORM\Index("job_runner", columns = {"executeAfter", "state", "queue"}),
  * })
  * @ORM\ChangeTrackingPolicy("DEFERRED_EXPLICIT")
  *
@@ -75,11 +75,23 @@ class Job
      */
     const STATE_INCOMPLETE = 'incomplete';
 
+    /**
+     * State if an error occurs in the runner command.
+     *
+     * The runner command is the command that actually launches the individual
+     * jobs. If instead an error occurs in the job command, this will result
+     * in a state of FAILED.
+     */
+    const DEFAULT_QUEUE = 'default';
+
     /** @ORM\Id @ORM\GeneratedValue(strategy = "AUTO") @ORM\Column(type = "bigint", options = {"unsigned": true}) */
     private $id;
 
     /** @ORM\Column(type = "string") */
     private $state;
+
+    /** @ORM\Column(type = "string") */
+    private $queue;
 
     /** @ORM\Column(type = "datetime", name="createdAt") */
     private $createdAt;
@@ -155,9 +167,9 @@ class Job
      */
     private $relatedEntities;
 
-    public static function create($command, array $args = array(), $confirmed = true)
+    public static function create($command, array $args = array(), $confirmed = true, $queue = "default")
     {
-        return new self($command, $args, $confirmed);
+        return new self($command, $args, $confirmed, $queue);
     }
 
     public static function isNonSuccessfulFinalState($state)
@@ -165,11 +177,12 @@ class Job
         return in_array($state, array(self::STATE_CANCELED, self::STATE_FAILED, self::STATE_INCOMPLETE, self::STATE_TERMINATED), true);
     }
 
-    public function __construct($command, array $args = array(), $confirmed = true)
+    public function __construct($command, array $args = array(), $confirmed = true, $queue = self::DEFAULT_QUEUE)
     {
         $this->command = $command;
         $this->args = $args;
         $this->state = $confirmed ? self::STATE_PENDING : self::STATE_NEW;
+        $this->queue = $queue;
         $this->createdAt = new \DateTime();
         $this->executeAfter = new \DateTime();
         $this->executeAfter = $this->executeAfter->modify('-1 second');
@@ -181,6 +194,7 @@ class Job
     public function __clone()
     {
         $this->state = self::STATE_PENDING;
+        $this->queue = self::DEFAULT_QUEUE;
         $this->createdAt = new \DateTime();
         $this->startedAt = null;
         $this->checkedAt = null;
@@ -511,6 +525,11 @@ class Job
     public function getStackTrace()
     {
         return $this->stackTrace;
+    }
+
+    public function getQueue()
+    {
+        return $this->queue;
     }
 
     public function isNew()

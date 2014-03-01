@@ -9,6 +9,7 @@ Features:
 
 - schedule Symfony2 console commands
 - concurrent job execution
+- multiple queues
 - dependencies between jobs
 - logging of stdout/stderr output
 - logging of exception stack trace
