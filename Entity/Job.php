@@ -84,13 +84,15 @@ class Job
      */
     const DEFAULT_QUEUE = 'default';
 
+    const MAX_QUEUE_LENGTH = 50;
+
     /** @ORM\Id @ORM\GeneratedValue(strategy = "AUTO") @ORM\Column(type = "bigint", options = {"unsigned": true}) */
     private $id;
 
-    /** @ORM\Column(type = "string") */
+    /** @ORM\Column(type = "string", length = 15) */
     private $state;
 
-    /** @ORM\Column(type = "string") */
+    /** @ORM\Column(type = "string", length = Job::MAX_QUEUE_LENGTH) */
     private $queue;
 
     /** @ORM\Column(type = "datetime", name="createdAt") */
@@ -179,6 +181,13 @@ class Job
 
     public function __construct($command, array $args = array(), $confirmed = true, $queue = self::DEFAULT_QUEUE)
     {
+        if (trim($queue) === '') {
+            throw new \InvalidArgumentException('$queue must not be empty.');
+        }
+        if (strlen($queue) > self::MAX_QUEUE_LENGTH) {
+            throw new \InvalidArgumentException(sprintf('The maximum queue length is %d, but got "%s" (%d chars).', self::MAX_QUEUE_LENGTH, $queue, strlen($queue)));
+        }
+
         $this->command = $command;
         $this->args = $args;
         $this->state = $confirmed ? self::STATE_PENDING : self::STATE_NEW;
