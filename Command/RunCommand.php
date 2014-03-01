@@ -18,8 +18,11 @@
 
 namespace JMS\JobQueueBundle\Command;
 
+use Doctrine\ORM\EntityManager;
+use JMS\JobQueueBundle\Entity\Repository\JobRepository;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Bridge\Doctrine\ManagerRegistry;
 use Symfony\Component\Process\Exception\ProcessFailedException;
-
 use JMS\JobQueueBundle\Exception\LogicException;
 use JMS\JobQueueBundle\Exception\InvalidArgumentException;
 use JMS\JobQueueBundle\Event\NewOutputEvent;
@@ -33,13 +36,23 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand
 {
+    /** @var string */
     private $env;
+
+    /** @var boolean */
     private $verbose;
+
+    /** @var OutputInterface */
     private $output;
+
+    /** @var ManagerRegistry */
     private $registry;
+
+    /** @var EventDispatcher */
     private $dispatcher;
+
+    /** @var array */
     private $runningJobs = array();
-    private $runningJobQueueCount = array();
 
     protected function configure()
     {
@@ -47,10 +60,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             ->setName('jms-job-queue:run')
             ->setDescription('Runs jobs from the queue.')
             ->addOption('max-runtime', 'r', InputOption::VALUE_REQUIRED, 'The maximum runtime in seconds.', 900)
-            ->addOption('max-concurrent-queues', 'cq', InputOption::VALUE_REQUIRED, 'The maximum number of concurrent queues.', 4)
-            ->addOption('max-concurrent-jobs', 'j', InputOption::VALUE_REQUIRED, 'The maximum number of concurrent jobs in a queue.', 4)
-            ->addOption('queue', 'qu', InputOption::VALUE_OPTIONAL, 'The queue to run this command for.',null)
-
+            ->addOption('max-concurrent-jobs', 'j', InputOption::VALUE_REQUIRED, 'The maximum number of concurrent jobs.', 4)
         ;
     }
 
@@ -63,10 +73,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             throw new InvalidArgumentException('The maximum runtime must be greater than zero.');
         }
 
-        $maxConcurrentQueues = (integer) $input->getOption('max-concurrent-queues');
-        $maxQueueJobs = (integer) $input->getOption('max-concurrent-jobs');
-
-        if ($maxQueueJobs <= 0) {
+        $maxJobs = (integer) $input->getOption('max-concurrent-jobs');
+        if ($maxJobs <= 0) {
             throw new InvalidArgumentException('The maximum number of jobs per queue must be greater than zero.');
         }
 
@@ -79,39 +87,36 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
         $this->cleanUpStaleJobs();
 
-        $queue = $input->getOption('queue');
+        $this->runJobs(
+            $startTime,
+            $maxRuntime,
+            $maxJobs,
+            $this->getContainer()->getParameter('jms_job_queue.queue_options_defaults'),
+            $this->getContainer()->getParameter('jms_job_queue.queue_options')
+        );
+    }
 
+    private function runJobs($startTime, $maxRuntime, $maxJobs, array $queueOptionsDefaults, array $queueOptions)
+    {
         while (time() - $startTime < $maxRuntime) {
             $this->checkRunningJobs();
 
-            $jobQueueList = null;
+            $excludedIds = array();
+            while (count($this->runningJobs) < $maxJobs) {
+                $pendingJob = $this->getRepository()->findStartableJob(
+                    $excludedIds,
+                    $this->getExcludedQueues($queueOptionsDefaults, $queueOptions, $maxJobs)
+                );
 
-            if($queue == null) {
-                $jobQueueList  = $this->getRepository()->getAvailableQueueList();
-            } else {
-                $jobQueueList  = array($queue);
-            }
-
-            foreach($jobQueueList as $jobQueue) {
-                $excludedIds = array();
-
-                if(!isset($this->runningJobQueueCount[$jobQueue])) {
-                    $this->runningJobQueueCount[$jobQueue] = 0;
+                if (null === $pendingJob) {
+                    sleep(2);
+                    continue 2; // Check if the maximum runtime has been exceeded.
                 }
 
-                while ($this->runningJobQueueCount[$jobQueue] < $maxQueueJobs && $this->canStartJobForQueue($maxConcurrentQueues, $jobQueue)) {
-                    if (null === $pendingJob = $this->getRepository()->findStartableJob($excludedIds,$jobQueue)) {
-                        sleep(2);
-                        continue 2;
-                    }
-
-                    $this->startJob($pendingJob);
-                    sleep(1);
-                    $this->checkRunningJobs();
-                }
-
+                $this->startJob($pendingJob);
+                sleep(1);
+                $this->checkRunningJobs();
             }
-
 
             sleep(2);
         }
@@ -124,6 +129,48 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         }
 
         return 0;
+    }
+
+    private function getExcludedQueues(array $queueOptionsDefaults, array $queueOptions, $maxConcurrentJobs)
+    {
+        $excludedQueues = array();
+        foreach ($this->getRunningJobsPerQueue() as $queue => $count) {
+            if ($count >= $this->getMaxConcurrentJobs($queue, $queueOptionsDefaults, $queueOptions, $maxConcurrentJobs)) {
+                $excludedQueues[] = $queue;
+            }
+        }
+
+        return $excludedQueues;
+    }
+
+    private function getMaxConcurrentJobs($queue, array $queueOptionsDefaults, array $queueOptions, $maxConcurrentJobs)
+    {
+        if (isset($queueOptions[$queue]['max_concurrent_jobs'])) {
+            return (integer) $queueOptions[$queue]['max_concurrent_jobs'];
+        }
+
+        if (isset($queueOptionsDefaults['max_concurrent_jobs'])) {
+            return (integer) $queueOptionsDefaults['max_concurrent_jobs'];
+        }
+
+        return $maxConcurrentJobs;
+    }
+
+    private function getRunningJobsPerQueue()
+    {
+        $runningJobsPerQueue = array();
+        foreach ($this->runningJobs as $jobDetails) {
+            /** @var Job $job */
+            $job = $jobDetails['job'];
+
+            $queue = $job->getQueue();
+            if ( ! isset($runningJobsPerQueue[$queue])) {
+                $runningJobsPerQueue[$queue] = 0;
+            }
+            $runningJobsPerQueue[$queue] += 1;
+        }
+
+        return $runningJobsPerQueue;
     }
 
     private function checkRunningJobs()
@@ -165,8 +212,6 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
                 $this->output->writeln($data['job'].' terminated; maximum runtime exceeded.');
                 $this->getRepository()->closeJob($data['job'], Job::STATE_TERMINATED);
-                $jobQueue = $data['job']->getQueue();
-                $this->runningJobQueueCount[$jobQueue]--;
                 unset($this->runningJobs[$i]);
 
                 continue;
@@ -197,8 +242,6 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
             $newState = 0 === $data['process']->getExitCode() ? Job::STATE_FINISHED : Job::STATE_FAILED;
             $this->getRepository()->closeJob($data['job'], $newState);
-            $jobQueue = $data['job']->getQueue();
-            $this->runningJobQueueCount[$jobQueue]--;
             unset($this->runningJobs[$i]);
         }
 
@@ -246,14 +289,6 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             'output_pointer' => 0,
             'error_output_pointer' => 0,
         );
-
-        $jobQueue = $job->getQueue();
-        if(isset($this->runningJobQueueCount[$jobQueue])) {
-            $this->runningJobQueueCount[$jobQueue] = $this->runningJobQueueCount[$jobQueue] + 1;
-        } else {
-            $this->runningJobQueueCount[$jobQueue] = 1;
-        }
-
     }
 
     /**
@@ -317,48 +352,19 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         return $pb;
     }
 
+    /**
+     * @return EntityManager
+     */
     private function getEntityManager()
     {
         return $this->registry->getManagerForClass('JMSJobQueueBundle:Job');
     }
 
+    /**
+     * @return JobRepository
+     */
     private function getRepository()
     {
         return $this->getEntityManager()->getRepository('JMSJobQueueBundle:Job');
-    }
-
-    private function canStartJobForQueue($maxConcurrentQueues, $queue) {
-        if($maxConcurrentQueues < 0) {
-            return true;
-        }
-
-        $runningQueues = $this->getRunningQueueCount();
-
-        $availableJobs = $this->getRepository()->getAvailableJobsForQueueCount($queue);
-
-        if($runningQueues == $maxConcurrentQueues && $this->runningJobQueueCount[$queue] > 0 && $availableJobs > 0) {
-            return true;
-        } else if($runningQueues < $maxConcurrentQueues && $availableJobs > 0) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * Retrieves how many queues are currently running.
-     *
-     * @return int
-     */
-    private function getRunningQueueCount() {
-
-        $runningCount = 0;
-        foreach($this->runningJobQueueCount as $key => $queueCount){
-            if($queueCount > 0) {
-                $runningCount += $queueCount;
-            }
-        }
-
-        return $runningCount;
     }
 }

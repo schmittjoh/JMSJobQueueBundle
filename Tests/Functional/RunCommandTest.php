@@ -51,101 +51,72 @@ class RunCommandTest extends BaseTestCase
         $this->assertEquals('finished', $job->getState());
     }
 
-
-    public function testMultipleQueue()
+    /**
+     * @group queues
+     */
+    public function testQueueWithLimitedConcurrentJobs()
     {
-        $job = new Job('jms-job-queue:successful-cmd');
-        $this->em->persist($job);
-
-        $job2 = new Job('jms-job-queue:successful-cmd',array(),true, "queue1");
-        $this->em->persist($job2);
-
-        $job3 = new Job('jms-job-queue:successful-cmd',array(),true, "queue2");
-        $this->em->persist($job3);
-
-        $job4 = new Job('jms-job-queue:successful-cmd',array(),true, "queue3");
-        $this->em->persist($job4);
-
-        $job5 = new Job('jms-job-queue:successful-cmd',array(),true, "queue4");
-        $this->em->persist($job5);
-
-        $job6 = new Job('jms-job-queue:successful-cmd',array(),true, "queue5");
-        $this->em->persist($job6);
+        $outputFile = tempnam(sys_get_temp_dir(), 'job-output');
+        for ($i=0; $i<4; $i++) {
+            $job = new Job('jms-job-queue:logging-cmd', array('Job'.$i, $outputFile, '--runtime=1'));
+            $this->em->persist($job);
+        }
 
         $this->em->flush();
 
-        $this->doRun(array('--max-runtime' => 1));
-        $this->assertEquals('finished', $job->getState());
-        $this->assertEquals('finished', $job2->getState());
-        $this->assertEquals('finished', $job3->getState());
-        $this->assertEquals('finished', $job4->getState());
-        $this->assertEquals('finished', $job5->getState());
-        $this->assertEquals('finished', $job6->getState());
+        $this->doRun(array('--max-runtime' => 15));
+
+        $output = file_get_contents($outputFile);
+        unlink($outputFile);
+
+        $this->assertEquals(<<<OUTPUT
+Job0 started
+Job0 stopped
+Job1 started
+Job1 stopped
+Job2 started
+Job2 stopped
+Job3 started
+Job3 stopped
+
+OUTPUT
+            ,
+            $output
+        );
     }
 
-
-    public function testOneQueueRunning()
+    /**
+     * @group queues
+     */
+    public function testQueueWithMoreThanOneConcurrentJob()
     {
-        $job = new Job('jms-job-queue:successful-cmd');
-        $this->em->persist($job);
-
-        $job2 = new Job('jms-job-queue:successful-cmd',array(),true, "queue1");
-        $this->em->persist($job2);
-
-        $job3 = new Job('jms-job-queue:successful-cmd',array(),true, "queue1");
-        $this->em->persist($job3);
-
-        $job4 = new Job('jms-job-queue:successful-cmd',array(),true, "queue1");
-        $this->em->persist($job4);
-
-        $job5 = new Job('jms-job-queue:successful-cmd',array(),true, "queue1");
-        $this->em->persist($job5);
-
-        $job6 = new Job('jms-job-queue:successful-cmd',array(),true, "queue5");
-        $this->em->persist($job6);
-
+        $outputFile = tempnam(sys_get_temp_dir(), 'job-output');
+        for ($i=0; $i<3; $i++) {
+            $job = new Job('jms-job-queue:logging-cmd', array('Job'.$i, $outputFile, '--runtime=4'), true, 'foo');
+            $this->em->persist($job);
+        }
         $this->em->flush();
 
-        $this->doRun(array('--max-runtime' => 1,'--queue' => "queue1"));
-        $this->assertEquals('pending', $job->getState());
-        $this->assertEquals('finished', $job2->getState());
-        $this->assertEquals('finished', $job3->getState());
-        $this->assertEquals('finished', $job4->getState());
-        $this->assertEquals('finished', $job5->getState());
-        $this->assertEquals('pending', $job6->getState());
+        $output = $this->doRun(array('--max-runtime' => 15));
+        unlink($outputFile);
+
+        $this->assertStringStartsWith(<<<OUTPUT
+Started Job(id = 1, command = "jms-job-queue:logging-cmd").
+Started Job(id = 2, command = "jms-job-queue:logging-cmd").
+OUTPUT
+            ,
+            $output
+        );
+
+        $this->assertStringStartsNotWith(<<<OUTPUT
+Started Job(id = 1, command = "jms-job-queue:logging-cmd").
+Started Job(id = 2, command = "jms-job-queue:logging-cmd").
+Started Job(id = 3, command = "jms-job-queue:logging-cmd").
+OUTPUT
+            ,
+            $output
+        );
     }
-
-    public function testDefaultQueueRunning()
-    {
-        $job = new Job('jms-job-queue:successful-cmd');
-        $this->em->persist($job);
-
-        $job2 = new Job('jms-job-queue:successful-cmd');
-        $this->em->persist($job2);
-
-        $job3 = new Job('jms-job-queue:successful-cmd');
-        $this->em->persist($job3);
-
-        $job4 = new Job('jms-job-queue:successful-cmd');
-        $this->em->persist($job4);
-
-        $job5 = new Job('jms-job-queue:successful-cmd');
-        $this->em->persist($job5);
-
-        $job6 = new Job('jms-job-queue:successful-cmd');
-        $this->em->persist($job6);
-
-        $this->em->flush();
-
-        $this->doRun(array('--max-runtime' => 1));
-        $this->assertEquals('finished', $job->getState());
-        $this->assertEquals('finished', $job2->getState());
-        $this->assertEquals('finished', $job3->getState());
-        $this->assertEquals('finished', $job4->getState());
-        $this->assertEquals('finished', $job5->getState());
-        $this->assertEquals('finished', $job6->getState());
-    }
-
 
     /**
      * @group retry

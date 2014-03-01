@@ -28,6 +28,7 @@ use JMS\JobQueueBundle\Event\StateChangeEvent;
 use Symfony\Bridge\Doctrine\RegistryInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use DateTime;
+use Doctrine\DBAL\Connection;
 
 class JobRepository extends EntityRepository
 {
@@ -104,9 +105,9 @@ class JobRepository extends EntityRepository
         return $firstJob;
     }
 
-    public function findStartableJob(array &$excludedIds = array(), $queue = "default")
+    public function findStartableJob(array &$excludedIds = array(), $excludedQueues = array())
     {
-        while (null !== $job = $this->findPendingJob($excludedIds, $queue)) {
+        while (null !== $job = $this->findPendingJob($excludedIds, $excludedQueues)) {
             if ($job->isStartable()) {
                 return $job;
             }
@@ -169,19 +170,34 @@ class JobRepository extends EntityRepository
         return array($relClass, json_encode($relId));
     }
 
-    public function findPendingJob(array $excludedIds = array(), $queue = "default")
+    public function findPendingJob(array $excludedIds = array(), array $excludedQueues = array())
     {
-        if ( ! $excludedIds) {
-            $excludedIds = array(-1);
+        $qb = $this->_em->createQueryBuilder();
+        $qb->select('j')->from('JMSJobQueueBundle:Job', 'j')
+            ->leftJoin('j.dependencies', 'd')
+            ->orderBy('j.id', 'ASC');
+
+        $conditions = array();
+
+        $conditions[] = $qb->expr()->lt('j.executeAfter', ':now');
+        $qb->setParameter(':now', new \DateTime(), 'datetime');
+
+        $conditions[] = $qb->expr()->eq('j.state', ':state');
+        $qb->setParameter('state', Job::STATE_PENDING);
+
+        if ( ! empty($excludedIds)) {
+            $conditions[] = $qb->expr()->notIn('j.id', ':excludedIds');
+            $qb->setParameter('excludedIds', $excludedIds, Connection::PARAM_INT_ARRAY);
         }
 
-        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE j.executeAfter < :now AND j.state = :state AND j.queue = :queue AND j.id NOT IN (:excludedIds) ORDER BY j.id ASC")
-                    ->setParameter('state', Job::STATE_PENDING)
-                    ->setParameter('excludedIds', $excludedIds)
-                    ->setParameter('now', new DateTime())
-                    ->setParameter('queue', $queue)
-                    ->setMaxResults(1)
-                    ->getOneOrNullResult();
+        if ( ! empty($excludedQueues)) {
+            $conditions[] = $qb->expr()->notIn('j.queue', ':excludedQueues');
+            $qb->setParameter('excludedQueues', $excludedQueues, Connection::PARAM_STR_ARRAY);
+        }
+
+        $qb->where(call_user_func_array(array($qb->expr(), 'andX'), $conditions));
+
+        return $qb->getQuery()->setMaxResults(1)->getOneOrNullResult();
     }
 
     public function closeJob(Job $job, $finalState)
