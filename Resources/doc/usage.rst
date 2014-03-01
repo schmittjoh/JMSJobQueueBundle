@@ -62,7 +62,7 @@ If you want to schedule a job :
     
 Use A Specific Queue
 ====================
-If you want to use a specific queue :
+If you want to use a specific queue:
 
 .. code-block :: php
 
@@ -71,3 +71,17 @@ If you want to use a specific queue :
     $job = new Job('a', array(), true, "aCoolQueue");
     $em->persist($job);
     $em->flush();
+
+Queues allow you to enforce stricter limits as to how many jobs are running per queue. By default,
+a queue the jobs per queue are not limited as such queues will have no effect. To define a
+limit for a queue, you can use the bundle's configuration:
+
+.. code-block :: yml
+
+    jms_job_queue:
+        queue_options_defaults:
+            max_concurrent_jobs: 3 # This limit applies to all queues (including the default queue).
+
+        queue_options:
+            foo:
+                max_concurrent_jobs: 2 # This limit applies only to the "foo" queue.
