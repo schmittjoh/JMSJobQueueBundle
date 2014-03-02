@@ -27,8 +27,8 @@ use Symfony\Component\HttpKernel\Exception\FlattenException;
 /**
  * @ORM\Entity(repositoryClass = "JMS\JobQueueBundle\Entity\Repository\JobRepository")
  * @ORM\Table(name = "jms_jobs", indexes = {
- *     @ORM\Index(columns = {"command"}),
- *     @ORM\Index("job_runner", columns = {"executeAfter", "state", "queue"}),
+ *     @ORM\Index("cmd_search_index", columns = {"command"}),
+ *     @ORM\Index("sorting_index", columns = {"state", "priority", "id"}),
  * })
  * @ORM\ChangeTrackingPolicy("DEFERRED_EXPLICIT")
  *
@@ -83,8 +83,11 @@ class Job
      * in a state of FAILED.
      */
     const DEFAULT_QUEUE = 'default';
-
     const MAX_QUEUE_LENGTH = 50;
+
+    const PRIORITY_LOW = -5;
+    const PRIORITY_DEFAULT = 0;
+    const PRIORITY_HIGH = 5;
 
     /** @ORM\Id @ORM\GeneratedValue(strategy = "AUTO") @ORM\Column(type = "bigint", options = {"unsigned": true}) */
     private $id;
@@ -94,6 +97,9 @@ class Job
 
     /** @ORM\Column(type = "string", length = Job::MAX_QUEUE_LENGTH) */
     private $queue;
+
+    /** @ORM\Column(type = "smallint") */
+    private $priority = 0;
 
     /** @ORM\Column(type = "datetime", name="createdAt") */
     private $createdAt;
@@ -169,9 +175,9 @@ class Job
      */
     private $relatedEntities;
 
-    public static function create($command, array $args = array(), $confirmed = true, $queue = "default")
+    public static function create($command, array $args = array(), $confirmed = true, $queue = self::DEFAULT_QUEUE, $priority = self::PRIORITY_DEFAULT)
     {
-        return new self($command, $args, $confirmed, $queue);
+        return new self($command, $args, $confirmed, $queue, $priority);
     }
 
     public static function isNonSuccessfulFinalState($state)
@@ -179,7 +185,7 @@ class Job
         return in_array($state, array(self::STATE_CANCELED, self::STATE_FAILED, self::STATE_INCOMPLETE, self::STATE_TERMINATED), true);
     }
 
-    public function __construct($command, array $args = array(), $confirmed = true, $queue = self::DEFAULT_QUEUE)
+    public function __construct($command, array $args = array(), $confirmed = true, $queue = self::DEFAULT_QUEUE, $priority = self::PRIORITY_DEFAULT)
     {
         if (trim($queue) === '') {
             throw new \InvalidArgumentException('$queue must not be empty.');
@@ -192,6 +198,7 @@ class Job
         $this->args = $args;
         $this->state = $confirmed ? self::STATE_PENDING : self::STATE_NEW;
         $this->queue = $queue;
+        $this->priority = $priority * -1;
         $this->createdAt = new \DateTime();
         $this->executeAfter = new \DateTime();
         $this->executeAfter = $this->executeAfter->modify('-1 second');
@@ -225,6 +232,11 @@ class Job
     public function getState()
     {
         return $this->state;
+    }
+
+    public function getPriority()
+    {
+        return $this->priority * -1;
     }
 
     public function isStartable()

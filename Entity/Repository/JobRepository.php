@@ -175,7 +175,8 @@ class JobRepository extends EntityRepository
         $qb = $this->_em->createQueryBuilder();
         $qb->select('j')->from('JMSJobQueueBundle:Job', 'j')
             ->leftJoin('j.dependencies', 'd')
-            ->orderBy('j.id', 'ASC');
+            ->orderBy('j.priority', 'ASC')
+            ->addOrderBy('j.id', 'ASC');
 
         $conditions = array();
 

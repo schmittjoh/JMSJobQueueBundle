@@ -152,6 +152,59 @@ OUTPUT
     }
 
     /**
+     * @group priority
+     */
+    public function testJobsWithHigherPriorityAreStartedFirst()
+    {
+        $job = new Job('jms-job-queue:successful-cmd');
+        $this->em->persist($job);
+
+        $job = new Job('jms-job-queue:successful-cmd', array(), true, Job::DEFAULT_QUEUE, Job::PRIORITY_HIGH);
+        $this->em->persist($job);
+        $this->em->flush();
+
+        $output = $this->doRun(array('--max-runtime' => 1));
+
+        $this->assertEquals(<<<OUTPUT
+Started Job(id = 2, command = "jms-job-queue:successful-cmd").
+Job(id = 2, command = "jms-job-queue:successful-cmd") finished with exit code 0.
+Started Job(id = 1, command = "jms-job-queue:successful-cmd").
+Job(id = 1, command = "jms-job-queue:successful-cmd") finished with exit code 0.
+
+OUTPUT
+            ,
+            $output
+        );
+    }
+
+    /**
+     * @group priority
+     */
+    public function testJobsAreStartedInCreationOrderWhenPriorityIsEqual()
+    {
+        $job = new Job('jms-job-queue:successful-cmd', array(), true, Job::DEFAULT_QUEUE, Job::PRIORITY_HIGH);
+        $this->em->persist($job);
+
+        $job = new Job('jms-job-queue:successful-cmd', array(), true, Job::DEFAULT_QUEUE, Job::PRIORITY_HIGH);
+        $this->em->persist($job);
+        $this->em->flush();
+
+        $output = $this->doRun(array('--max-runtime' => 1));
+
+        $this->assertEquals(<<<OUTPUT
+Started Job(id = 1, command = "jms-job-queue:successful-cmd").
+Job(id = 1, command = "jms-job-queue:successful-cmd") finished with exit code 0.
+Started Job(id = 2, command = "jms-job-queue:successful-cmd").
+Job(id = 2, command = "jms-job-queue:successful-cmd") finished with exit code 0.
+
+OUTPUT
+            ,
+            $output
+        );
+
+    }
+
+    /**
      * @group exception
      */
     public function testExceptionStackTraceIsSaved()
