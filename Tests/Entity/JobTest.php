@@ -236,6 +236,14 @@ class JobTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse($job->isRetryAllowed());
     }
 
+    public function testCloneDoesNotChangeQueue()
+    {
+        $job = new Job('a', array(), true, 'foo');
+        $clonedJob = clone $job;
+
+        $this->assertEquals('foo', $clonedJob->getQueue());
+    }
+
     private function setField($obj, $field, $value)
     {
         $ref = new \ReflectionProperty($obj, $field);

@@ -203,7 +203,6 @@ class Job
     public function __clone()
     {
         $this->state = self::STATE_PENDING;
-        $this->queue = self::DEFAULT_QUEUE;
         $this->createdAt = new \DateTime();
         $this->startedAt = null;
         $this->checkedAt = null;
