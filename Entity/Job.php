@@ -146,6 +146,9 @@ class Job
     /** @ORM\Column(type = "smallint", name="maxRetries", options = {"unsigned": true}) */
     private $maxRetries = 0;
 
+    /** @ORM\Column(type = "text", name="idleBetweenRetries") */
+    private $idleTimeBetweenRetries = '';
+
     /**
      * @ORM\ManyToOne(targetEntity = "Job", inversedBy = "retryJobs")
      * @ORM\JoinColumn(name="originalJob_id", referencedColumnName="id")
@@ -472,6 +475,16 @@ class Job
     public function setMaxRetries($tries)
     {
         $this->maxRetries = (integer) $tries;
+    }
+
+    public function setIdleTimeBetweenRetries($idleBetweenRetries)
+    {
+        $this->idleTimeBetweenRetries = $idleBetweenRetries;
+    }
+
+    public function getIdleTimeBetweenRetries()
+    {
+        return $this->idleTimeBetweenRetries;
     }
 
     public function isRetryAllowed()
