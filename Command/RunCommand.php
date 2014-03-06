@@ -61,6 +61,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             ->setDescription('Runs jobs from the queue.')
             ->addOption('max-runtime', 'r', InputOption::VALUE_REQUIRED, 'The maximum runtime in seconds.', 900)
             ->addOption('max-concurrent-jobs', 'j', InputOption::VALUE_REQUIRED, 'The maximum number of concurrent jobs.', 4)
+            ->addOption('idle-time', null, InputOption::VALUE_REQUIRED, 'Time to sleep when the queue ran out of jobs.', 2)
         ;
     }
 
@@ -78,6 +79,11 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             throw new InvalidArgumentException('The maximum number of jobs per queue must be greater than zero.');
         }
 
+        $idleTime = (integer) $input->getOption('idle-time');
+        if ($idleTime <= 0) {
+            throw new InvalidArgumentException('Time to sleep when idling must be greater than zero.');
+        }
+
         $this->env = $input->getOption('env');
         $this->verbose = $input->getOption('verbose');
         $this->output = $output;
@@ -90,13 +96,14 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $this->runJobs(
             $startTime,
             $maxRuntime,
+            $idleTime,
             $maxJobs,
             $this->getContainer()->getParameter('jms_job_queue.queue_options_defaults'),
             $this->getContainer()->getParameter('jms_job_queue.queue_options')
         );
     }
 
-    private function runJobs($startTime, $maxRuntime, $maxJobs, array $queueOptionsDefaults, array $queueOptions)
+    private function runJobs($startTime, $maxRuntime, $idleTime, $maxJobs, array $queueOptionsDefaults, array $queueOptions)
     {
         while (time() - $startTime < $maxRuntime) {
             $this->checkRunningJobs();
@@ -109,7 +116,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
                 );
 
                 if (null === $pendingJob) {
-                    sleep(2);
+                    sleep($idleTime);
                     continue 2; // Check if the maximum runtime has been exceeded.
                 }
 
