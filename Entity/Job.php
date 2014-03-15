@@ -155,6 +155,9 @@ class Job
     /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove", "detach"}) */
     private $retryJobs;
 
+    /** @ORM\Column(type = "object", name="retryStrategy", nullable=true) */
+    private $retryStrategy;
+
     /** @ORM\Column(type = "jms_job_safe_object", name="stackTrace", nullable = true) */
     private $stackTrace;
 
@@ -485,6 +488,24 @@ class Job
         return count($this->retryJobs) < $this->maxRetries;
     }
 
+    public function getRetryStrategy()
+    {
+        return $this->retryStrategy;
+    }
+
+    public function setRetryStrategy(RetryStrategyInterface $retryStrategy = null)
+    {
+        $this->retryStrategy = $retryStrategy;
+    }
+
+    public function applyRetryStrategy(Job $retryJob)
+    {
+        if ($this->retryStrategy) {
+            $this->retryStrategy->apply($this, $retryJob);
+        }
+    }
+
+
     public function getOriginalJob()
     {
         if (null === $this->originalJob) {
@@ -514,6 +535,7 @@ class Job
         }
 
         $job->setOriginalJob($this);
+        $this->retryStrategy->apply($this, $job);
         $this->retryJobs->add($job);
     }
 
