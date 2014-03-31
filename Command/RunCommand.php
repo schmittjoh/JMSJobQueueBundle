@@ -121,11 +121,9 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
                 }
 
                 $this->startJob($pendingJob);
-                sleep(1);
-                $this->checkRunningJobs();
             }
 
-            sleep(2);
+            sleep(1);
         }
 
         if (count($this->runningJobs) > 0) {

@@ -273,6 +273,8 @@ class JobRepository extends EntityRepository
                 if ($job->isRetryAllowed()) {
                     $retryJob = new Job($job->getCommand(), $job->getArgs());
                     $retryJob->setMaxRuntime($job->getMaxRuntime());
+                    $retryJob->setExecuteAfter(new \DateTime('+'.(pow(5, count($job->getRetryJobs()))).' seconds'));
+
                     $job->addRetryJob($retryJob);
                     $this->_em->persist($retryJob);
                     $this->_em->persist($job);
