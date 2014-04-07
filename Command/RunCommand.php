@@ -37,22 +37,22 @@ use Symfony\Component\Console\Output\OutputInterface;
 class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand
 {
     /** @var string */
-    private $env;
+    protected $env;
 
     /** @var boolean */
-    private $verbose;
+    protected $verbose;
 
     /** @var OutputInterface */
-    private $output;
+    protected $output;
 
     /** @var ManagerRegistry */
-    private $registry;
+    protected $registry;
 
     /** @var EventDispatcher */
-    private $dispatcher;
+    protected $dispatcher;
 
     /** @var array */
-    private $runningJobs = array();
+    protected $runningJobs = array();
 
     protected function configure()
     {
@@ -103,7 +103,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         );
     }
 
-    private function runJobs($startTime, $maxRuntime, $idleTime, $maxJobs, array $queueOptionsDefaults, array $queueOptions)
+    protected function runJobs($startTime, $maxRuntime, $idleTime, $maxJobs, array $queueOptionsDefaults, array $queueOptions)
     {
         while (time() - $startTime < $maxRuntime) {
             $this->checkRunningJobs();
@@ -136,7 +136,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         return 0;
     }
 
-    private function getExcludedQueues(array $queueOptionsDefaults, array $queueOptions, $maxConcurrentJobs)
+    protected function getExcludedQueues(array $queueOptionsDefaults, array $queueOptions, $maxConcurrentJobs)
     {
         $excludedQueues = array();
         foreach ($this->getRunningJobsPerQueue() as $queue => $count) {
@@ -148,7 +148,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         return $excludedQueues;
     }
 
-    private function getMaxConcurrentJobs($queue, array $queueOptionsDefaults, array $queueOptions, $maxConcurrentJobs)
+    protected function getMaxConcurrentJobs($queue, array $queueOptionsDefaults, array $queueOptions, $maxConcurrentJobs)
     {
         if (isset($queueOptions[$queue]['max_concurrent_jobs'])) {
             return (integer) $queueOptions[$queue]['max_concurrent_jobs'];
@@ -161,7 +161,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         return $maxConcurrentJobs;
     }
 
-    private function getRunningJobsPerQueue()
+    protected function getRunningJobsPerQueue()
     {
         $runningJobsPerQueue = array();
         foreach ($this->runningJobs as $jobDetails) {
@@ -178,7 +178,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         return $runningJobsPerQueue;
     }
 
-    private function checkRunningJobs()
+    protected function checkRunningJobs()
     {
         foreach ($this->runningJobs as $i => &$data) {
             $newOutput = substr($data['process']->getOutput(), $data['output_pointer']);
@@ -253,7 +253,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         gc_collect_cycles();
     }
 
-    private function startJob(Job $job)
+    protected function startJob(Job $job)
     {
         $event = new StateChangeEvent($job, Job::STATE_RUNNING);
         $this->dispatcher->dispatch('jms_job_queue.job_state_change', $event);
@@ -305,7 +305,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
      *
      * In such an error condition, these jobs are cleaned-up on restart of this command.
      */
-    private function cleanUpStaleJobs()
+    protected function cleanUpStaleJobs()
     {
         $repo = $this->getRepository();
         foreach ($repo->findBy(array('state' => Job::STATE_RUNNING)) as $job) {
@@ -334,7 +334,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         }
     }
 
-    private function getCommandProcessBuilder()
+    protected function getCommandProcessBuilder()
     {
         $pb = new ProcessBuilder();
 
@@ -360,7 +360,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     /**
      * @return EntityManager
      */
-    private function getEntityManager()
+    protected function getEntityManager()
     {
         return $this->registry->getManagerForClass('JMSJobQueueBundle:Job');
     }
@@ -368,7 +368,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     /**
      * @return JobRepository
      */
-    private function getRepository()
+    protected function getRepository()
     {
         return $this->getEntityManager()->getRepository('JMSJobQueueBundle:Job');
     }
