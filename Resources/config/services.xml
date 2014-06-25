@@ -26,5 +26,11 @@
         <service id="jms_job_queue.twig.extension" class="%jms_job_queue.twig.extension.class%">
             <tag name="twig.extension" />
         </service>
+
+        <service id="jms_job_queue.event_listener.console" class="JMS\JobQueueBundle\EventListener\ConsoleListener">
+            <argument type="service" id="doctrine" />
+            <argument>%jms_job_queue.statistics%</argument>
+            <tag name="kernel.event_subscriber" />
+        </service>
     </services>
 </container>
