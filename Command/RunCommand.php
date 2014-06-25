@@ -356,8 +356,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
         $pb = $this->getCommandProcessBuilder();
         $pb
+            ->setEnv('jmsJobId', $job->getId())
             ->add($job->getCommand())
-            ->add('--jms-job-id='.$job->getId())
         ;
 
         foreach ($job->getArgs() as $arg) {
