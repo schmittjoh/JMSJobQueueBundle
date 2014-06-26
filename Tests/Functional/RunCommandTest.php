@@ -66,7 +66,8 @@ class RunCommandTest extends BaseTestCase
 
         $this->doRun(array('--max-runtime' => 15, '--worker-name' => 'test'));
 
-        $output = file_get_contents($outputFile);
+        // running tests on windows produces windows line-endings, convert to unix line-endings.
+        $output = str_replace("\r\n", "\n", file_get_contents($outputFile));
         unlink($outputFile);
 
         $this->assertEquals(<<<OUTPUT
@@ -291,6 +292,12 @@ OUTPUT
         $this->app->setCatchExceptions(false);
 
         $this->em = self::$kernel->getContainer()->get('doctrine')->getManagerForClass('JMSJobQueueBundle:Job');
+    }
+
+    protected function tearDown()
+    {
+        // close connection, otherwise database-file can't be deleted on windows.
+        self::$kernel->getContainer()->get('doctrine')->getManagerForClass('JMSJobQueueBundle:Job')->getConnection()->close();
     }
 
     private function doRun(array $args = array())
