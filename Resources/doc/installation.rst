@@ -135,7 +135,7 @@ A sample supervisord config might look like this:
 
 Queues
 ======================
-Mulitple queue support is enabled for 4 simultaneous job queues. 
+Multiple queue support is enabled for 4 simultaneous job queues. 
 
 If your database has 5 queues pending the 5th queue will execute when one of the first 4 is out of jobs. 
 
