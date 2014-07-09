@@ -107,33 +107,50 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     {
         while (time() - $startTime < $maxRuntime) {
             $this->checkRunningJobs();
-
-            $excludedIds = array();
-            while (count($this->runningJobs) < $maxJobs) {
-                $pendingJob = $this->getRepository()->findStartableJob(
-                    $excludedIds,
-                    $this->getExcludedQueues($queueOptionsDefaults, $queueOptions, $maxJobs)
-                );
-
-                if (null === $pendingJob) {
-                    sleep($idleTime);
-                    continue 2; // Check if the maximum runtime has been exceeded.
-                }
-
-                $this->startJob($pendingJob);
-            }
-
+            $this->startJobs($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions);
             sleep(1);
         }
 
-        if (count($this->runningJobs) > 0) {
-            while (count($this->runningJobs) > 0) {
-                $this->checkRunningJobs();
-                sleep(2);
-            }
-        }
+        $this->waitForJobTermination($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions);
 
         return 0;
+    }
+
+    private function waitForJobTermination($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions, $attempt = 1)
+    {
+        if (empty($this->runningJobs)) {
+            return;
+        }
+
+        $start = time();
+        while (count($this->runningJobs) > 0 && time() - $start < 15 * $attempt) {
+            $this->checkRunningJobs();
+            sleep(2);
+        }
+
+        if ( ! empty($this->runningJobs)) {
+            $this->startJobs($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions);
+            $this->waitForJobTermination($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions, $attempt + 1);
+        }
+    }
+
+    private function startJobs($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions)
+    {
+        $excludedIds = array();
+        while (count($this->runningJobs) < $maxJobs) {
+            $pendingJob = $this->getRepository()->findStartableJob(
+                $excludedIds,
+                $this->getExcludedQueues($queueOptionsDefaults, $queueOptions, $maxJobs)
+            );
+
+            if (null === $pendingJob) {
+                sleep($idleTime);
+
+                return;
+            }
+
+            $this->startJob($pendingJob);
+        }
     }
 
     private function getExcludedQueues(array $queueOptionsDefaults, array $queueOptions, $maxConcurrentJobs)
