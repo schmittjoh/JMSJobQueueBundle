@@ -87,6 +87,20 @@ Then, update your dependencies using
 
     php composer.phar update
 
+And add the JMSDiExtraBundle and JMSAopBundle to your appKernel.php:
+
+.. code-block :: php
+    
+    <?php
+
+    // in AppKernel::registerBundles()
+    $bundles = array(
+        // ...
+        new JMS\DiExtraBundle\JMSDiExtraBundle($this),
+        new JMS\AopBundle\JMSAopBundle(),
+        // ...
+    );
+
 Typically, you would also want to add some access control restrictions for these
 actions. If you are using ``JMSSecurityExtraBundle`` this could look like this:
 
