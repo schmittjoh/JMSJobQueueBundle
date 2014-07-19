@@ -105,32 +105,19 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
     private function runJobs($startTime, $maxRuntime, $idleTime, $maxJobs, array $queueOptionsDefaults, array $queueOptions)
     {
-        while (time() - $startTime < $maxRuntime) {
+        $waitTime = 1;
+        while (true) {
             $this->checkRunningJobs();
+            if (time() - $startTime > $maxRuntime) {
+                if (empty($this->runningJobs)) {
+                    return;
+                }
+
+                $waitTime = 5;
+            }
+
             $this->startJobs($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions);
-            sleep(1);
-        }
-
-        $this->waitForJobTermination($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions);
-
-        return 0;
-    }
-
-    private function waitForJobTermination($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions, $attempt = 1)
-    {
-        if (empty($this->runningJobs)) {
-            return;
-        }
-
-        $start = time();
-        while (count($this->runningJobs) > 0 && time() - $start < 15 * $attempt) {
-            $this->checkRunningJobs();
-            sleep(2);
-        }
-
-        if ( ! empty($this->runningJobs)) {
-            $this->startJobs($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions);
-            $this->waitForJobTermination($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions, $attempt + 1);
+            sleep($waitTime);
         }
     }
 
