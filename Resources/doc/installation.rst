@@ -147,6 +147,16 @@ A sample supervisord config might look like this:
 
 .. _supervisord: http://supervisord.org/
 
+
+PHP Path
+======================
+Sometimes it might be necessary to not use a PHP version found in your $PATH. To
+define which version you would like to use just specify it in your bundle's configuration
+
+.. code-block :: yml
+    jms_job_queue:
+        php_path: /path/to/php
+
 Queues
 ======================
 Mulitple queue support is enabled for 4 simultaneous job queues. 

@@ -347,9 +347,9 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         if ( ! defined('PHP_WINDOWS_VERSION_MAJOR')) {
             $pb->add('exec');
         }
-
+ 
         $pb
-            ->add('php')
+            ->add($this->getContainer()->getParameter('jms_job_queue.php_path'))
             ->add($this->getContainer()->getParameter('kernel.root_dir').'/console')
             ->add('--env='.$this->env)
         ;
