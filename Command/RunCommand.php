@@ -41,6 +41,9 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
     /** @var boolean */
     private $verbose;
+    
+    /** @var string */
+    private $phpPath;
 
     /** @var OutputInterface */
     private $output;
@@ -53,7 +56,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
     /** @var array */
     private $runningJobs = array();
-
+    
     protected function configure()
     {
         $this
@@ -62,6 +65,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             ->addOption('max-runtime', 'r', InputOption::VALUE_REQUIRED, 'The maximum runtime in seconds.', 900)
             ->addOption('max-concurrent-jobs', 'j', InputOption::VALUE_REQUIRED, 'The maximum number of concurrent jobs.', 4)
             ->addOption('idle-time', null, InputOption::VALUE_REQUIRED, 'Time to sleep when the queue ran out of jobs.', 2)
+            ->addOption('php-path', "p", InputOption::VALUE_REQUIRED, "Path to the PHP version to use when running commands", "php")
         ;
     }
 
@@ -86,6 +90,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
         $this->env = $input->getOption('env');
         $this->verbose = $input->getOption('verbose');
+        $this->phpPath = $input->getOption("php-path");
         $this->output = $output;
         $this->registry = $this->getContainer()->get('doctrine');
         $this->dispatcher = $this->getContainer()->get('event_dispatcher');
@@ -349,7 +354,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         }
 
         $pb
-            ->add('php')
+            ->add($this->phpPath)
             ->add($this->getContainer()->getParameter('kernel.root_dir').'/console')
             ->add('--env='.$this->env)
         ;
