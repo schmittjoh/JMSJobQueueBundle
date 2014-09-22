@@ -18,9 +18,11 @@
 
 namespace JMS\JobQueueBundle\Entity\Repository;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Util\ClassUtils;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\Query\Parameter;
 use Doctrine\ORM\Query\ResultSetMappingBuilder;
 use JMS\DiExtraBundle\Annotation as DI;
 use JMS\JobQueueBundle\Entity\Job;
@@ -136,17 +138,31 @@ class JobRepository extends EntityRepository
                     ->getResult();
     }
 
-    public function findJobForRelatedEntity($command, $relatedEntity)
+    public function findOpenJobForRelatedEntity($command, $relatedEntity)
+    {
+        return $this->findJobForRelatedEntity($command, $relatedEntity, array(Job::STATE_RUNNING, Job::STATE_PENDING, Job::STATE_NEW));
+    }
+
+    public function findJobForRelatedEntity($command, $relatedEntity, array $states = array())
     {
         list($relClass, $relId) = $this->getRelatedEntityIdentifier($relatedEntity);
 
         $rsm = new ResultSetMappingBuilder($this->_em);
         $rsm->addRootEntityFromClassMetadata('JMSJobQueueBundle:Job', 'j');
 
-        return $this->_em->createNativeQuery("SELECT j.* FROM jms_jobs j INNER JOIN jms_job_related_entities r ON r.job_id = j.id WHERE r.related_class = :relClass AND r.related_id = :relId AND j.command = :command", $rsm)
-                   ->setParameter('command', $command)
-                   ->setParameter('relClass', $relClass)
-                   ->setParameter('relId', $relId)
+        $sql = "SELECT j.* FROM jms_jobs j INNER JOIN jms_job_related_entities r ON r.job_id = j.id WHERE r.related_class = :relClass AND r.related_id = :relId AND j.command = :command";
+        $params = new ArrayCollection();
+        $params->add(new Parameter('command', $command));
+        $params->add(new Parameter('relClass', $relClass));
+        $params->add(new Parameter('relId', $relId));
+
+        if ( ! empty($states)) {
+            $sql .= " AND j.state IN (:states)";
+            $params->add(new Parameter('states', $states, Connection::PARAM_STR_ARRAY));
+        }
+
+        return $this->_em->createNativeQuery($sql, $rsm)
+                   ->setParameters($params)
                    ->getOneOrNullResult();
     }
 
