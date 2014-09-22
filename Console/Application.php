@@ -4,6 +4,7 @@ namespace JMS\JobQueueBundle\Console;
 
 declare(ticks = 10000000);
 
+use Doctrine\DBAL\Statement;
 use Doctrine\DBAL\Types\Type;
 
 use Symfony\Bundle\FrameworkBundle\Console\Application as BaseApplication;
@@ -31,7 +32,7 @@ class Application extends BaseApplication
 
         $kernel->boot();
         if ($kernel->getContainer()->getParameter('jms_job_queue.statistics')) {
-            $this->insertStatStmt = $this->getConnection()->prepare("INSERT INTO jms_job_statistics (job_id, characteristic, createdAt, charValue) VALUES (:jobId, :name, :createdAt, :value)");
+            $this->insertStatStmt = "INSERT INTO jms_job_statistics (job_id, characteristic, createdAt, charValue) VALUES (:jobId, :name, :createdAt, :value)";
             register_tick_function(array($this, 'onTick'));
         }
     }
@@ -61,6 +62,10 @@ class Application extends BaseApplication
         $characteristics = array(
             'memory' => memory_get_usage(),
         );
+
+        if(!$this->insertStatStmt instanceof Statement){
+            $this->insertStatStmt = $this->getConnection()->prepare($this->insertStatStmt);
+        }
 
         $this->insertStatStmt->bindValue('jobId', $jobId, \PDO::PARAM_INT);
         $this->insertStatStmt->bindValue('createdAt', new \DateTime(), Type::getType('datetime'));
