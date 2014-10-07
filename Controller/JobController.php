@@ -84,8 +84,8 @@ class JobController
             $dataPerCharacteristic = array();
             foreach ($this->registry->getManagerForClass('JMSJobQueueBundle:Job')->getConnection()->query("SELECT * FROM jms_job_statistics WHERE job_id = ".$job->getId()) as $row) {
                 $dataPerCharacteristic[$row['characteristic']][] = array(
-                    $row['createdAt'],
-                    $row['charValue'],
+                    $row['createdat'],
+                    $row['charvalue'],
                 );
             }
 
