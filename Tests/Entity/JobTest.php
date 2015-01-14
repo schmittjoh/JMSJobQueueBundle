@@ -91,6 +91,18 @@ class JobTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('finished', $job->getState());
     }
 
+    /**
+     * @depends testStateToRunning
+     */
+    public function testStateFailedToFinished(Job $job)
+    {
+        $job = clone $job;
+        $job->setState('running');
+        $job->setState('failed');
+        $job->setState('finished');
+        $this->assertEquals('finished', $job->getState());
+    }
+
     public function testAddOutput()
     {
         $job = new Job('foo');
