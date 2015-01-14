@@ -140,6 +140,7 @@ class JobController
         }
 
         $retryJob = clone $job;
+        $retryJob->setOriginalJob($job);
 
         $this->getEm()->persist($retryJob);
         $this->getEm()->flush();
