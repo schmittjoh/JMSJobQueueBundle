@@ -84,8 +84,9 @@ class JobController
             $dataPerCharacteristic = array();
             foreach ($this->registry->getManagerForClass('JMSJobQueueBundle:Job')->getConnection()->query("SELECT * FROM jms_job_statistics WHERE job_id = ".$job->getId()) as $row) {
                 $dataPerCharacteristic[$row['characteristic']][] = array(
-                    $row['createdAt'],
-                    $row['charValue'],
+                    // hack because postgresql lower-cases all column names.
+                    array_key_exists('createdAt', $row) ? $row['createdAt'] : $row['createdat'],
+                    array_key_exists('charValue', $row) ? $row['charValue'] : $row['charvalue'],
                 );
             }
 
