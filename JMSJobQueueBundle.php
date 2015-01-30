@@ -38,11 +38,14 @@ class JMSJobQueueBundle extends Bundle
             Type::addType('jms_job_safe_object', 'JMS\JobQueueBundle\Entity\Type\SafeObjectType');
         }
 
-        /** @var ManagerRegistry $registry*/
-        $registry = $this->container->get('doctrine');
-        foreach ($registry->getConnections() as $con) {
-            if ($con instanceof Connection) {
-                $con->getDatabasePlatform()->markDoctrineTypeCommented('jms_job_safe_object');
+        $env = $this->container->getParameter("kernel.environment");
+        if ($env != 'test') {
+            /** @var ManagerRegistry $registry*/
+            $registry = $this->container->get('doctrine');
+            foreach ($registry->getConnections() as $con) {
+                if ($con instanceof Connection) {
+                    $con->getDatabasePlatform()->markDoctrineTypeCommented('jms_job_safe_object');
+                }
             }
         }
     }
