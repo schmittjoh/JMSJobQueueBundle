@@ -68,6 +68,22 @@ class JobRepository extends EntityRepository
             ->getOneOrNullResult();
     }
 
+    public function findJobById($id)
+    {
+        $qb = $this->_em->createQueryBuilder();
+        $qb->select('j')->from('JMSJobQueueBundle:Job', 'j')
+        ;
+
+        $conditions = array();
+
+        $conditions[] = $qb->expr()->eq('j.id', ':id');
+        $qb->setParameter('id', $id);
+
+        $qb->where(call_user_func_array(array($qb->expr(), 'andX'), $conditions));
+
+        return $qb->getQuery()->setMaxResults(1)->getOneOrNullResult();
+    }
+
     public function getJob($command, array $args = array())
     {
         if (null !== $job = $this->findJob($command, $args)) {
