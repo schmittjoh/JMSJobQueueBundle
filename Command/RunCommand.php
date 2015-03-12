@@ -54,6 +54,9 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     /** @var array */
     private $runningJobs = array();
 
+    /** @var array */
+    private $restrictedQueues = array();
+
     protected function configure()
     {
         $this
@@ -62,6 +65,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             ->addOption('max-runtime', 'r', InputOption::VALUE_REQUIRED, 'The maximum runtime in seconds.', 900)
             ->addOption('max-concurrent-jobs', 'j', InputOption::VALUE_REQUIRED, 'The maximum number of concurrent jobs.', 4)
             ->addOption('idle-time', null, InputOption::VALUE_REQUIRED, 'Time to sleep when the queue ran out of jobs.', 2)
+            ->addOption('queue', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'Restrict to one or more queues.', array())
         ;
     }
 
@@ -83,6 +87,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         if ($idleTime <= 0) {
             throw new InvalidArgumentException('Time to sleep when idling must be greater than zero.');
         }
+
+        $this->restrictedQueues = $input->getOption('queue');
 
         $this->env = $input->getOption('env');
         $this->verbose = $input->getOption('verbose');
@@ -127,7 +133,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         while (count($this->runningJobs) < $maxJobs) {
             $pendingJob = $this->getRepository()->findStartableJob(
                 $excludedIds,
-                $this->getExcludedQueues($queueOptionsDefaults, $queueOptions, $maxJobs)
+                $this->getExcludedQueues($queueOptionsDefaults, $queueOptions, $maxJobs),
+                $this->restrictedQueues
             );
 
             if (null === $pendingJob) {
@@ -312,7 +319,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     private function cleanUpStaleJobs()
     {
         $repo = $this->getRepository();
-        foreach ($repo->findBy(array('state' => Job::STATE_RUNNING)) as $job) {
+        foreach ($repo->findRunningJobs($this->restrictedQueues) as $job) {
             // If the original job has retry jobs, then one of them is still in
             // running state. We can skip the original job here as it will be
             // processed automatically once the retry job is processed.
