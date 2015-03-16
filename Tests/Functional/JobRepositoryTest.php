@@ -66,6 +66,20 @@ class JobRepositoryTest extends BaseTestCase
         $this->assertNull($this->repo->findPendingJob(array($b->getId())));
     }
 
+    public function testFindPendingJobInRestrictedQueue()
+    {
+        $this->assertNull($this->repo->findPendingJob());
+
+        $a = new Job('a');
+        $b = new Job('b', array(), true, 'other_queue');
+        $this->em->persist($a);
+        $this->em->persist($b);
+        $this->em->flush();
+
+        $this->assertSame($a, $this->repo->findPendingJob());
+        $this->assertSame($b, $this->repo->findPendingJob(array(), array(), array('other_queue')));
+    }
+
     public function testFindStartableJob()
     {
         $this->assertNull($this->repo->findStartableJob());
