@@ -41,7 +41,7 @@ class CleanUpCommand extends ContainerAwareCommand
             /** @var Job $job */
 
             $result = $con->executeQuery($incomingDepsSql, array('id' => $job->getId()));
-            if ($result !== false) {
+            if ($result->fetchColumn() !== false) {
                 // There are still other jobs that depend on this, we will come back later.
                 continue;
             }
