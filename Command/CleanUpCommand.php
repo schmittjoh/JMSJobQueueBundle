@@ -28,20 +28,21 @@ class CleanUpCommand extends ContainerAwareCommand
 
         /** @var EntityManager $em */
         $em = $registry->getManagerForClass('JMSJobQueueBundle:Job');
+        $con = $em->getConnection();
 
         $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL")
             ->setParameter('maxRetentionTime', new \DateTime('-'.$input->getOption('max-retention')))
             ->setMaxResults(1000)
             ->getResult();
 
+        $incomingDepsSql = $con->getDatabasePlatform()->modifyLimitQuery("SELECT 1 FROM jms_job_dependencies WHERE dest_job_id = :id", 1);
+
         foreach ($jobs as $job) {
             /** @var Job $job */
 
-            $incomingDepsCount = (integer) $em->createQuery("SELECT COUNT(j) FROM JMSJobQueueBundle:Job j WHERE :job MEMBER OF j.dependencies")
-                ->setParameter('job', $job)
-                ->getSingleScalarResult();
-
-            if ($incomingDepsCount > 0) {
+            $result = $con->executeQuery($incomingDepsSql, array('id' => $job->getId()));
+            if ($result !== false) {
+                // There are still other jobs that depend on this, we will come back later.
                 continue;
             }
 
