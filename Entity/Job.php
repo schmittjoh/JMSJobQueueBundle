@@ -158,6 +158,9 @@ class Job
     /** @ORM\Column(type = "string", name = "retryStrategy", nullable = true) */
     private $retryStrategy;
 
+    /** @ORM\Column(type = "array", name = "retryStrategyConfig", nullable = true) */
+    private $retryStrategyConfig;
+
     /** @ORM\Column(type = "jms_job_safe_object", name="stackTrace", nullable = true) */
     private $stackTrace;
 
@@ -629,4 +632,21 @@ class Job
 
         return true;
     }
+
+    public function getRetryStrategy() {
+      return $this->retryStrategy;
+    }
+
+    public function setRetryStrategy($retryStrategy) {
+      $this->retryStrategy = $retryStrategy;
+    }
+
+    public function getRetryStrategyConfig() {
+      return $this->retryStrategyConfig;
+    }
+
+    public function setRetryStrategyConfig($retryStrategyConfig) {
+      $this->retryStrategyConfig = $retryStrategyConfig;
+    }
+
 }

@@ -2,15 +2,17 @@
 
 namespace JMS\JobQueueBundle\Entity\Retry;
 
+use JMS\JobQueueBundle\Entity\Job;
+
 class FixedIntervalStrategy implements RetryStrategyInterface
 {
-  protected $interval;
-  public function __construct($interval)
+  protected $config;
+  public function __construct($config)
   {
-    $this->interval = $interval;
+    $this->config = $config;
   }
   public function apply(Job $original, Job $retry)
   {
-    $retry->getExecuteAfter()->modify($this->interval);
+    $retry->getExecuteAfter()->modify($this->config->interval);
   }
 }
