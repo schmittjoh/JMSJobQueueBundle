@@ -155,6 +155,9 @@ class Job
     /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove", "detach"}) */
     private $retryJobs;
 
+    /** @ORM\Column(type = "string", name = "retryStrategy", nullable = true) */
+    private $retryStrategy;
+
     /** @ORM\Column(type = "jms_job_safe_object", name="stackTrace", nullable = true) */
     private $stackTrace;
 
@@ -514,6 +517,7 @@ class Job
         }
 
         $job->setOriginalJob($this);
+        $this->applyRetryStrategy($job);
         $this->retryJobs->add($job);
     }
 
@@ -525,6 +529,18 @@ class Job
     public function isRetryJob()
     {
         return null !== $this->originalJob;
+    }
+
+    public function applyRetryStrategy(Job $retryJob)
+    {
+        if ($this->retryStrategy) {
+            // Load class
+            $class = $this->retryStrategy;
+            $retryStrategy = new $class();
+
+            // Apply retry strategy
+            $retryStrategy->apply($this, $retryJob);
+        }
     }
 
     public function checked()
