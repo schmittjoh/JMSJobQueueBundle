@@ -539,10 +539,15 @@ class Job
         if ($this->retryStrategy) {
             // Load class
             $class = $this->retryStrategy;
-            $retryStrategy = new $class();
+            $config = $this->retryStrategyConfig;
+            $retryStrategy = new $class($config);
 
             // Apply retry strategy
             $retryStrategy->apply($this, $retryJob);
+        }
+        else {
+          // Default. Wait 5 seconds, then retry.
+          $retryJob->setExecuteAfter(new \DateTime('+5 seconds'));
         }
     }
 
