@@ -107,10 +107,10 @@ class JobRepository extends EntityRepository
         return $firstJob;
     }
 
-    public function findStartableJob(array &$excludedIds = array(), $excludedQueues = array())
+    public function findStartableJob($workerName, array &$excludedIds = array(), $excludedQueues = array())
     {
-        while (null !== $job = $this->findPendingJob($excludedIds, $excludedQueues)) {
-            if ($job->isStartable()) {
+        while (null !== $job = $this->findPendingJob($workerName, $excludedIds, $excludedQueues)) {
+            if ($job->isStartable() && $this->acquireLock($workerName, $job)) {
                 return $job;
             }
 
@@ -123,6 +123,25 @@ class JobRepository extends EntityRepository
         }
 
         return null;
+    }
+
+    private function acquireLock($workerName, Job $job)
+    {
+        $affectedRows = $this->_em->getConnection()->executeUpdate(
+            "UPDATE jms_jobs SET workerName = :worker WHERE id = :id AND workerName IS NULL",
+            array(
+                'worker' => $workerName,
+                'id' => $job->getId(),
+            )
+        );
+
+        if ($affectedRows > 0) {
+            $job->setWorkerName($workerName);
+
+            return true;
+        }
+
+        return false;
     }
 
     public function findAllForRelatedEntity($relatedEntity)
@@ -186,15 +205,17 @@ class JobRepository extends EntityRepository
         return array($relClass, json_encode($relId));
     }
 
-    public function findPendingJob(array $excludedIds = array(), array $excludedQueues = array())
+    public function findPendingJob($workerName, array $excludedIds = array(), array $excludedQueues = array())
     {
         $qb = $this->_em->createQueryBuilder();
-        $qb->select('j')->from('JMSJobQueueBundle:Job', 'j')
+        $qb->select('j', 'd')->from('JMSJobQueueBundle:Job', 'j')
             ->leftJoin('j.dependencies', 'd')
             ->orderBy('j.priority', 'ASC')
             ->addOrderBy('j.id', 'ASC');
 
         $conditions = array();
+
+        $conditions[] = $qb->expr()->isNull('j.workerName');
 
         $conditions[] = $qb->expr()->lt('j.executeAfter', ':now');
         $qb->setParameter(':now', new \DateTime(), 'datetime');
@@ -325,7 +346,7 @@ class JobRepository extends EntityRepository
 
     public function findIncomingDependencies(Job $job)
     {
-        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE :job MEMBER OF j.dependencies")
+        return $this->_em->createQuery("SELECT j, d FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE :job MEMBER OF j.dependencies")
                     ->setParameter('job', $job)
                     ->getResult();
     }

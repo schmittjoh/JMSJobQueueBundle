@@ -62,6 +62,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             ->addOption('max-runtime', 'r', InputOption::VALUE_REQUIRED, 'The maximum runtime in seconds.', 900)
             ->addOption('max-concurrent-jobs', 'j', InputOption::VALUE_REQUIRED, 'The maximum number of concurrent jobs.', 4)
             ->addOption('idle-time', null, InputOption::VALUE_REQUIRED, 'Time to sleep when the queue ran out of jobs.', 2)
+            ->addOption('worker-name', null, InputOption::VALUE_REQUIRED, 'The name that uniquely identifies this worker process.')
         ;
     }
 
@@ -84,6 +85,19 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             throw new InvalidArgumentException('Time to sleep when idling must be greater than zero.');
         }
 
+        $workerName = $input->getOption('worker-name');
+        if ($workerName === null) {
+            $workerName = gethostname().'-'.getmypid();
+        }
+
+        if (strlen($workerName) > 50) {
+            throw new \RuntimeException(sprintf(
+                '"worker-name" must not be longer than 50 chars, but got "%s" (%d chars).',
+                $workerName,
+                strlen($workerName)
+            ));
+        }
+
         $this->env = $input->getOption('env');
         $this->verbose = $input->getOption('verbose');
         $this->output = $output;
@@ -91,9 +105,10 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $this->dispatcher = $this->getContainer()->get('event_dispatcher');
         $this->getEntityManager()->getConnection()->getConfiguration()->setSQLLogger(null);
 
-        $this->cleanUpStaleJobs();
+        $this->cleanUpStaleJobs($workerName);
 
         $this->runJobs(
+            $workerName,
             $startTime,
             $maxRuntime,
             $idleTime,
@@ -103,7 +118,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         );
     }
 
-    private function runJobs($startTime, $maxRuntime, $idleTime, $maxJobs, array $queueOptionsDefaults, array $queueOptions)
+    private function runJobs($workerName, $startTime, $maxRuntime, $idleTime, $maxJobs, array $queueOptionsDefaults, array $queueOptions)
     {
         $waitTime = 1;
         while (true) {
@@ -116,16 +131,17 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
                 $waitTime = 5;
             }
 
-            $this->startJobs($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions);
+            $this->startJobs($workerName, $idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions);
             sleep($waitTime);
         }
     }
 
-    private function startJobs($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions)
+    private function startJobs($workerName, $idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions)
     {
         $excludedIds = array();
         while (count($this->runningJobs) < $maxJobs) {
             $pendingJob = $this->getRepository()->findStartableJob(
+                $workerName,
                 $excludedIds,
                 $this->getExcludedQueues($queueOptionsDefaults, $queueOptions, $maxJobs)
             );
@@ -309,10 +325,15 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
      *
      * In such an error condition, these jobs are cleaned-up on restart of this command.
      */
-    private function cleanUpStaleJobs()
+    private function cleanUpStaleJobs($workerName)
     {
-        $repo = $this->getRepository();
-        foreach ($repo->findBy(array('state' => Job::STATE_RUNNING)) as $job) {
+        /** @var Job[] $staleJobs */
+        $staleJobs = $this->getEntityManager()->createQuery("SELECT j FROM ".Job::class." j WHERE j.state = :running AND (j.workerName = :worker OR j.workerName IS NULL)")
+            ->setParameter('worker', $workerName)
+            ->setParameter('running', Job::STATE_RUNNING)
+            ->getResult();
+
+        foreach ($staleJobs as $job) {
             // If the original job has retry jobs, then one of them is still in
             // running state. We can skip the original job here as it will be
             // processed automatically once the retry job is processed.

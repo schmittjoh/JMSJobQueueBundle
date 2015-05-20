@@ -5,7 +5,7 @@ require_once __DIR__.'/AppKernel.php';
 use JMS\JobQueueBundle\Console\Application;
 use JMS\JobQueueBundle\Tests\Functional\AppKernel;
 
-$kernel = new AppKernel('persistent_db.yml');
+$kernel = new AppKernel(getenv('SYMFONY_CONFIG') ?: 'persistent_db.yml');
 $kernel->boot();
 
 $app = new Application($kernel);

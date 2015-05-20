@@ -3,8 +3,10 @@
 namespace JMS\JobQueueBundle\Command;
 
 use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
 use JMS\JobQueueBundle\Entity\Job;
+use JMS\JobQueueBundle\Entity\Repository\JobRepository;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -18,6 +20,7 @@ class CleanUpCommand extends ContainerAwareCommand
             ->setName('jms-job-queue:clean-up')
             ->setDescription('Cleans up jobs which exceed the maximum retention time.')
             ->addOption('max-retention', null, InputOption::VALUE_REQUIRED, 'The maximum retention time (value must be parsable by DateTime).', '30 days')
+            ->addOption('per-call', null, InputOption::VALUE_REQUIRED, 'The maximum number of jobs to clean-up per call.', 1000)
         ;
     }
 
@@ -30,9 +33,30 @@ class CleanUpCommand extends ContainerAwareCommand
         $em = $registry->getManagerForClass('JMSJobQueueBundle:Job');
         $con = $em->getConnection();
 
+        $this->cleanUpExpiredJobs($em, $con, $input);
+        $this->collectStaleJobs($em);
+    }
+
+    private function collectStaleJobs(EntityManager $em)
+    {
+        $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge")
+            ->setParameter('running', Job::STATE_RUNNING)
+            ->setParameter('maxAge', new \DateTime('-5 minutes'), 'datetime')
+            ->getResult();
+
+        /** @var JobRepository $repository */
+        $repository = $em->getRepository(Job::class);
+
+        foreach ($jobs as $job) {
+            $repository->closeJob($job, Job::STATE_INCOMPLETE);
+        }
+    }
+
+    private function cleanUpExpiredJobs(EntityManager $em, Connection $con, InputInterface $input)
+    {
         $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL")
             ->setParameter('maxRetentionTime', new \DateTime('-'.$input->getOption('max-retention')))
-            ->setMaxResults(1000)
+            ->setMaxResults($input->getOption('per-call'))
             ->getResult();
 
         $incomingDepsSql = $con->getDatabasePlatform()->modifyLimitQuery("SELECT 1 FROM jms_job_dependencies WHERE dest_job_id = :id", 1);

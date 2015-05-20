@@ -53,7 +53,7 @@ class JobRepositoryTest extends BaseTestCase
 
     public function testFindPendingJob()
     {
-        $this->assertNull($this->repo->findPendingJob());
+        $this->assertNull($this->repo->findPendingJob('my-name'));
 
         $a = new Job('a');
         $a->setState('running');
@@ -62,13 +62,13 @@ class JobRepositoryTest extends BaseTestCase
         $this->em->persist($b);
         $this->em->flush();
 
-        $this->assertSame($b, $this->repo->findPendingJob());
-        $this->assertNull($this->repo->findPendingJob(array($b->getId())));
+        $this->assertSame($b, $this->repo->findPendingJob('my-name'));
+        $this->assertNull($this->repo->findPendingJob('my-name', array($b->getId())));
     }
 
     public function testFindStartableJob()
     {
-        $this->assertNull($this->repo->findStartableJob());
+        $this->assertNull($this->repo->findStartableJob('my-name'));
 
         $a = new Job('a');
         $a->setState('running');
@@ -81,7 +81,8 @@ class JobRepositoryTest extends BaseTestCase
         $this->em->flush();
 
         $excludedIds = array();
-        $this->assertSame($c, $this->repo->findStartableJob($excludedIds));
+
+        $this->assertSame($c, $this->repo->findStartableJob('my-name', $excludedIds));
         $this->assertEquals(array($b->getId()), $excludedIds);
     }
 
@@ -119,7 +120,7 @@ class JobRepositoryTest extends BaseTestCase
         $this->assertTrue($this->em->contains($b));
 
         $excludedIds = array();
-        $startableJob = $this->repo->findStartableJob($excludedIds);
+        $startableJob = $this->repo->findStartableJob('my-name', $excludedIds);
         $this->assertNotNull($startableJob);
         $this->assertEquals($b->getId(), $startableJob->getId());
         $this->assertEquals(array($a->getId()), $excludedIds);

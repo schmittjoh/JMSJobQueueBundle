@@ -110,6 +110,9 @@ class Job
     /** @ORM\Column(type = "datetime", name="checkedAt", nullable = true) */
     private $checkedAt;
 
+    /** @ORM\Column(type = "string", length = 50, nullable = true) */
+    private $workerName;
+
     /** @ORM\Column(type = "datetime", name="executeAfter", nullable = true) */
     private $executeAfter;
 
@@ -214,6 +217,7 @@ class Job
         $this->startedAt = null;
         $this->checkedAt = null;
         $this->closedAt = null;
+        $this->workerName = null;
         $this->output = null;
         $this->errorOutput = null;
         $this->exitCode = null;
@@ -232,6 +236,16 @@ class Job
     public function getState()
     {
         return $this->state;
+    }
+
+    public function setWorkerName($workerName)
+    {
+        $this->workerName = $workerName;
+    }
+
+    public function getWorkerName()
+    {
+        return $this->workerName;
     }
 
     public function getPriority()
