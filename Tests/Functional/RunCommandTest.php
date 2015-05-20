@@ -119,6 +119,63 @@ OUTPUT
     }
 
     /**
+     * @group queues
+     */
+    public function testSingleRestrictedQueue()
+    {
+        $a = new Job('jms-job-queue:successful-cmd');
+        $b = new Job('jms-job-queue:successful-cmd', array(), true, 'other_queue');
+        $c = new Job('jms-job-queue:successful-cmd', array(), true, 'yet_another_queue');
+        $this->em->persist($a);
+        $this->em->persist($b);
+        $this->em->persist($c);
+        $this->em->flush();
+
+        $this->doRun(array('--max-runtime' => 1, '--queue' => array('other_queue')));
+        $this->assertEquals(Job::STATE_PENDING, $a->getState());
+        $this->assertEquals(Job::STATE_FINISHED, $b->getState());
+        $this->assertEquals(Job::STATE_PENDING, $c->getState());
+    }
+
+    /**
+     * @group queues
+     */
+    public function testMultipleRestrictedQueues()
+    {
+        $a = new Job('jms-job-queue:successful-cmd');
+        $b = new Job('jms-job-queue:successful-cmd', array(), true, 'other_queue');
+        $c = new Job('jms-job-queue:successful-cmd', array(), true, 'yet_another_queue');
+        $this->em->persist($a);
+        $this->em->persist($b);
+        $this->em->persist($c);
+        $this->em->flush();
+
+        $this->doRun(array('--max-runtime' => 1, '--queue' => array('other_queue', 'yet_another_queue')));
+        $this->assertEquals(Job::STATE_PENDING, $a->getState());
+        $this->assertEquals(Job::STATE_FINISHED, $b->getState());
+        $this->assertEquals(Job::STATE_FINISHED, $c->getState());
+    }
+
+    /**
+     * @group queues
+     */
+    public function testNoRestrictedQueue()
+    {
+        $a = new Job('jms-job-queue:successful-cmd');
+        $b = new Job('jms-job-queue:successful-cmd', array(), true, 'other_queue');
+        $c = new Job('jms-job-queue:successful-cmd', array(), true, 'yet_another_queue');
+        $this->em->persist($a);
+        $this->em->persist($b);
+        $this->em->persist($c);
+        $this->em->flush();
+
+        $this->doRun(array('--max-runtime' => 1));
+        $this->assertEquals(Job::STATE_FINISHED, $a->getState());
+        $this->assertEquals(Job::STATE_FINISHED, $b->getState());
+        $this->assertEquals(Job::STATE_FINISHED, $c->getState());
+    }
+
+    /**
      * @group retry
      */
     public function testRetry()

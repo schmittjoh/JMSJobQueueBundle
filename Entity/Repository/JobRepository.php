@@ -107,9 +107,9 @@ class JobRepository extends EntityRepository
         return $firstJob;
     }
 
-    public function findStartableJob(array &$excludedIds = array(), $excludedQueues = array())
+    public function findStartableJob(array &$excludedIds = array(), $excludedQueues = array(), $restrictedQueues = array())
     {
-        while (null !== $job = $this->findPendingJob($excludedIds, $excludedQueues)) {
+        while (null !== $job = $this->findPendingJob($excludedIds, $excludedQueues, $restrictedQueues)) {
             if ($job->isStartable()) {
                 return $job;
             }
@@ -186,7 +186,7 @@ class JobRepository extends EntityRepository
         return array($relClass, json_encode($relId));
     }
 
-    public function findPendingJob(array $excludedIds = array(), array $excludedQueues = array())
+    public function findPendingJob(array $excludedIds = array(), array $excludedQueues = array(), array $restrictedQueues = array())
     {
         $qb = $this->_em->createQueryBuilder();
         $qb->select('j')->from('JMSJobQueueBundle:Job', 'j')
@@ -210,6 +210,11 @@ class JobRepository extends EntityRepository
         if ( ! empty($excludedQueues)) {
             $conditions[] = $qb->expr()->notIn('j.queue', ':excludedQueues');
             $qb->setParameter('excludedQueues', $excludedQueues, Connection::PARAM_STR_ARRAY);
+        }
+
+        if ( ! empty($restrictedQueues)) {
+            $conditions[] = $qb->expr()->in('j.queue', ':restrictedQueues');
+            $qb->setParameter('restrictedQueues', $restrictedQueues, Connection::PARAM_STR_ARRAY);
         }
 
         $qb->where(call_user_func_array(array($qb->expr(), 'andX'), $conditions));
@@ -371,5 +376,20 @@ class JobRepository extends EntityRepository
             ->getOneOrNullResult();
 
         return count($result);
+    }
+
+    public function findRunningJobs($jobQueues = array())
+    {
+        $qb = $this->_em->createQueryBuilder()
+            ->select('j')
+            ->from('JMSJobQueueBundle:Job', 'j')
+            ->where('j.state = :state')
+            ->setParameter('state', Job::STATE_RUNNING);
+
+        if (!empty($jobQueues)) {
+            $qb->andWhere('j.queue IN (:queues)')->setParameter('queues', $jobQueues);
+        }
+
+        return $qb->getQuery()->getResult();
     }
 }
