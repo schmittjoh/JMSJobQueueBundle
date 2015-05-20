@@ -39,7 +39,7 @@ class CleanUpCommand extends ContainerAwareCommand
 
     private function collectStaleJobs(EntityManager $em)
     {
-        $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge")
+        $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge")
             ->setParameter('running', Job::STATE_RUNNING)
             ->setParameter('maxAge', new \DateTime('-5 minutes'), 'datetime')
             ->getResult();
