@@ -54,14 +54,9 @@ class CleanUpCommand extends ContainerAwareCommand
 
     private function cleanUpExpiredJobs(EntityManager $em, Connection $con, InputInterface $input)
     {
-        $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL")
-            ->setParameter('maxRetentionTime', new \DateTime('-'.$input->getOption('max-retention')))
-            ->setMaxResults($input->getOption('per-call'))
-            ->getResult();
-
         $incomingDepsSql = $con->getDatabasePlatform()->modifyLimitQuery("SELECT 1 FROM jms_job_dependencies WHERE dest_job_id = :id", 1);
 
-        foreach ($jobs as $job) {
+        foreach ($this->findExpiredJobs($em, $input) as $job) {
             /** @var Job $job */
 
             $result = $con->executeQuery($incomingDepsSql, array('id' => $job->getId()));
@@ -74,5 +69,36 @@ class CleanUpCommand extends ContainerAwareCommand
         }
 
         $em->flush();
+    }
+
+    private function findExpiredJobs(EntityManager $em, InputInterface $input)
+    {
+        $maxRetentionTime = new \DateTime('-'.$input->getOption('max-retention'));
+
+        $maxResults = $input->getOption('per-call');
+        $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL")
+            ->setParameter('maxRetentionTime', $maxRetentionTime)
+            ->setMaxResults($maxResults)
+            ->getResult();
+
+        $maxResults -= count($jobs);
+
+        foreach ($jobs as $job) {
+            yield $job;
+        }
+
+        if ($maxResults <= 0) {
+            return;
+        }
+
+        $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.state = :canceled AND j.createdAt < :maxRetentionTime AND j.originalJob IS NULL")
+            ->setParameter('maxRetentionTime', $maxRetentionTime)
+            ->setParameter('canceled', Job::STATE_CANCELED)
+            ->setMaxResults($maxResults)
+            ->getResult();
+
+        foreach ($jobs as $job) {
+            yield $job;
+        }
     }
 }
