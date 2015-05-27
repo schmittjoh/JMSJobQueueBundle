@@ -20,6 +20,7 @@ namespace JMS\JobQueueBundle\Command;
 
 use Doctrine\ORM\EntityManager;
 use JMS\JobQueueBundle\Entity\Repository\JobRepository;
+use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Bridge\Doctrine\ManagerRegistry;
 use Symfony\Component\Process\Exception\ProcessFailedException;
@@ -44,6 +45,9 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
     /** @var OutputInterface */
     private $output;
+
+    /** @var InputInterface */
+    private $input;
 
     /** @var ManagerRegistry */
     private $registry;
@@ -93,6 +97,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $this->env = $input->getOption('env');
         $this->verbose = $input->getOption('verbose');
         $this->output = $output;
+        $this->input = $input;
         $this->registry = $this->getContainer()->get('doctrine');
         $this->dispatcher = $this->getContainer()->get('event_dispatcher');
         $this->getEntityManager()->getConnection()->getConfiguration()->setSQLLogger(null);
@@ -123,6 +128,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             }
 
             $this->startJobs($idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions);
+            $event = new ConsoleCommandEvent($this, $this->input, $this->output);
+            $this->dispatcher->dispatch('jms_job_queue.run_jobs', $event);
             sleep($waitTime);
         }
     }
