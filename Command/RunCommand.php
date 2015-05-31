@@ -77,6 +77,10 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             throw new InvalidArgumentException('The maximum runtime must be greater than zero.');
         }
 
+        if ($maxRuntime > 600) {
+            $maxRuntime += mt_rand(-120, 120);
+        }
+
         $maxJobs = (integer) $input->getOption('max-concurrent-jobs');
         if ($maxJobs <= 0) {
             throw new InvalidArgumentException('The maximum number of jobs per queue must be greater than zero.');
@@ -107,7 +111,10 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $this->dispatcher = $this->getContainer()->get('event_dispatcher');
         $this->getEntityManager()->getConnection()->getConfiguration()->setSQLLogger(null);
 
-        $this->output->writeln('Cleaning up stale jobs');
+        if ($this->verbose) {
+            $this->output->writeln('Cleaning up stale jobs');
+        }
+
         $this->cleanUpStaleJobs($workerName);
 
         $this->runJobs(
@@ -125,7 +132,9 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     {
         $hasPcntl = extension_loaded('pcntl');
 
-        $this->output->writeln('Running jobs');
+        if ($this->verbose) {
+            $this->output->writeln('Running jobs');
+        }
 
         if ($hasPcntl) {
             $this->setupSignalHandlers();
