@@ -54,6 +54,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     /** @var array */
     private $runningJobs = array();
 
+    private $shouldShutdown = false;
+
     protected function configure()
     {
         $this
@@ -105,6 +107,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $this->dispatcher = $this->getContainer()->get('event_dispatcher');
         $this->getEntityManager()->getConnection()->getConfiguration()->setSQLLogger(null);
 
+        $this->output->writeln('Cleaning up stale jobs');
         $this->cleanUpStaleJobs($workerName);
 
         $this->runJobs(
@@ -120,20 +123,58 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
     private function runJobs($workerName, $startTime, $maxRuntime, $idleTime, $maxJobs, array $queueOptionsDefaults, array $queueOptions)
     {
-        $waitTime = 1;
-        while (true) {
-            $this->checkRunningJobs();
-            if (time() - $startTime > $maxRuntime) {
-                if (empty($this->runningJobs)) {
-                    return;
-                }
+        $hasPcntl = extension_loaded('pcntl');
 
-                $waitTime = 5;
+        $this->output->writeln('Running jobs');
+
+        if ($hasPcntl) {
+            $this->setupSignalHandlers();
+            if ($this->verbose) {
+                $this->output->writeln('Signal Handlers have been installed.');
+            }
+        } elseif ($this->verbose) {
+            $this->output->writeln('PCNTL extension is not available. Signals cannot be processed.');
+        }
+
+        while (true) {
+            if ($hasPcntl) {
+                pcntl_signal_dispatch();
             }
 
+            if ($this->shouldShutdown || time() - $startTime > $maxRuntime) {
+                break;
+            }
+
+            $this->checkRunningJobs();
             $this->startJobs($workerName, $idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions);
-            sleep($waitTime);
+
+            $waitTimeInMs = mt_rand(500, 1000);
+            usleep($waitTimeInMs * 1E3);
         }
+
+        if ($this->verbose) {
+            $this->output->writeln('Entering shutdown sequence, waiting for running jobs to terminate...');
+        }
+
+        while ( ! empty($this->runningJobs)) {
+            sleep(5);
+            $this->checkRunningJobs();
+        }
+
+        if ($this->verbose) {
+            $this->output->writeln('All jobs finished, exiting.');
+        }
+    }
+
+    private function setupSignalHandlers()
+    {
+        pcntl_signal(SIGTERM, function() {
+            if ($this->verbose) {
+                $this->output->writeln('Received SIGTERM signal.');
+            }
+
+            $this->shouldShutdown = true;
+        });
     }
 
     private function startJobs($workerName, $idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions)
