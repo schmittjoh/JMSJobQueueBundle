@@ -541,6 +541,19 @@ class Job
         return null !== $this->originalJob;
     }
 
+    public function isRetried()
+    {
+        foreach ($this->retryJobs as $job) {
+            /** @var Job $job */
+
+            if ($job->isRunning() || $job->isNew() || $job->isPending()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function checked()
     {
         $this->checkedAt = new \DateTime();

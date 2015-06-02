@@ -39,7 +39,10 @@ class CleanUpCommand extends ContainerAwareCommand
 
     private function collectStaleJobs(EntityManager $em)
     {
-        $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge")
+        /** @var Job[] $jobs */
+        $jobs = $em->createQuery("SELECT j, rj FROM JMSJobQueueBundle:Job j
+                                    LEFT JOIN j.retryJobs rj
+                                    WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge")
             ->setParameter('running', Job::STATE_RUNNING)
             ->setParameter('maxAge', new \DateTime('-5 minutes'), 'datetime')
             ->getResult();
@@ -48,6 +51,10 @@ class CleanUpCommand extends ContainerAwareCommand
         $repository = $em->getRepository(Job::class);
 
         foreach ($jobs as $job) {
+            if ($job->isRetried()) {
+                continue;
+            }
+
             $repository->closeJob($job, Job::STATE_INCOMPLETE);
         }
     }
