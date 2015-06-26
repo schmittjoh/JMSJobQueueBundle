@@ -350,16 +350,36 @@ class JobRepository extends EntityRepository
 
     public function findIncomingDependencies(Job $job)
     {
-        return $this->_em->createQuery("SELECT j, d FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE :job MEMBER OF j.dependencies")
-                    ->setParameter('job', $job)
+        $jobIds = $this->getJobIdsOfIncomingDependencies($job);
+        if (empty($jobIds)) {
+            return array();
+        }
+
+        return $this->_em->createQuery("SELECT j, d FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE j.id IN (:ids)")
+                    ->setParameter('ids', $jobIds)
                     ->getResult();
     }
 
     public function getIncomingDependencies(Job $job)
     {
-        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE :job MEMBER OF j.dependencies")
+        $jobIds = $this->getJobIdsOfIncomingDependencies($job);
+        if (empty($jobIds)) {
+            return array();
+        }
+
+        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.id IN (:ids)")
                     ->setParameter('job', $job)
+                    ->setParameter('ids', $jobIds)
                     ->getResult();
+    }
+
+    private function getJobIdsOfIncomingDependencies(Job $job)
+    {
+        $jobIds = $this->_em->getConnection()
+            ->executeQuery("SELECT source_job_id FROM jms_job_dependencies WHERE dest_job_id = :id", array('id' => $job->getId()))
+            ->fetchAll(\PDO::FETCH_COLUMN);
+
+        return $jobIds;
     }
 
     public function findLastJobsWithError($nbJobs = 10)
