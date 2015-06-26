@@ -57,7 +57,7 @@ class CleanUpCommand extends ContainerAwareCommand
 
         do {
             /** @var Job $job */
-            $job = $em->createQuery("SELECT j, rj FROM JMSJobQueueBundle:Job j
+            $job = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j
                                       WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge
                                                 AND j.id NOT IN (:excludedIds)
                                       ORDER BY j.id DESC")
