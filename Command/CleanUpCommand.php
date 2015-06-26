@@ -58,8 +58,9 @@ class CleanUpCommand extends ContainerAwareCommand
         do {
             /** @var Job $job */
             $job = $em->createQuery("SELECT j, rj FROM JMSJobQueueBundle:Job j
-                                        LEFT JOIN j.retryJobs rj
-                                        WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge AND j.id NOT IN (:excludedIds) ORDER BY j.id DESC")
+                                      WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge
+                                                AND j.id NOT IN (:excludedIds)
+                                      ORDER BY j.id DESC")
                 ->setParameter('running', Job::STATE_RUNNING)
                 ->setParameter('maxAge', new \DateTime('-5 minutes'), 'datetime')
                 ->setParameter('excludedIds', $excludedIds)
@@ -67,6 +68,7 @@ class CleanUpCommand extends ContainerAwareCommand
                 ->getOneOrNullResult();
 
             if ($job !== null) {
+                $em->refresh($job);
                 $excludedIds[] = $job->getId();
 
                 yield $job;
@@ -78,6 +80,7 @@ class CleanUpCommand extends ContainerAwareCommand
     {
         $incomingDepsSql = $con->getDatabasePlatform()->modifyLimitQuery("SELECT 1 FROM jms_job_dependencies WHERE dest_job_id = :id", 1);
 
+        $count = 0;
         foreach ($this->findExpiredJobs($em, $input) as $job) {
             /** @var Job $job */
 
@@ -87,7 +90,12 @@ class CleanUpCommand extends ContainerAwareCommand
                 continue;
             }
 
+            $count++;
             $em->remove($job);
+
+            if ($count >= $input->getOption('per-call')) {
+                break;
+            }
         }
 
         $em->flush();
@@ -96,31 +104,36 @@ class CleanUpCommand extends ContainerAwareCommand
     private function findExpiredJobs(EntityManager $em, InputInterface $input)
     {
         $maxRetentionTime = new \DateTime('-'.$input->getOption('max-retention'));
+        $excludedIds = array(-1);
 
-        $maxResults = $input->getOption('per-call');
-        $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL")
-            ->setParameter('maxRetentionTime', $maxRetentionTime)
-            ->setMaxResults($maxResults)
-            ->getResult();
+        do {
+            $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)")
+                ->setParameter('maxRetentionTime', $maxRetentionTime)
+                ->setParameter('excludedIds', $excludedIds)
+                ->setMaxResults(100)
+                ->getResult();
 
-        $maxResults -= count($jobs);
+            foreach ($jobs as $job) {
+                $excludedIds[] = $job->getId();
 
-        foreach ($jobs as $job) {
-            yield $job;
-        }
+                yield $job;
+            }
+        } while (count($jobs) > 0);
 
-        if ($maxResults <= 0) {
-            return;
-        }
+        $excludedIds = array(-1);
+        do {
+            $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.state = :canceled AND j.createdAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)")
+                ->setParameter('maxRetentionTime', $maxRetentionTime)
+                ->setParameter('canceled', Job::STATE_CANCELED)
+                ->setParameter('excludedIds', $excludedIds)
+                ->setMaxResults(100)
+                ->getResult();
 
-        $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.state = :canceled AND j.createdAt < :maxRetentionTime AND j.originalJob IS NULL")
-            ->setParameter('maxRetentionTime', $maxRetentionTime)
-            ->setParameter('canceled', Job::STATE_CANCELED)
-            ->setMaxResults($maxResults)
-            ->getResult();
+            foreach ($jobs as $job) {
+                $excludedIds[] = $job->getId();
 
-        foreach ($jobs as $job) {
-            yield $job;
-        }
+                yield $job;
+            }
+        } while (count($jobs) > 0);
     }
 }

@@ -155,7 +155,7 @@ class Job
      */
     private $originalJob;
 
-    /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove", "detach"}) */
+    /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove", "detach", "refresh"}) */
     private $retryJobs;
 
     /** @ORM\Column(type = "jms_job_safe_object", name="stackTrace", nullable = true) */
