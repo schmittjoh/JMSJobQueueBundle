@@ -253,6 +253,11 @@ class Job
         return $this->priority * -1;
     }
 
+    public function isInFinalState()
+    {
+        return ! $this->isNew() && ! $this->isPending() && ! $this->isRunning();
+    }
+
     public function isStartable()
     {
         foreach ($this->dependencies as $dep) {

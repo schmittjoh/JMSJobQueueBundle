@@ -271,6 +271,10 @@ class JobRepository extends EntityRepository
         }
         $visited[] = $job;
 
+        if ($job->isInFinalState()) {
+            return;
+        }
+
         if (null !== $this->dispatcher && ($job->isRetryJob() || 0 === count($job->getRetryJobs()))) {
             $event = new StateChangeEvent($job, $finalState);
             $this->dispatcher->dispatch('jms_job_queue.job_state_change', $event);
