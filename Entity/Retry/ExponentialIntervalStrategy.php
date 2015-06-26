@@ -28,12 +28,24 @@ class ExponentialIntervalStrategy implements RetryStrategyInterface {
    * @param Job $retry
    */
   public function apply(Job $original, Job $retry) {
-    $seconds = 5;
+    $number = 2;
+    $unit = 'second';
 
     if (isset($this->config)) {
-      $seconds = $this->config['seconds'];
+      if (isset($this->config['number'])) {
+        $number = $this->config['number'];
+      }
+      if (isset($this->config['unit'])) {
+        $unit = $this->config['unit'];
+      }
     }
 
-    $retry->setExecuteAfter(new \DateTime('+' . (pow($seconds, count($original->getRetryJobs()))) . ' seconds'));
+    $increase = (pow($number, count($original->getRetryJobs())));
+
+    if ($increase > 1) {
+      $unit = $unit . 's';
+    }
+
+    $retry->setExecuteAfter(new \DateTime('+' . $increase . ' ' . $unit));
   }
 }
