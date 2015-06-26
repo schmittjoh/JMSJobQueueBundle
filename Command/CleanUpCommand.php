@@ -39,24 +39,34 @@ class CleanUpCommand extends ContainerAwareCommand
 
     private function collectStaleJobs(EntityManager $em)
     {
-        /** @var Job[] $jobs */
-        $jobs = $em->createQuery("SELECT j, rj FROM JMSJobQueueBundle:Job j
-                                    LEFT JOIN j.retryJobs rj
-                                    WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge")
-            ->setParameter('running', Job::STATE_RUNNING)
-            ->setParameter('maxAge', new \DateTime('-5 minutes'), 'datetime')
-            ->getResult();
-
         /** @var JobRepository $repository */
         $repository = $em->getRepository(Job::class);
 
-        foreach ($jobs as $job) {
+        foreach ($this->findStaleJobs($em) as $job) {
             if ($job->isRetried()) {
                 continue;
             }
 
             $repository->closeJob($job, Job::STATE_INCOMPLETE);
         }
+    }
+
+    private function findStaleJobs(EntityManager $em)
+    {
+        do {
+            /** @var Job[] $jobs */
+            $job = $em->createQuery("SELECT j, rj FROM JMSJobQueueBundle:Job j
+                                        LEFT JOIN j.retryJobs rj
+                                        WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge ORDER BY j.id DESC")
+                ->setParameter('running', Job::STATE_RUNNING)
+                ->setParameter('maxAge', new \DateTime('-5 minutes'), 'datetime')
+                ->setMaxResults(1)
+                ->getOneOrNullResult();
+
+            if ($job !== null) {
+                yield $job;
+            }
+        } while ($job !== null);
     }
 
     private function cleanUpExpiredJobs(EntityManager $em, Connection $con, InputInterface $input)
