@@ -110,7 +110,7 @@ class Job
     /** @ORM\Column(type = "datetime", name="checkedAt", nullable = true) */
     private $checkedAt;
 
-    /** @ORM\Column(type = "string", length = 50, nullable = true) */
+    /** @ORM\Column(type = "string", name="workerName", length = 50, nullable = true) */
     private $workerName;
 
     /** @ORM\Column(type = "datetime", name="executeAfter", nullable = true) */
