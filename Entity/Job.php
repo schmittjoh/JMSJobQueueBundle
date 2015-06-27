@@ -551,7 +551,7 @@ class Job
         foreach ($this->retryJobs as $job) {
             /** @var Job $job */
 
-            if ($job->isRunning() || $job->isNew() || $job->isPending()) {
+            if ( ! $job->isInFinalState()) {
                 return true;
             }
         }

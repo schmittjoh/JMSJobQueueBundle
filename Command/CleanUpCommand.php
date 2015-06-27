@@ -51,13 +51,19 @@ class CleanUpCommand extends ContainerAwareCommand
         }
     }
 
+    /**
+     * @return Job[]
+     */
     private function findStaleJobs(EntityManager $em)
     {
         $excludedIds = array(-1);
 
         do {
+            $em->clear();
+
             /** @var Job $job */
-            $job = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j
+            $job = $em->createQuery("SELECT j, rj FROM JMSJobQueueBundle:Job j
+                                      LEFT JOIN j.retryJobs rj
                                       WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge
                                                 AND j.id NOT IN (:excludedIds)")
                 ->setParameter('running', Job::STATE_RUNNING)
@@ -67,7 +73,6 @@ class CleanUpCommand extends ContainerAwareCommand
                 ->getOneOrNullResult();
 
             if ($job !== null) {
-                $em->refresh($job);
                 $excludedIds[] = $job->getId();
 
                 yield $job;
