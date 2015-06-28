@@ -20,6 +20,7 @@ class CleanUpCommand extends ContainerAwareCommand
             ->setName('jms-job-queue:clean-up')
             ->setDescription('Cleans up jobs which exceed the maximum retention time.')
             ->addOption('max-retention', null, InputOption::VALUE_REQUIRED, 'The maximum retention time (value must be parsable by DateTime).', '30 days')
+            ->addOption('max-retention-succeeded', null, InputOption::VALUE_REQUIRED, 'The maximum retention time for succeeded jobs (value must be parsable by DateTime).', '1 hour')
             ->addOption('per-call', null, InputOption::VALUE_REQUIRED, 'The maximum number of jobs to clean-up per call.', 1000)
         ;
     }
@@ -106,37 +107,53 @@ class CleanUpCommand extends ContainerAwareCommand
 
     private function findExpiredJobs(EntityManager $em, InputInterface $input)
     {
-        $maxRetentionTime = new \DateTime('-'.$input->getOption('max-retention'));
-        $excludedIds = array(-1);
+        $succeededJobs = function(array $excludedIds) use ($em, $input) {
+            return $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL AND j.state = :succeeded AND j.id NOT IN (:excludedIds)")
+                ->setParameter('maxRetentionTime', new \DateTime('-'.$input->getOption('max-retention-succeeded')))
+                ->setParameter('excludedIds', $excludedIds)
+                ->setParameter('succeeded', Job::STATE_FINISHED)
+                ->setMaxResults(100)
+                ->getResult();
+        };
+        foreach ($this->whileResults($succeededJobs) as $job) {
+            yield $job;
+        }
 
-        do {
-            $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)")
-                ->setParameter('maxRetentionTime', $maxRetentionTime)
+        $finishedJobs = function(array $excludedIds) use ($em, $input) {
+            return $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)")
+                ->setParameter('maxRetentionTime', new \DateTime('-'.$input->getOption('max-retention')))
                 ->setParameter('excludedIds', $excludedIds)
                 ->setMaxResults(100)
                 ->getResult();
+        };
+        foreach ($this->whileResults($finishedJobs) as $job) {
+            yield $job;
+        }
 
-            foreach ($jobs as $job) {
-                $excludedIds[] = $job->getId();
-
-                yield $job;
-            }
-        } while (count($jobs) > 0);
-
-        $excludedIds = array(-1);
-        do {
-            $jobs = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.state = :canceled AND j.createdAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)")
-                ->setParameter('maxRetentionTime', $maxRetentionTime)
+        $canceledJobs = function(array $excludedIds) use ($em, $input) {
+            return $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.state = :canceled AND j.createdAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)")
+                ->setParameter('maxRetentionTime', new \DateTime('-'.$input->getOption('max-retention')))
                 ->setParameter('canceled', Job::STATE_CANCELED)
                 ->setParameter('excludedIds', $excludedIds)
                 ->setMaxResults(100)
                 ->getResult();
+        };
+        foreach ($this->whileResults($canceledJobs) as $job) {
+            yield $job;
+        }
+    }
 
+    private function whileResults(callable $resultProducer)
+    {
+        $excludedIds = array(-1);
+
+        do {
+            /** @var Job[] $jobs */
+            $jobs = $resultProducer($excludedIds);
             foreach ($jobs as $job) {
                 $excludedIds[] = $job->getId();
-
                 yield $job;
             }
-        } while (count($jobs) > 0);
+        } while ( ! empty($jobs));
     }
 }
