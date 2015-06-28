@@ -347,6 +347,9 @@ class JobRepository extends EntityRepository
         }
     }
 
+    /**
+     * @return Job[]
+     */
     public function findIncomingDependencies(Job $job)
     {
         $jobIds = $this->getJobIdsOfIncomingDependencies($job);
@@ -359,6 +362,9 @@ class JobRepository extends EntityRepository
                     ->getResult();
     }
 
+    /**
+     * @return Job[]
+     */
     public function getIncomingDependencies(Job $job)
     {
         $jobIds = $this->getJobIdsOfIncomingDependencies($job);

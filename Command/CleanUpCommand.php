@@ -88,13 +88,18 @@ class CleanUpCommand extends ContainerAwareCommand
         foreach ($this->findExpiredJobs($em, $input) as $job) {
             /** @var Job $job */
 
+            $count++;
+
             $result = $con->executeQuery($incomingDepsSql, array('id' => $job->getId()));
             if ($result->fetchColumn() !== false) {
-                // There are still other jobs that depend on this, we will come back later.
+                $em->transactional(function() use ($em, $job) {
+                    $this->resolveDependencies($em, $job);
+                    $em->remove($job);
+                });
+
                 continue;
             }
 
-            $count++;
             $em->remove($job);
 
             if ($count >= $input->getOption('per-call')) {
@@ -103,6 +108,30 @@ class CleanUpCommand extends ContainerAwareCommand
         }
 
         $em->flush();
+    }
+
+    private function resolveDependencies(EntityManager $em, Job $job)
+    {
+        // If this job has failed, or has otherwise not succeeded, we need to set the
+        // incoming dependencies to failed if that has not been done already.
+        if ( ! $job->isFinished()) {
+            /** @var JobRepository $repository */
+            $repository = $em->getRepository(Job::class);
+            foreach ($repository->findIncomingDependencies($job) as $incomingDep) {
+                if ($incomingDep->isInFinalState()) {
+                    continue;
+                }
+
+                $finalState = Job::STATE_CANCELED;
+                if ($job->isRunning()) {
+                    $finalState = Job::STATE_FAILED;
+                }
+
+                $repository->closeJob($incomingDep, $finalState);
+            }
+        }
+
+        $em->getConnection()->executeUpdate("DELETE FROM jms_job_dependencies WHERE dest_job_id = :id", array('id' => $job->getId()));
     }
 
     private function findExpiredJobs(EntityManager $em, InputInterface $input)
