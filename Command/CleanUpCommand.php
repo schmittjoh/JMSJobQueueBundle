@@ -62,8 +62,7 @@ class CleanUpCommand extends ContainerAwareCommand
             $em->clear();
 
             /** @var Job $job */
-            $job = $em->createQuery("SELECT j, rj FROM JMSJobQueueBundle:Job j
-                                      LEFT JOIN j.retryJobs rj
+            $job = $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j
                                       WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge
                                                 AND j.id NOT IN (:excludedIds)")
                 ->setParameter('running', Job::STATE_RUNNING)
