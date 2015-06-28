@@ -208,8 +208,7 @@ class JobRepository extends EntityRepository
     public function findPendingJob($workerName, array $excludedIds = array(), array $excludedQueues = array())
     {
         $qb = $this->_em->createQueryBuilder();
-        $qb->select('j', 'd')->from('JMSJobQueueBundle:Job', 'j')
-            ->leftJoin('j.dependencies', 'd')
+        $qb->select('j')->from('JMSJobQueueBundle:Job', 'j')
             ->orderBy('j.priority', 'ASC')
             ->addOrderBy('j.id', 'ASC');
 

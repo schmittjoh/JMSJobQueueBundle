@@ -51,6 +51,28 @@ class JobRepositoryTest extends BaseTestCase
         $this->assertNotSame($a, $this->repo->getOrCreateIfNotExists('a', array('foo')));
     }
 
+    public function testFindPendingJobReturnsAllDependencies()
+    {
+        $a = new Job('a');
+        $b = new Job('b');
+
+        $this->em->persist($a);
+        $this->em->persist($b);
+        $this->em->flush();
+
+        $c = new Job('c');
+        $c->addDependency($a);
+        $c->addDependency($b);
+        $this->em->persist($c);
+        $this->em->flush();
+        $this->em->clear();
+
+        $cReloaded = $this->repo->findPendingJob('my-name', array($a->getId(), $b->getId()));
+        $this->assertNotNull($cReloaded);
+        $this->assertEquals($c->getId(), $cReloaded->getId());
+        $this->assertCount(2, $cReloaded->getDependencies());
+    }
+
     public function testFindPendingJob()
     {
         $this->assertNull($this->repo->findPendingJob('my-name'));
