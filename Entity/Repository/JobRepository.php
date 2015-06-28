@@ -109,7 +109,7 @@ class JobRepository extends EntityRepository
 
     public function findStartableJob($workerName, array &$excludedIds = array(), $excludedQueues = array())
     {
-        while (null !== $job = $this->findPendingJob($workerName, $excludedIds, $excludedQueues)) {
+        while (null !== $job = $this->findPendingJob($excludedIds, $excludedQueues)) {
             if ($job->isStartable() && $this->acquireLock($workerName, $job)) {
                 return $job;
             }
@@ -205,7 +205,7 @@ class JobRepository extends EntityRepository
         return array($relClass, json_encode($relId));
     }
 
-    public function findPendingJob($workerName, array $excludedIds = array(), array $excludedQueues = array())
+    public function findPendingJob(array $excludedIds = array(), array $excludedQueues = array())
     {
         $qb = $this->_em->createQueryBuilder();
         $qb->select('j')->from('JMSJobQueueBundle:Job', 'j')

@@ -67,7 +67,7 @@ class JobRepositoryTest extends BaseTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $cReloaded = $this->repo->findPendingJob('my-name', array($a->getId(), $b->getId()));
+        $cReloaded = $this->repo->findPendingJob(array($a->getId(), $b->getId()));
         $this->assertNotNull($cReloaded);
         $this->assertEquals($c->getId(), $cReloaded->getId());
         $this->assertCount(2, $cReloaded->getDependencies());
@@ -75,7 +75,7 @@ class JobRepositoryTest extends BaseTestCase
 
     public function testFindPendingJob()
     {
-        $this->assertNull($this->repo->findPendingJob('my-name'));
+        $this->assertNull($this->repo->findPendingJob());
 
         $a = new Job('a');
         $a->setState('running');
@@ -84,8 +84,8 @@ class JobRepositoryTest extends BaseTestCase
         $this->em->persist($b);
         $this->em->flush();
 
-        $this->assertSame($b, $this->repo->findPendingJob('my-name'));
-        $this->assertNull($this->repo->findPendingJob('my-name', array($b->getId())));
+        $this->assertSame($b, $this->repo->findPendingJob());
+        $this->assertNull($this->repo->findPendingJob(array($b->getId())));
     }
 
     public function testFindStartableJob()
