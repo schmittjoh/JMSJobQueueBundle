@@ -28,19 +28,19 @@ class ExponentialIntervalStrategy implements RetryStrategyInterface {
    * @param Job $retry
    */
   public function apply(Job $original, Job $retry) {
-    $number = 2;
+    $base = 2;
     $unit = 'second';
 
     if (isset($this->config)) {
-      if (isset($this->config['number'])) {
-        $number = $this->config['number'];
+      if (isset($this->config['base'])) {
+        $base = $this->config['base'];
       }
       if (isset($this->config['unit'])) {
         $unit = $this->config['unit'];
       }
     }
 
-    $increase = (pow($number, count($original->getRetryJobs())));
+    $increase = (pow($base, count($original->getRetryJobs())));
 
     if ($increase > 1) {
       $unit = $unit . 's';
