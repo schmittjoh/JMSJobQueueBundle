@@ -394,7 +394,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             ->setParameter('worker', $workerName)
             ->setParameter('running', Job::STATE_RUNNING);
 
-        if ( ! empty($this->restrictedQueues)) {
+        if ( ! empty($restrictedQueues)) {
             $staleJobsQb
                 ->andWhere("j.queue in (:queues)")
                 ->setParameter('queues', $restrictedQueues);
