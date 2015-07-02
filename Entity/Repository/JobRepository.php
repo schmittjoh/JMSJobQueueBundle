@@ -107,7 +107,7 @@ class JobRepository extends EntityRepository
         return $firstJob;
     }
 
-    public function findStartableJob(array &$excludedIds = array(), $excludedQueues = array(), $restrictedQueues = array())
+    public function findStartableJob($workerName, array &$excludedIds = array(), $excludedQueues = array(), $restrictedQueues = array())
     {
         while (null !== $job = $this->findPendingJob($excludedIds, $excludedQueues, $restrictedQueues)) {
             if ($job->isStartable() && $this->acquireLock($workerName, $job)) {
@@ -426,20 +426,5 @@ class JobRepository extends EntityRepository
             ->getOneOrNullResult();
 
         return count($result);
-    }
-
-    public function findRunningJobs($jobQueues = array())
-    {
-        $qb = $this->_em->createQueryBuilder()
-            ->select('j')
-            ->from('JMSJobQueueBundle:Job', 'j')
-            ->where('j.state = :state')
-            ->setParameter('state', Job::STATE_RUNNING);
-
-        if (!empty($jobQueues)) {
-            $qb->andWhere('j.queue IN (:queues)')->setParameter('queues', $jobQueues);
-        }
-
-        return $qb->getQuery()->getResult();
     }
 }
