@@ -217,7 +217,7 @@ OUTPUT
         $this->em->persist($job);
         $this->em->flush();
 
-        $output = $this->doRun(array('--max-runtime' => 4));
+        $output = $this->doRun(array('--max-runtime' => 4, '--worker' => 'test'));
 
         $this->assertEquals(<<<OUTPUT
 Started Job(id = 2, command = "jms-job-queue:successful-cmd").
@@ -243,7 +243,7 @@ OUTPUT
         $this->em->persist($job);
         $this->em->flush();
 
-        $output = $this->doRun(array('--max-runtime' => 4));
+        $output = $this->doRun(array('--max-runtime' => 4, '--worker' => 'test'));
 
         $this->assertEquals(<<<OUTPUT
 Started Job(id = 1, command = "jms-job-queue:successful-cmd").
