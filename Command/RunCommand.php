@@ -96,7 +96,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             throw new InvalidArgumentException('Time to sleep when idling must be greater than zero.');
         }
 
-        $this->restrictedQueues = $input->getOption('queue');
+        $restrictedQueues = $input->getOption('queue');
 
         $workerName = $input->getOption('worker-name');
         if ($workerName === null) {
@@ -130,12 +130,13 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $maxRuntime,
             $idleTime,
             $maxJobs,
+            $restrictedQueues,
             $this->getContainer()->getParameter('jms_job_queue.queue_options_defaults'),
             $this->getContainer()->getParameter('jms_job_queue.queue_options')
         );
     }
 
-    private function runJobs($workerName, $startTime, $maxRuntime, $idleTime, $maxJobs, array $queueOptionsDefaults, array $queueOptions)
+    private function runJobs($workerName, $startTime, $maxRuntime, $idleTime, $maxJobs, array $restrictedQueues, array $queueOptionsDefaults, array $queueOptions)
     {
         $hasPcntl = extension_loaded('pcntl');
 
@@ -162,7 +163,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             }
 
             $this->checkRunningJobs();
-            $this->startJobs($workerName, $idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions);
+            $this->startJobs($workerName, $idleTime, $maxJobs, $restrictedQueues, $queueOptionsDefaults, $queueOptions);
 
             $waitTimeInMs = mt_rand(500, 1000);
             usleep($waitTimeInMs * 1E3);
@@ -193,7 +194,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         });
     }
 
-    private function startJobs($workerName, $idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions)
+    private function startJobs($workerName, $idleTime, $maxJobs, array $restrictedQueues, $queueOptionsDefaults, $queueOptions)
     {
         $excludedIds = array();
         while (count($this->runningJobs) < $maxJobs) {
@@ -201,7 +202,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
                 $workerName,
                 $excludedIds,
                 $this->getExcludedQueues($queueOptionsDefaults, $queueOptions, $maxJobs),
-                $this->restrictedQueues
+                $restrictedQueues
             );
 
             if (null === $pendingJob) {
@@ -383,24 +384,24 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
      *
      * In such an error condition, these jobs are cleaned-up on restart of this command.
      */
-    private function cleanUpStaleJobs($workerName)
+    private function cleanUpStaleJobs($workerName, $restrictedQueues)
     {
-        $staleJobsDql = "SELECT j FROM ".Job::class." j WHERE j.state = :running AND (j.workerName = :worker OR j.workerName IS NULL)";
-
-        if ( ! empty($this->restrictedQueues)) {
-            $staleJobsDql += " AND j.queue in (:queues)";
-        }
-
-        $staleJobsQuery = $this->getEntityManager()->createQuery($staleJobsDql)
+        $staleJobsQb = $this->getEntityManager()->createQueryBuilder()
+            ->select('j')
+            ->from(Job::class, 'j')
+            ->where('j.state = :running')
+            ->andWhere('(j.workerName = :worker OR j.workerName IS NULL)')
             ->setParameter('worker', $workerName)
             ->setParameter('running', Job::STATE_RUNNING);
 
-        if ( ! empty($this->restrictedQueues)) {
-            $staleJobsQuery->setParameter('queues', $this->restrictedQueues);
+        if ( ! empty($restrictedQueues)) {
+            $staleJobsQb
+                ->andWhere("j.queue in (:queues)")
+                ->setParameter('queues', $restrictedQueues);
         }
 
         /** @var Job[] $staleJobs */
-        $staleJobs = $staleJobsQuery->getResult();
+        $staleJobs = $staleJobsQb->getQuery()->getResult();
 
         foreach ($staleJobs as $job) {
             // If the original job has retry jobs, then one of them is still in
