@@ -399,9 +399,9 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $staleJobsQuery->setParameter('queues', $this->restrictedQueues);
         }
 
+        /** @var Job[] $staleJobs */
         $staleJobs = $staleJobsQuery->getResult();
 
-        /** @var Job[] $staleJobs */
         foreach ($staleJobs as $job) {
             // If the original job has retry jobs, then one of them is still in
             // running state. We can skip the original job here as it will be
