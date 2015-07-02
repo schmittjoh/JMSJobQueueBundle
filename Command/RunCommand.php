@@ -122,11 +122,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $this->output->writeln('Cleaning up stale jobs');
         }
 
-<<<<<<< HEAD
-        $this->cleanUpStaleJobs($workerName);
-=======
         $this->cleanUpStaleJobs($workerName, $restrictedQueues);
->>>>>>> c7c4ab3... Pass restricted queues into stale jobs command
 
         $this->runJobs(
             $workerName,
