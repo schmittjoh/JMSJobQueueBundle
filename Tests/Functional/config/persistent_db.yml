@@ -2,10 +2,13 @@ imports:
     - { resource: framework.yml }
     - { resource: twig.yml }
 
+parameters:
+    database_path: "%kernel.cache_dir%/database.sqlite"
+
 doctrine:
     dbal:
         driver:   pdo_sqlite
-        path:     %kernel.cache_dir%/database.sqlite
+        path:     "%database_path%"
 
     orm:
         auto_generate_proxy_classes: %kernel.debug%

@@ -73,18 +73,24 @@ If you would like to better control the concurrency of a specific job type, you 
     $em->flush();
 
 Queues allow you to enforce stricter limits as to how many jobs are running per queue. By default,
-a queue the jobs per queue are not limited as such queues will have no effect. To define a
-limit for a queue, you can use the bundle's configuration:
+the number of jobs per queue is not limited as such queues will have no effect (jobs would just be
+processed in the order that they were created in). To define a limit for a queue, you can use the
+bundle's configuration:
 
 .. code-block :: yml
 
     jms_job_queue:
         queue_options_defaults:
             max_concurrent_jobs: 3 # This limit applies to all queues (including the default queue).
+                                   # So each queue may only process 3 jobs simultaneously.
 
         queue_options:
             foo:
                 max_concurrent_jobs: 2 # This limit applies only to the "foo" queue.
+
+.. note ::
+    Queue settings apply for each instance of the ``jms-job-queue:run`` command separately. There is
+    no way to specify a global limit for all instances.
 
 Prioritizing Jobs
 =================

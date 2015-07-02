@@ -12,6 +12,7 @@
         }
     ],
     "require": {
+        "php": "^5.5.0",
         "symfony/framework-bundle": ">=2.1,<3.0-dev",
         "doctrine/common": ">=2.3,<3.0",
         "jms/di-extra-bundle": ">=1.1,<2.0"
@@ -45,7 +46,7 @@
     "target-dir": "JMS/JobQueueBundle",
     "extra": {
         "branch-alias": {
-            "dev-master": "0.1.x-dev"
+            "dev-master": "2.0.x-dev"
         }
     }
 }

@@ -110,6 +110,9 @@ class Job
     /** @ORM\Column(type = "datetime", name="checkedAt", nullable = true) */
     private $checkedAt;
 
+    /** @ORM\Column(type = "string", name="workerName", length = 50, nullable = true) */
+    private $workerName;
+
     /** @ORM\Column(type = "datetime", name="executeAfter", nullable = true) */
     private $executeAfter;
 
@@ -152,7 +155,7 @@ class Job
      */
     private $originalJob;
 
-    /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove", "detach"}) */
+    /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove", "detach", "refresh"}) */
     private $retryJobs;
 
     /** @ORM\Column(type = "jms_job_safe_object", name="stackTrace", nullable = true) */
@@ -214,6 +217,7 @@ class Job
         $this->startedAt = null;
         $this->checkedAt = null;
         $this->closedAt = null;
+        $this->workerName = null;
         $this->output = null;
         $this->errorOutput = null;
         $this->exitCode = null;
@@ -234,9 +238,24 @@ class Job
         return $this->state;
     }
 
+    public function setWorkerName($workerName)
+    {
+        $this->workerName = $workerName;
+    }
+
+    public function getWorkerName()
+    {
+        return $this->workerName;
+    }
+
     public function getPriority()
     {
         return $this->priority * -1;
+    }
+
+    public function isInFinalState()
+    {
+        return ! $this->isNew() && ! $this->isPending() && ! $this->isRunning();
     }
 
     public function isStartable()
@@ -525,6 +544,19 @@ class Job
     public function isRetryJob()
     {
         return null !== $this->originalJob;
+    }
+
+    public function isRetried()
+    {
+        foreach ($this->retryJobs as $job) {
+            /** @var Job $job */
+
+            if ( ! $job->isInFinalState()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function checked()

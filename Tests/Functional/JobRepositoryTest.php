@@ -51,6 +51,28 @@ class JobRepositoryTest extends BaseTestCase
         $this->assertNotSame($a, $this->repo->getOrCreateIfNotExists('a', array('foo')));
     }
 
+    public function testFindPendingJobReturnsAllDependencies()
+    {
+        $a = new Job('a');
+        $b = new Job('b');
+
+        $this->em->persist($a);
+        $this->em->persist($b);
+        $this->em->flush();
+
+        $c = new Job('c');
+        $c->addDependency($a);
+        $c->addDependency($b);
+        $this->em->persist($c);
+        $this->em->flush();
+        $this->em->clear();
+
+        $cReloaded = $this->repo->findPendingJob(array($a->getId(), $b->getId()));
+        $this->assertNotNull($cReloaded);
+        $this->assertEquals($c->getId(), $cReloaded->getId());
+        $this->assertCount(2, $cReloaded->getDependencies());
+    }
+
     public function testFindPendingJob()
     {
         $this->assertNull($this->repo->findPendingJob());
@@ -82,7 +104,7 @@ class JobRepositoryTest extends BaseTestCase
 
     public function testFindStartableJob()
     {
-        $this->assertNull($this->repo->findStartableJob());
+        $this->assertNull($this->repo->findStartableJob('my-name'));
 
         $a = new Job('a');
         $a->setState('running');
@@ -95,7 +117,8 @@ class JobRepositoryTest extends BaseTestCase
         $this->em->flush();
 
         $excludedIds = array();
-        $this->assertSame($c, $this->repo->findStartableJob($excludedIds));
+
+        $this->assertSame($c, $this->repo->findStartableJob('my-name', $excludedIds));
         $this->assertEquals(array($b->getId()), $excludedIds);
     }
 
@@ -133,7 +156,7 @@ class JobRepositoryTest extends BaseTestCase
         $this->assertTrue($this->em->contains($b));
 
         $excludedIds = array();
-        $startableJob = $this->repo->findStartableJob($excludedIds);
+        $startableJob = $this->repo->findStartableJob('my-name', $excludedIds);
         $this->assertNotNull($startableJob);
         $this->assertEquals($b->getId(), $startableJob->getId());
         $this->assertEquals(array($a->getId()), $excludedIds);
