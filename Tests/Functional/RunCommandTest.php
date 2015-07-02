@@ -97,7 +97,7 @@ OUTPUT
         }
         $this->em->flush();
 
-        $output = $this->doRun(array('--max-runtime' => 15));
+        $output = $this->doRun(array('--max-runtime' => 15, '--worker-name' => 'test'));
         unlink($outputFile);
 
         $this->assertStringStartsWith(<<<OUTPUT
