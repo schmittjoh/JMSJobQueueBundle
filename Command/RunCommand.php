@@ -54,9 +54,6 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     /** @var array */
     private $runningJobs = array();
 
-    /** @var array */
-    private $restrictedQueues = array();
-
     /** @var bool */
     private $shouldShutdown = false;
 
