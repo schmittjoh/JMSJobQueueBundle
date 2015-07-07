@@ -194,8 +194,6 @@ OUTPUT
 
     public function testJobIsTerminatedIfMaxRuntimeIsExceeded()
     {
-        $this->markTestSkipped('Requires a patched Process class (see symfony/symfony#5030).');
-
         $job = new Job('jms-job-queue:never-ending');
         $job->setMaxRuntime(1);
         $this->em->persist($job);
