@@ -54,6 +54,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     /** @var array */
     private $runningJobs = array();
 
+    /** @var bool */
     private $shouldShutdown = false;
 
     protected function configure()
@@ -64,6 +65,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             ->addOption('max-runtime', 'r', InputOption::VALUE_REQUIRED, 'The maximum runtime in seconds.', 900)
             ->addOption('max-concurrent-jobs', 'j', InputOption::VALUE_REQUIRED, 'The maximum number of concurrent jobs.', 4)
             ->addOption('idle-time', null, InputOption::VALUE_REQUIRED, 'Time to sleep when the queue ran out of jobs.', 2)
+            ->addOption('queue', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'Restrict to one or more queues.', array())
             ->addOption('worker-name', null, InputOption::VALUE_REQUIRED, 'The name that uniquely identifies this worker process.')
         ;
     }
@@ -90,6 +92,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         if ($idleTime <= 0) {
             throw new InvalidArgumentException('Time to sleep when idling must be greater than zero.');
         }
+
+        $restrictedQueues = $input->getOption('queue');
 
         $workerName = $input->getOption('worker-name');
         if ($workerName === null) {
@@ -123,12 +127,13 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $maxRuntime,
             $idleTime,
             $maxJobs,
+            $restrictedQueues,
             $this->getContainer()->getParameter('jms_job_queue.queue_options_defaults'),
             $this->getContainer()->getParameter('jms_job_queue.queue_options')
         );
     }
 
-    private function runJobs($workerName, $startTime, $maxRuntime, $idleTime, $maxJobs, array $queueOptionsDefaults, array $queueOptions)
+    private function runJobs($workerName, $startTime, $maxRuntime, $idleTime, $maxJobs, array $restrictedQueues, array $queueOptionsDefaults, array $queueOptions)
     {
         $hasPcntl = extension_loaded('pcntl');
 
@@ -155,7 +160,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             }
 
             $this->checkRunningJobs();
-            $this->startJobs($workerName, $idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions);
+            $this->startJobs($workerName, $idleTime, $maxJobs, $restrictedQueues, $queueOptionsDefaults, $queueOptions);
 
             $waitTimeInMs = mt_rand(500, 1000);
             usleep($waitTimeInMs * 1E3);
@@ -186,14 +191,15 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         });
     }
 
-    private function startJobs($workerName, $idleTime, $maxJobs, $queueOptionsDefaults, $queueOptions)
+    private function startJobs($workerName, $idleTime, $maxJobs, array $restrictedQueues, array $queueOptionsDefaults, array $queueOptions)
     {
         $excludedIds = array();
         while (count($this->runningJobs) < $maxJobs) {
             $pendingJob = $this->getRepository()->findStartableJob(
                 $workerName,
                 $excludedIds,
-                $this->getExcludedQueues($queueOptionsDefaults, $queueOptions, $maxJobs)
+                $this->getExcludedQueues($queueOptionsDefaults, $queueOptions, $maxJobs),
+                $restrictedQueues
             );
 
             if (null === $pendingJob) {
@@ -409,6 +415,9 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         }
     }
 
+    /**
+     * @return ProcessBuilder
+     */
     private function getCommandProcessBuilder()
     {
         $pb = new ProcessBuilder();
