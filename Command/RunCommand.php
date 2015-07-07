@@ -119,7 +119,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $this->output->writeln('Cleaning up stale jobs');
         }
 
-        $this->cleanUpStaleJobs($workerName, $restrictedQueues);
+        $this->cleanUpStaleJobs($workerName);
 
         $this->runJobs(
             $workerName,
@@ -191,7 +191,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         });
     }
 
-    private function startJobs($workerName, $idleTime, $maxJobs, array $restrictedQueues, $queueOptionsDefaults, $queueOptions)
+    private function startJobs($workerName, $idleTime, $maxJobs, array $restrictedQueues, array $queueOptionsDefaults, array $queueOptions)
     {
         $excludedIds = array();
         while (count($this->runningJobs) < $maxJobs) {
@@ -381,24 +381,13 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
      *
      * In such an error condition, these jobs are cleaned-up on restart of this command.
      */
-    private function cleanUpStaleJobs($workerName, $restrictedQueues)
+    private function cleanUpStaleJobs($workerName)
     {
-        $staleJobsQb = $this->getEntityManager()->createQueryBuilder()
-            ->select('j')
-            ->from(Job::class, 'j')
-            ->where('j.state = :running')
-            ->andWhere('(j.workerName = :worker OR j.workerName IS NULL)')
-            ->setParameter('worker', $workerName)
-            ->setParameter('running', Job::STATE_RUNNING);
-
-        if ( ! empty($restrictedQueues)) {
-            $staleJobsQb
-                ->andWhere("j.queue in (:queues)")
-                ->setParameter('queues', $restrictedQueues);
-        }
-
         /** @var Job[] $staleJobs */
-        $staleJobs = $staleJobsQb->getQuery()->getResult();
+        $staleJobs = $this->getEntityManager()->createQuery("SELECT j FROM ".Job::class." j WHERE j.state = :running AND (j.workerName = :worker OR j.workerName IS NULL)")
+            ->setParameter('worker', $workerName)
+            ->setParameter('running', Job::STATE_RUNNING)
+            ->getResult();
 
         foreach ($staleJobs as $job) {
             // If the original job has retry jobs, then one of them is still in
@@ -426,6 +415,9 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         }
     }
 
+    /**
+     * @return ProcessBuilder
+     */
     private function getCommandProcessBuilder()
     {
         $pb = new ProcessBuilder();
