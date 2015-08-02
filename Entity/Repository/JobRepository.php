@@ -378,7 +378,6 @@ class JobRepository extends EntityRepository
         }
 
         return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.id IN (:ids)")
-                    ->setParameter('job', $job)
                     ->setParameter('ids', $jobIds)
                     ->getResult();
     }
