@@ -332,6 +332,11 @@ class JobRepository extends EntityRepository
 
                 // The original job has failed, and no retries are allowed.
                 foreach ($this->findIncomingDependencies($job) as $dep) {
+                    // This is a safe-guard to avoid blowing up if there is a database inconsistency.
+                    if ( ! $dep->isPending() && ! $dep->isNew()) {
+                        continue;
+                    }
+
                     $this->closeJobInternal($dep, Job::STATE_CANCELED, $visited);
                 }
 
