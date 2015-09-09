@@ -26,6 +26,12 @@
         <th>Created</th>
         <td>{{ macros.ago(job.createdAt) }}</td>
     </tr>
+    {% if job.startedAt %}
+    <tr>
+        <th>Started</th>
+        <td>{{ macros.ago(job.startedAt) }}</td>
+    </tr>
+    {% endif %}
     {% if job.closedAt %}
     <tr>
         <th>Runtime</th>
