@@ -27,6 +27,8 @@ use Doctrine\ORM\Query\ResultSetMappingBuilder;
 use JMS\DiExtraBundle\Annotation as DI;
 use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Event\StateChangeEvent;
+use JMS\JobQueueBundle\Retry\ExponentialRetryScheduler;
+use JMS\JobQueueBundle\Retry\RetryScheduler;
 use Symfony\Bridge\Doctrine\RegistryInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use DateTime;
@@ -36,12 +38,12 @@ class JobRepository extends EntityRepository
 {
     private $dispatcher;
     private $registry;
+    private $retryScheduler;
 
     /**
      * @DI\InjectParams({
      *     "dispatcher" = @DI\Inject("event_dispatcher"),
      * })
-     * @param EventDispatcherInterface $dispatcher
      */
     public function setDispatcher(EventDispatcherInterface $dispatcher)
     {
@@ -50,9 +52,18 @@ class JobRepository extends EntityRepository
 
     /**
      * @DI\InjectParams({
+     *     "retryScheduler" = @DI\Inject("jms_job_queue.retry_scheduler"),
+     * })
+     */
+    public function setRetryScheduler(RetryScheduler $retryScheduler)
+    {
+        $this->retryScheduler = $retryScheduler;
+    }
+
+    /**
+     * @DI\InjectParams({
      *     "registry" = @DI\Inject("doctrine"),
      * })
-     * @param RegistryInterface $registry
      */
     public function setRegistry(RegistryInterface $registry)
     {
@@ -318,7 +329,12 @@ class JobRepository extends EntityRepository
                 if ($job->isRetryAllowed()) {
                     $retryJob = new Job($job->getCommand(), $job->getArgs());
                     $retryJob->setMaxRuntime($job->getMaxRuntime());
-                    $retryJob->setExecuteAfter(new \DateTime('+'.(pow(5, count($job->getRetryJobs()))).' seconds'));
+
+                    if ($this->retryScheduler === null) {
+                        $this->retryScheduler = new ExponentialRetryScheduler(5);
+                    }
+
+                    $retryJob->setExecuteAfter($this->retryScheduler->scheduleNextRetry($job));
 
                     $job->addRetryJob($retryJob);
                     $this->_em->persist($retryJob);
