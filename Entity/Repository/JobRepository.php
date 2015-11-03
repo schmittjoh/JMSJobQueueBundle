@@ -70,11 +70,24 @@ class JobRepository extends EntityRepository
         $this->registry = $registry;
     }
 
-    public function findJob($command, array $args = array())
+    public function findJob($command, array $args = array(), array $states = array())
     {
-        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.command = :command AND j.args = :args")
+        $qb = $this->_em->createQueryBuilder();
+
+        $qb->select('j')
+            ->from('JMSJobQueueBundle:Job', 'j')
+            ->where('j.command = :command')
+            ->andWhere('j.args = :args')
             ->setParameter('command', $command)
             ->setParameter('args', $args, Type::JSON_ARRAY)
+            ;
+
+        if (!empty($states)) {
+            $qb ->andWhere('j.state IN (:states)')
+                ->setParameter('states', $states);
+        }
+
+        return $qb->getQuery()
             ->setMaxResults(1)
             ->getOneOrNullResult();
     }
