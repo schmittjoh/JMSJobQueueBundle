@@ -70,6 +70,11 @@ class JobRepository extends EntityRepository
         $this->registry = $registry;
     }
 
+    public function findOpenJob($command, array $args = array())
+    {
+        return $this->findJob($command, $args, array(Job::STATE_RUNNING, Job::STATE_PENDING, Job::STATE_NEW));
+    }
+
     public function findJob($command, array $args = array(), array $states = array())
     {
         $qb = $this->_em->createQueryBuilder();
