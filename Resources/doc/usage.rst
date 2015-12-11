@@ -11,7 +11,7 @@ Creating jobs is super simple, you just need to persist an instance of ``Job``:
 
     $job = new Job('my-symfony2:command', array('some-args', 'or', '--options="foo"'));
     $em->persist($job);
-    $em->flush($job);
+    $em->flush();
 
 Adding Dependencies Between Jobs
 ================================
