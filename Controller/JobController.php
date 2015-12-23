@@ -28,7 +28,7 @@ class JobController
     private $statisticsEnabled;
 
     /**
-     * @Route("", name = "jms_jobs_overview")
+     * @Route("/overview", name = "jms_jobs_overview")
      * @Template("JMSJobQueueBundle:Job:overview.html.twig")
      */
     public function overviewAction()
@@ -64,7 +64,7 @@ class JobController
     }
 
     /**
-     * @Route("{id}", name = "jms_jobs_details")
+     * @Route("/{id}", name = "jms_jobs_details")
      * @Template("JMSJobQueueBundle:Job:details.html.twig")
      */
     public function detailsAction(Job $job)
@@ -126,7 +126,7 @@ class JobController
     }
 
     /**
-     * @Route("{id}/retry", name = "jms_jobs_retry_job")
+     * @Route("/{id}/retry", name = "jms_jobs_retry_job")
      */
     public function retryJobAction(Job $job)
     {
