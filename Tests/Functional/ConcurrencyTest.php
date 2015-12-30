@@ -38,7 +38,7 @@ class ConcurrencyTest extends BaseTestCase
         unlink($filename);
 
         for ($i=0; $i<5; $i++) {
-            $this->assertSame(2, substr_count($logOutput, 'Job-'.$i));
+            $this->assertSame(2, substr_count($logOutput, 'Job-'.$i), sprintf('"%s" has not been found twice in "%s"', 'Job-'.$i, $logOutput));
         }
 
         $workers = array();

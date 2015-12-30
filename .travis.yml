@@ -14,13 +14,13 @@ php:
 
 matrix:
     include:
-        - php: 5.6
+        - php: 7.0
           env: SYMFONY_VERSION="2.3.*"
-        - php: 5.6
+        - php: 7.0
           env: SYMFONY_VERSION="2.7.*"
-        - php: 5.6
+        - php: 7.0
           env: SYMFONY_VERSION="2.8.*"
-        - php: 5.6
+        - php: 7.0
           env: SYMFONY_VERSION="3.0.*"
 
 before_install: if [ "$SYMFONY_VERSION" != "" ]; then composer require --no-update symfony/symfony:${SYMFONY_VERSION}; fi
