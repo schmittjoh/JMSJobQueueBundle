@@ -22,7 +22,9 @@ matrix:
         - php: 7.0
           env: SYMFONY_VERSION="3.0.*"
 
-before_install: if [ "$SYMFONY_VERSION" != "" ]; then composer require --no-update symfony/symfony:${SYMFONY_VERSION}; fi
+before_install:
+    - composer self-update
+    - if [ "$SYMFONY_VERSION" != "" ]; then composer require --no-update symfony/symfony:${SYMFONY_VERSION}; fi
 
 install: composer update
 

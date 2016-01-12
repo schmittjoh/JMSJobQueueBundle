@@ -116,7 +116,7 @@ CONFIG
 
     private function startWorker($name)
     {
-        $proc = new Process('exec '.PHP_BINARY.' '.escapeshellarg(__DIR__.'/console').' jms-job-queue:run --worker-name='.$name, null, array(
+        $proc = new Process('exec '.PHP_BINARY.' '.escapeshellarg(__DIR__.'/../consolefolder/console').' jms-job-queue:run --worker-name='.$name, null, array(
             'SYMFONY_CONFIG' => $this->configFile,
         ));
         $proc->start();
