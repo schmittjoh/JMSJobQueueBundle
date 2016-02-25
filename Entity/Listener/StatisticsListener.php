@@ -21,5 +21,6 @@ class StatisticsListener
         $table->addColumn('createdAt', 'datetime', array('nullable' => false));
         $table->addColumn('charValue', 'float', array('nullable' => false));
         $table->setPrimaryKey(array('job_id', 'characteristic', 'createdAt'));
+        $table->addForeignKeyConstraint('jms_jobs', array('job_id'), array('id'), array('onDelete' => 'CASCADE'));
     }
 }
