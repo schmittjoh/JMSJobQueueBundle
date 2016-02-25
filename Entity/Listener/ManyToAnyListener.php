@@ -88,6 +88,6 @@ class ManyToAnyListener
         $table->addColumn('related_class', 'string', array('nullable' => false, 'length' => '150'));
         $table->addColumn('related_id', 'string', array('nullable' => false, 'length' => '100'));
         $table->setPrimaryKey(array('job_id', 'related_class', 'related_id'));
-        $table->addForeignKeyConstraint('jms_jobs', array('job_id'), array('id'));
+        $table->addForeignKeyConstraint('jms_jobs', array('job_id'), array('id'), array('onDelete' => 'CASCADE'));
     }
 }
