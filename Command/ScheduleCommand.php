@@ -23,7 +23,7 @@ class ScheduleCommand extends ContainerAwareCommand
             ->setName('jms-job-queue:schedule')
             ->setDescription('Schedules jobs at defined intervals')
             ->addOption('max-runtime', null, InputOption::VALUE_REQUIRED, 'The maximum runtime of this command.', 3600)
-            ->addOption('min-job-interval', null, InputOption::VALUE_REQUIRED, 'The minimum time between schedules jobs in seconds.', 60)
+            ->addOption('min-job-interval', null, InputOption::VALUE_REQUIRED, 'The minimum time between schedules jobs in seconds.', 5)
         ;
     }
 
@@ -54,9 +54,10 @@ class ScheduleCommand extends ContainerAwareCommand
 
         $jobsLastRunAt = $this->populateJobsLastRunAt($registry->getManagerForClass(CronJob::class), $jobSchedulers);
 
-        $startedAt = $lastRunAt = time();
+        $startedAt = time();
         while (true) {
-            $lastRunAt = $now = time();
+            $lastRunAt = microtime(true);
+            $now = time();
             if ($now - $startedAt > $maxRuntime) {
                 $output->writeln('Max. runtime reached, exiting...');
                 break;
@@ -64,9 +65,9 @@ class ScheduleCommand extends ContainerAwareCommand
 
             $this->scheduleJobs($output, $registry, $jobSchedulers, $jobsLastRunAt);
 
-            $timeToWait = time() - $lastRunAt + $minJobInterval;
+            $timeToWait = microtime(true) - $lastRunAt + $minJobInterval;
             if ($timeToWait > 0) {
-                sleep((integer)$timeToWait);
+                usleep($timeToWait * 1E6);
             }
         }
 

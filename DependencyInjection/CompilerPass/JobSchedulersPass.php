@@ -12,11 +12,13 @@ class JobSchedulersPass implements CompilerPassInterface
     {
         $schedulers = array();
         foreach ($container->findTaggedServiceIds('jms_job_queue.scheduler') as $id => $attributes) {
-            if ( ! isset($attributes[0]['command'])) {
-                throw new \RuntimeException(sprintf('The tag "jms_job_queue.schedulers" of service "%s" must have a "command" attribute.', $id));
-            }
+            foreach ($attributes as $attributeData) {
+                if (!isset($attributeData['command'])) {
+                    throw new \RuntimeException(sprintf('The tag "jms_job_queue.schedulers" of service "%s" must have a "command" attribute.', $id));
+                }
 
-            $schedulers[$attributes[0]['command']] = new Reference($id);
+                $schedulers[$attributeData['command']] = new Reference($id);
+            }
         }
 
         $container->getDefinition('jms_job_queue.scheduler_registry')
