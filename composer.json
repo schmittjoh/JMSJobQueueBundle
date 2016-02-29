@@ -31,7 +31,8 @@
         "symfony/twig-bundle": "*",
         "symfony/form": "*",
         "symfony/validator": "*",
-        "pagerfanta/pagerfanta": "dev-master"
+        "pagerfanta/pagerfanta": "dev-master",
+        "phpunit/phpunit": "^5.2"
     },
     "suggest": {
         "pagerfanta/pagerfanta": "Required when using the webinterface.",
