@@ -121,7 +121,7 @@ class ScheduleCommand extends ContainerAwareCommand
         );
 
         if ($affectedRows > 0) {
-            return array(true, $lastRunAt);
+            return array(true, $now);
         }
 
         /** @var CronJob $cronJob */
