@@ -26,6 +26,12 @@
         <th>Created</th>
         <td>{{ macros.ago(job.createdAt) }}</td>
     </tr>
+    {% if job.pending %}
+    <tr>
+        <th>Execute after</th>
+        <td>{{ macros.ago(job.executeAfter) }}</td>
+    </tr>
+    {% endif %}
     {% if job.closedAt %}
     <tr>
         <th>Runtime</th>
