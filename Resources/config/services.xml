@@ -8,10 +8,12 @@
         <parameter key="jms_job_queue.entity.many_to_any_listener.class">JMS\JobQueueBundle\Entity\Listener\ManyToAnyListener</parameter>
         <parameter key="jms_job_queue.twig.extension.class">JMS\JobQueueBundle\Twig\JobQueueExtension</parameter>
         <parameter key="jms_job_queue.retry_scheduler.class">JMS\JobQueueBundle\Retry\ExponentialRetryScheduler</parameter>
+        <parameter key="jms_job_queue.scheduler_registry.class">JMS\JobQueueBundle\Cron\SchedulerRegistry</parameter>
     </parameters>
 
     <services>
         <service id="jms_job_queue.retry_scheduler" class="%jms_job_queue.retry_scheduler.class%" />
+        <service id="jms_job_queue.scheduler_registry" class="%jms_job_queue.scheduler_registry.class%" />
 
         <service id="jms_job_queue.entity.many_to_any_listener" class="%jms_job_queue.entity.many_to_any_listener.class%">
             <argument type="service" id="doctrine" />
