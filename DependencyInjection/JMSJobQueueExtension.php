@@ -46,6 +46,7 @@ class JMSJobQueueExtension extends Extension
             $loader->load('statistics.xml');
         }
 
+        $container->setParameter('jms_job_queue.php_binary', $config['php_binary']);
         $container->setParameter('jms_job_queue.queue_options_defaults', $config['queue_options_defaults']);
         $container->setParameter('jms_job_queue.queue_options', $config['queue_options']);
     }
