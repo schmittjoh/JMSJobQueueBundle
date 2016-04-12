@@ -428,9 +428,15 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $pb->add('exec');
         }
 
+        $consolePath = $this->getContainer()->getParameter('kernel.root_dir').'/console';
+        // Detect if console binary is in new symfony 3 structure folder
+        if(file_exists($this->getContainer()->getParameter('kernel.root_dir').'/../bin/console')){
+            $consolePath = realpath($this->getContainer()->getParameter('kernel.root_dir').'/../bin/console');
+        }
+
         $pb
             ->add('php')
-            ->add($this->getContainer()->getParameter('kernel.root_dir').'/console')
+            ->add($consolePath)
             ->add('--env='.$this->env)
         ;
 
