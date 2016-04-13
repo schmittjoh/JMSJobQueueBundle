@@ -126,13 +126,16 @@ class Job
     private $args;
 
     /**
-     * @ORM\ManyToMany(targetEntity = "Job", fetch = "EAGER")
+     * @ORM\ManyToMany(targetEntity = "Job", inversedBy = "dependers", fetch = "EAGER")
      * @ORM\JoinTable(name="jms_job_dependencies",
      *     joinColumns = { @ORM\JoinColumn(name = "source_job_id", referencedColumnName = "id") },
      *     inverseJoinColumns = { @ORM\JoinColumn(name = "dest_job_id", referencedColumnName = "id")}
      * )
      */
     private $dependencies;
+
+    /** @ORM\ManyToMany(targetEntity = "Job", mappedBy="dependencies") */
+    private $dependers;
 
     /** @ORM\Column(type = "text", nullable = true) */
     private $output;
@@ -206,6 +209,7 @@ class Job
         $this->executeAfter = new \DateTime();
         $this->executeAfter = $this->executeAfter->modify('-1 second');
         $this->dependencies = new ArrayCollection();
+        $this->dependers = new ArrayCollection();
         $this->retryJobs = new ArrayCollection();
         $this->relatedEntities = new ArrayCollection();
     }
@@ -406,6 +410,11 @@ class Job
         }
 
         $this->dependencies->add($job);
+    }
+
+    public function getDependers()
+    {
+        return $this->dependers;
     }
 
     public function getRuntime()
