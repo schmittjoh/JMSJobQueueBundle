@@ -134,7 +134,7 @@ class Job
      */
     private $dependencies;
 
-    /** @ORM\Column(type = "text", nullable = true) */
+    /** @ORM\Column(type = "text", name="`output`", nullable = true) */
     private $output;
 
     /** @ORM\Column(type = "text", name="errorOutput", nullable = true) */
