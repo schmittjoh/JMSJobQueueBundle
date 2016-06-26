@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__.'/AppKernel.php';
+require_once __DIR__.'/../Functional/AppKernel.php';
 
 use JMS\JobQueueBundle\Console\Application;
 use JMS\JobQueueBundle\Tests\Functional\AppKernel;
