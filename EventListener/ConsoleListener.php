@@ -26,6 +26,11 @@ class ConsoleListener implements EventSubscriberInterface
     private $insertStatStmt;
 
     /**
+     * @var \Exception
+     */
+    private $exception;
+
+    /**
      * @param Registry $doctrine
      * @param bool     $collectStatistics
      */
@@ -39,7 +44,6 @@ class ConsoleListener implements EventSubscriberInterface
         } elseif (isset($_SERVER['jmsJobId'])) {
             $this->jobId = $_SERVER['jmsJobId'];
         }
-
     }
 
     /**
@@ -65,10 +69,10 @@ class ConsoleListener implements EventSubscriberInterface
     public function onException(ConsoleExceptionEvent $event)
     {
         $ex = $event->getException();
-        $this->saveDebugInformation($ex);
+        $this->exception = $ex;
     }
 
-    public function onTerminate(ConsoleTerminateEvent $event)
+    public function onTerminate()
     {
         $this->saveDebugInformation();
     }
@@ -89,7 +93,7 @@ class ConsoleListener implements EventSubscriberInterface
         }
     }
 
-    private function saveDebugInformation(\Exception $ex = null)
+    private function saveDebugInformation()
     {
         if (!$this->jobId) {
             return;
@@ -99,7 +103,7 @@ class ConsoleListener implements EventSubscriberInterface
             'id' => $this->jobId,
             'memoryUsage' => memory_get_peak_usage(),
             'memoryUsageReal' => memory_get_peak_usage(true),
-            'trace' => serialize($ex ? FlattenException::create($ex) : null),
+            'trace' => serialize($this->exception ? FlattenException::create($this->exception) : null),
         ));
     }
 
