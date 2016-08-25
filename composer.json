@@ -40,11 +40,9 @@
         "sensio/framework-extra-bundle": "Required when using the webinterface.",
         "symfony/twig-bundle": "Required when using the webinterface."
     },
-    "minimum-stability": "dev",
     "autoload": {
-        "psr-0": { "JMS\\JobQueueBundle": "" }
+        "psr-4": { "JMS\\JobQueueBundle\\": "" }
     },
-    "target-dir": "JMS/JobQueueBundle",
     "extra": {
         "branch-alias": {
             "dev-master": "2.0.x-dev"

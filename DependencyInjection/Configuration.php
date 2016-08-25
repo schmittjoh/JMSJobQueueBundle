@@ -39,7 +39,8 @@ class Configuration implements ConfigurationInterface
 
         $rootNode
             ->children()
-                ->booleanNode('statistics')->defaultTrue()->end();
+                ->booleanNode('statistics')->defaultTrue()->end()
+                ->scalarNode('php_binary')->defaultValue('php')->end();
 
         $defaultOptionsNode = $rootNode
             ->children()

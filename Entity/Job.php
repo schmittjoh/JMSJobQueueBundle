@@ -22,7 +22,8 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\JobQueueBundle\Exception\InvalidStateTransitionException;
 use JMS\JobQueueBundle\Exception\LogicException;
-use Symfony\Component\HttpKernel\Exception\FlattenException;
+use Symfony\Component\Debug\Exception\FlattenException;
+use Symfony\Component\HttpKernel\Exception\FlattenException as LegacyFlattenException;
 
 /**
  * @ORM\Entity(repositoryClass = "JMS\JobQueueBundle\Entity\Repository\JobRepository")
@@ -569,8 +570,11 @@ class Job
         return $this->checkedAt;
     }
 
-    public function setStackTrace(FlattenException $ex)
+    public function setStackTrace($ex)
     {
+        if(!$ex instanceof FlattenException && !$ex instanceof LegacyFlattenException) {
+            throw new \InvalidArgumentException(sprintf('Parameter of %s must be an instance of %s or %s.', __METHOD__, FlattenException::class, LegacyFlattenException::class));
+        }
         $this->stackTrace = $ex;
     }
 

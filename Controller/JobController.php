@@ -28,7 +28,7 @@ class JobController
     private $statisticsEnabled;
 
     /**
-     * @Route("/", name = "jms_jobs_overview")
+     * @Route("/overview", name = "jms_jobs_overview")
      * @Template("JMSJobQueueBundle:Job:overview.html.twig")
      */
     public function overviewAction()
