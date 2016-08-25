@@ -18,8 +18,10 @@
 
 namespace JMS\JobQueueBundle\DependencyInjection;
 
+use JMS\JobQueueBundle\Entity\Type\SafeObjectType;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 use Symfony\Component\DependencyInjection\Loader;
 
@@ -28,7 +30,7 @@ use Symfony\Component\DependencyInjection\Loader;
  *
  * To learn more see {@link http://symfony.com/doc/current/cookbook/bundles/extension.html}
  */
-class JMSJobQueueExtension extends Extension
+class JMSJobQueueExtension extends Extension implements PrependExtensionInterface
 {
     /**
      * {@inheritDoc}
@@ -48,5 +50,19 @@ class JMSJobQueueExtension extends Extension
 
         $container->setParameter('jms_job_queue.queue_options_defaults', $config['queue_options_defaults']);
         $container->setParameter('jms_job_queue.queue_options', $config['queue_options']);
+    }
+
+    public function prepend(ContainerBuilder $container)
+    {
+        $container->prependExtensionConfig('doctrine', array(
+            'dbal' => array(
+                'types' => array(
+                    'jms_job_safe_object' => array(
+                        'class' => SafeObjectType::class,
+                        'commented' => true,
+                    )
+                )
+            )
+        ));
     }
 }
