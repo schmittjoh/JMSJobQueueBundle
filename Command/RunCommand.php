@@ -57,6 +57,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     /** @var bool */
     private $shouldShutdown = false;
 
+    private $consoleFile;
+
     protected function configure()
     {
         $this
@@ -73,6 +75,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $startTime = time();
+
+        $this->consoleFile = $this->findConsoleFile();
 
         $maxRuntime = (integer) $input->getOption('max-runtime');
         if ($maxRuntime <= 0) {
@@ -430,7 +434,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
         $pb
             ->add('php')
-            ->add($this->getContainer()->getParameter('kernel.root_dir').'/console')
+            ->add($this->consoleFile)
             ->add('--env='.$this->env)
         ;
 
@@ -439,6 +443,21 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         }
 
         return $pb;
+    }
+
+    private function findConsoleFile()
+    {
+        $kernelDir = $this->getContainer()->getParameter('kernel.root_dir');
+
+        if (file_exists($kernelDir.'/console')) {
+            return $kernelDir.'/console';
+        }
+
+        if (file_exists($kernelDir.'/../bin/console')) {
+            return $kernelDir.'/../bin/console';
+        }
+
+        throw new \RuntimeException('Could not locate console file.');
     }
 
     /**

@@ -11,15 +11,13 @@ use Pagerfanta\View\TwitterBootstrapView;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class JobController
 {
     /** @DI\Inject("doctrine") */
     private $registry;
-
-    /** @DI\Inject */
-    private $request;
 
     /** @DI\Inject */
     private $router;
@@ -31,7 +29,7 @@ class JobController
      * @Route("/", name = "jms_jobs_overview")
      * @Template("JMSJobQueueBundle:Job:overview.html.twig")
      */
-    public function overviewAction()
+    public function overviewAction(Request $request)
     {
         $lastJobsWithError = $this->getRepo()->findLastJobsWithError(5);
 
@@ -46,8 +44,8 @@ class JobController
         }
 
         $pager = new Pagerfanta(new DoctrineORMAdapter($qb));
-        $pager->setCurrentPage(max(1, (integer) $this->request->query->get('page', 1)));
-        $pager->setMaxPerPage(max(5, min(50, (integer) $this->request->query->get('per_page', 20))));
+        $pager->setCurrentPage(max(1, (integer) $request->query->get('page', 1)));
+        $pager->setMaxPerPage(max(5, min(50, (integer) $request->query->get('per_page', 20))));
 
         $pagerView = new TwitterBootstrapView();
         $router = $this->router;
