@@ -125,6 +125,9 @@ class Job
     /** @ORM\Column(type = "json_array") */
     private $args;
 
+    /** @ORM\Column(type = "string", name="log", length = 255, nullable=true) */
+    private $logDirectory;
+
     /**
      * @ORM\ManyToMany(targetEntity = "Job", fetch = "EAGER")
      * @ORM\JoinTable(name="jms_job_dependencies",
@@ -491,6 +494,22 @@ class Job
     public function setMaxRetries($tries)
     {
         $this->maxRetries = (integer) $tries;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getLogDirectory()
+    {
+        return $this->logDirectory;
+    }
+
+    /**
+     * @param mixed $logDirectory
+     */
+    public function setLogDirectory($logDirectory)
+    {
+        $this->logDirectory = $logDirectory;
     }
 
     public function isRetryAllowed()

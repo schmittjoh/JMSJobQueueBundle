@@ -23,7 +23,6 @@ use JMS\JobQueueBundle\Entity\Repository\JobRepository;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Bridge\Doctrine\ManagerRegistry;
 use Symfony\Component\Process\Exception\ProcessFailedException;
-use JMS\JobQueueBundle\Exception\LogicException;
 use JMS\JobQueueBundle\Exception\InvalidArgumentException;
 use JMS\JobQueueBundle\Event\NewOutputEvent;
 use Symfony\Component\Process\ProcessBuilder;
@@ -321,9 +320,16 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $this->getEntityManager()->refresh($data['job']);
 
             $data['job']->setExitCode($data['process']->getExitCode());
-            $data['job']->setOutput($data['process']->getOutput());
             $data['job']->setErrorOutput($data['process']->getErrorOutput());
             $data['job']->setRuntime(time() - $data['start_time']);
+
+            $output = $data['process']->getOutput();
+            if ($output === '') {
+                $logDir = $data['job']->getLogDirectory();
+                $output = file_get_contents($logDir);
+            }
+
+            $data['job']->setOutput($output);
 
             $newState = 0 === $data['process']->getExitCode() ? Job::STATE_FINISHED : Job::STATE_FAILED;
             $this->getRepository()->closeJob($data['job'], $newState);
