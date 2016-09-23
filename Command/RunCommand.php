@@ -326,7 +326,9 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $output = $data['process']->getOutput();
             if ($output === '') {
                 $logDir = $data['job']->getLogDirectory();
-                $output = file_get_contents($logDir);
+                if ($logDir !== '') {
+                    $output = file_get_contents($logDir);
+                }
             }
 
             $data['job']->setOutput($output);
