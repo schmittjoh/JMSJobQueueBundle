@@ -327,7 +327,7 @@ class JobRepository extends EntityRepository
 
                 // The original job has failed, and we are allowed to retry it.
                 if ($job->isRetryAllowed()) {
-                    $retryJob = new Job($job->getCommand(), $job->getArgs());
+                    $retryJob = new Job($job->getCommand(), $job->getArgs(), true, $job->getQueue(), $job->getPriority());
                     $retryJob->setMaxRuntime($job->getMaxRuntime());
 
                     if ($this->retryScheduler === null) {
