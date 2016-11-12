@@ -57,7 +57,7 @@ be used when executing your jobs, you can provide path within configuration:
 
 .. code-block :: yaml
 
-    jms_security_extra:
+    jms_job_queue:
         php_cli_path: /path/to/your/binary/php
 
 Enabling the Webinterface
