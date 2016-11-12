@@ -52,6 +52,13 @@ Finally, have your ``app/console`` use JMSJobQueueBundle's ``Application``:
     // use Symfony\Bundle\FrameworkBundle\Console\Application;
     use JMS\JobQueueBundle\Console\Application;
 
+If there is a need for you to explicitly set path to php binary which has to
+be used when executing your jobs, you can provide path within configuration:
+
+.. code-block :: yaml
+
+    jms_security_extra:
+        php_cli_path: /path/to/your/binary/php
 
 Enabling the Webinterface
 =========================

@@ -50,6 +50,7 @@ class JMSJobQueueExtension extends Extension implements PrependExtensionInterfac
 
         $container->setParameter('jms_job_queue.queue_options_defaults', $config['queue_options_defaults']);
         $container->setParameter('jms_job_queue.queue_options', $config['queue_options']);
+        $container->setParameter('jms_job_queue.php_cli_path', $config['php_cli_path']);
     }
 
     public function prepend(ContainerBuilder $container)

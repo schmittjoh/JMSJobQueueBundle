@@ -433,7 +433,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         }
 
         $pb
-            ->add('php')
+            ->add($this->getContainer()->getParameter('jms_job_queue.php_cli_path'))
             ->add($this->consoleFile)
             ->add('--env='.$this->env)
         ;
