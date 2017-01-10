@@ -95,7 +95,7 @@ class Job
     /** @ORM\Column(type = "string", length = 15) */
     private $state;
 
-    /** @ORM\Column(type = "string", length = Job::MAX_QUEUE_LENGTH) */
+    /** @ORM\Column(type = "string", length = JMS\JobQueueBundle\Entity\Job::MAX_QUEUE_LENGTH) */
     private $queue;
 
     /** @ORM\Column(type = "smallint") */
