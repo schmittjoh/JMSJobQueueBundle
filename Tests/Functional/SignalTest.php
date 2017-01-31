@@ -19,8 +19,8 @@ class SignalTest extends \PHPUnit_Framework_TestCase
 
         usleep(5E5);
 
-        $this->assertTrue($proc->isRunning(), 'Process exited prematurely: '.$proc->getOutput().$proc->getErrorOutput());
-        $this->assertTrueWithin(
+        $this::assertTrue($proc->isRunning(), 'Process exited prematurely: '.$proc->getOutput().$proc->getErrorOutput());
+        $this::assertTrueWithin(
             3,
             function() use ($proc) { return false !== strpos($proc->getOutput(), 'Signal Handlers have been installed'); },
             function() use ($proc) {
@@ -30,7 +30,7 @@ class SignalTest extends \PHPUnit_Framework_TestCase
 
         $proc->signal(SIGTERM);
 
-        $this->assertTrueWithin(
+        $this::assertTrueWithin(
             3,
             function() use ($proc) { return false !== strpos($proc->getOutput(), 'Received SIGTERM'); },
             function() use ($proc) {
@@ -38,7 +38,7 @@ class SignalTest extends \PHPUnit_Framework_TestCase
             }
         );
 
-        $this->assertTrueWithin(
+        $this::assertTrueWithin(
             3,
             function() use ($proc) { return ! $proc->isRunning(); },
             function() use ($proc) {
@@ -46,7 +46,7 @@ class SignalTest extends \PHPUnit_Framework_TestCase
             }
         );
 
-        $this->assertContains('All jobs finished, exiting.', $proc->getOutput());
+        $this::assertContains('All jobs finished, exiting.', $proc->getOutput());
     }
 
     private function assertTrueWithin($seconds, callable $block, callable $failureHandler)
