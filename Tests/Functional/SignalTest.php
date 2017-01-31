@@ -24,7 +24,7 @@ class SignalTest extends \PHPUnit_Framework_TestCase
             3,
             function() use ($proc) { return false !== strpos($proc->getOutput(), 'Signal Handlers have been installed'); },
             function() use ($proc) {
-                $this->fail('Signal handlers were not installed: '.$proc->getOutput().$proc->getErrorOutput());
+                $this->fail('Signal handlers were not installed within 3 seconds: '.$proc->getOutput().$proc->getErrorOutput());
             }
         );
 
