@@ -21,15 +21,15 @@ class JobQueueExtension extends \Twig_Extension
     public function getFunctions()
     {
         return array(
-            'jms_job_queue_path' => new \Twig_Function_Method($this, 'generatePath', array('is_safe' => array('html' => true))),
+            'jms_job_queue_path' => new \Twig_SimpleFunction($this, 'generatePath', array('is_safe' => array('html' => true))),
         );
     }
 
     public function getFilters()
     {
         return array(
-            'jms_job_queue_linkname' => new \Twig_Filter_Method($this, 'getLinkname'),
-            'jms_job_queue_args' => new \Twig_Filter_Method($this, 'formatArgs'),
+            'jms_job_queue_linkname' => new \Twig_SimpleFilter($this, 'getLinkname'),
+            'jms_job_queue_args' => new \Twig_SimpleFilter($this, 'formatArgs'),
         );
     }
 
