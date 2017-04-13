@@ -5,14 +5,26 @@
 
 {% block content %}
 
-<h1><div class="page-header">Overview</div></h1>
+    <h1><div class="page-header">Overview</div></h1>
 
-{% if jobPager.haveToPaginate %}
-    {{ jobPagerView.render(jobPager, jobPagerGenerator)|raw }}
-{% endif %}
+    {% if jobPager.haveToPaginate %}
+        {{ jobPagerView.render(jobPager, jobPagerGenerator)|raw }}
+    {% endif %}
 
-<table class="table table-bordered table-striped table-condensed">
-    <thead>
+    <form>
+        <div>
+            <div>
+                <input  type="text" name="command-query" placeholder="Search Command" value="{{ commandQuery }}">
+            </div>
+
+            <div>
+                <input type="submit" action="{{ path("jms_jobs_overview") }}" class="btn-primary" value="Submit">
+            </div>
+        </div>
+    </form>
+
+    <table class="table table-bordered table-striped table-condensed">
+        <thead>
         <tr>
             <th>ID</th>
             <th>Command</th>
@@ -21,44 +33,44 @@
             <th>Runtime</th>
             <th>Queue</th>
         </tr>
-    </thead>
+        </thead>
 
-    <tbody>
+        <tbody>
         {% if jobPager.currentPage == 1 and jobsWithError|length > 0 %}
-        {% for job in jobsWithError %}
-        <tr>
-            <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ job.id }}</a></td>
-            <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ macros.command(job) }}</a></td>
-            <td>{{ macros.state(job) }}</td>
-            <td>{{ macros.ago(job.createdAt) }}</td>
-            <td>{{ macros.runtime(job) }}</td>
-            <td>{{ macros.queue(job) }}</td>
-        </tr>
-        {% endfor %}
-        <tr>
-            <td style="height:4px; background-color: #ccc;" colspan="5"></td>
-        </tr>
+            {% for job in jobsWithError %}
+                <tr>
+                    <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ job.id }}</a></td>
+                    <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ macros.command(job) }}</a></td>
+                    <td>{{ macros.state(job) }}</td>
+                    <td>{{ macros.ago(job.createdAt) }}</td>
+                    <td>{{ macros.runtime(job) }}</td>
+                    <td>{{ macros.queue(job) }}</td>
+                </tr>
+            {% endfor %}
+            <tr>
+                <td style="height:4px; background-color: #ccc;" colspan="5"></td>
+            </tr>
         {% endif %}
 
         {% for job in jobPager %}
-        <tr>
-            <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ job.id }}</a></td>
-            <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ macros.command(job) }}</a></td>
-            <td>{{ macros.state(job) }}</td>
-            <td>{{ macros.ago(job.createdAt) }}</td>
-            <td>{{ macros.runtime(job) }}</td>
-            <td>{{ macros.queue(job) }}</td>
-        </tr>
+            <tr>
+                <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ job.id }}</a></td>
+                <td><a href="{{ path("jms_jobs_details", {"id": job.id}) }}">{{ macros.command(job) }}</a></td>
+                <td>{{ macros.state(job) }}</td>
+                <td>{{ macros.ago(job.createdAt) }}</td>
+                <td>{{ macros.runtime(job) }}</td>
+                <td>{{ macros.queue(job) }}</td>
+            </tr>
         {% else %}
-        <tr>
-            <td colspan="6">There are no jobs.</td>
-        </tr>
+            <tr>
+                <td colspan="6">There are no jobs.</td>
+            </tr>
         {% endfor %}
-    </tbody>
-</table>
+        </tbody>
+    </table>
 
-{% if jobPager.haveToPaginate %}
-    {{ jobPagerView.render(jobPager, jobPagerGenerator)|raw }}
-{% endif %}
+    {% if jobPager.haveToPaginate %}
+        {{ jobPagerView.render(jobPager, jobPagerGenerator)|raw }}
+    {% endif %}
 
 {% endblock %}

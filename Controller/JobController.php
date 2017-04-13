@@ -20,6 +20,9 @@ class JobController
     private $registry;
 
     /** @DI\Inject */
+    private $request;
+
+    /** @DI\Inject */
     private $router;
 
     /** @DI\Inject("%jms_job_queue.statistics%") */
@@ -31,21 +34,30 @@ class JobController
      */
     public function overviewAction(Request $request)
     {
+        $commandQuery = $request->query->get('command-query');
         $lastJobsWithError = $this->getRepo()->findLastJobsWithError(5);
 
         $qb = $this->getEm()->createQueryBuilder();
         $qb->select('j')->from('JMSJobQueueBundle:Job', 'j')
-                ->where($qb->expr()->isNull('j.originalJob'))
-                ->orderBy('j.id', 'desc');
+            ->where($qb->expr()->isNull('j.originalJob'))
+            ->orderBy('j.id', 'desc');
 
         foreach ($lastJobsWithError as $i => $job) {
             $qb->andWhere($qb->expr()->neq('j.id', '?'.$i));
             $qb->setParameter($i, $job->getId());
         }
 
+        if (!empty($commandQuery)) {
+            $qb->andWhere($qb->expr()->orX(
+                $qb->expr()->like('j.command', ':commandQuery'),
+                $qb->expr()->like('j.args', ':commandQuery')
+            ))
+                ->setParameter('commandQuery', '%'.$commandQuery.'%');
+        }
+
         $pager = new Pagerfanta(new DoctrineORMAdapter($qb));
-        $pager->setCurrentPage(max(1, (integer) $request->query->get('page', 1)));
-        $pager->setMaxPerPage(max(5, min(50, (integer) $request->query->get('per_page', 20))));
+        $pager->setCurrentPage(max(1, (integer) $this->request->query->get('page', 1)));
+        $pager->setMaxPerPage(max(5, min(50, (integer) $this->request->query->get('per_page', 20))));
 
         $pagerView = new TwitterBootstrapView();
         $router = $this->router;
@@ -58,6 +70,7 @@ class JobController
             'jobPager' => $pager,
             'jobPagerView' => $pagerView,
             'jobPagerGenerator' => $routeGenerator,
+            'commandQuery' => $commandQuery
         );
     }
 
