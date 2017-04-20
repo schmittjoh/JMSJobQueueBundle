@@ -20,8 +20,12 @@
     {%- endif %}
 {%- endmacro %}
 
-{% macro command(job) -%}
-    <code style="width:300px; overflow:hidden; white-space:nowrap;">{{ job.command }} {{ job.args|jms_job_queue_args }}</code>
+{% macro command(job, fullVersion = false) -%}
+    {% if not fullVersion %}
+        <code style="width:300px; overflow:hidden; white-space:nowrap;">{{ job.command }} {{ job.args|jms_job_queue_args(maxLength) }}</code>
+    {% else %}
+        <pre><span style="font-weight:bold;">{{ job.command }}</span> {{ job.args|jms_job_queue_args(5000) }}</pre>
+    {% endif %}
 {%- endmacro %}
 
 {% macro ago(time, format) -%}
