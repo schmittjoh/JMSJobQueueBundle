@@ -50,7 +50,7 @@ class JobQueueExtension extends \Twig_Extension
                 break;
             }
 
-            $str .= $arg;
+            $str .= escapeshellarg($arg);
         }
 
         return $str;
