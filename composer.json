@@ -32,12 +32,10 @@
         "symfony/twig-bundle": "*",
         "symfony/form": "*",
         "symfony/validator": "*",
-        "pagerfanta/pagerfanta": "dev-master",
         "phpunit/phpunit": "^5.2",
         "symfony/intl": "*"
     },
     "suggest": {
-        "pagerfanta/pagerfanta": "Required when using the webinterface.",
         "sensio/framework-extra-bundle": "Required when using the webinterface.",
         "symfony/twig-bundle": "Required when using the webinterface."
     },
