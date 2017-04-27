@@ -121,6 +121,9 @@ class Job
 
     /** @ORM\Column(type = "string") */
     private $command;
+    
+    /** @ORM\Column(type = "string", nullable = true) */
+    private $name;
 
     /** @ORM\Column(type = "json_array") */
     private $args;
@@ -360,6 +363,16 @@ class Job
     public function getCommand()
     {
         return $this->command;
+    }
+    
+    public function getName()
+    {
+        return $this->name;
+    }
+    
+    public function setName($name)
+    {
+        $this->name = $name;
     }
 
     public function getArgs()
