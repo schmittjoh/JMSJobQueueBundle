@@ -18,9 +18,6 @@ class JobController
     private $registry;
 
     /** @DI\Inject */
-    private $request;
-
-    /** @DI\Inject */
     private $router;
 
     /** @DI\Inject("%jms_job_queue.statistics%") */
