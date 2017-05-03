@@ -143,7 +143,8 @@ class JobRepository extends EntityRepository
             array(
                 'worker' => $workerName,
                 'id' => $job->getId(),
-            )
+            ),
+            array('id' => \PDO::PARAM_INT)
         );
 
         if ($affectedRows > 0) {
@@ -164,7 +165,7 @@ class JobRepository extends EntityRepository
 
         return $this->_em->createNativeQuery("SELECT j.* FROM jms_jobs j INNER JOIN jms_job_related_entities r ON r.job_id = j.id WHERE r.related_class = :relClass AND r.related_id = :relId", $rsm)
                     ->setParameter('relClass', $relClass)
-                    ->setParameter('relId', $relId)
+                    ->setParameter('relId', $relId, \PDO::PARAM_INT)
                     ->getResult();
     }
 
@@ -184,7 +185,7 @@ class JobRepository extends EntityRepository
         $params = new ArrayCollection();
         $params->add(new Parameter('command', $command));
         $params->add(new Parameter('relClass', $relClass));
-        $params->add(new Parameter('relId', $relId));
+        $params->add(new Parameter('relId', $relId, \PDO::PARAM_INT));
 
         if ( ! empty($states)) {
             $sql .= " AND j.state IN (:states)";
@@ -384,7 +385,7 @@ class JobRepository extends EntityRepository
         }
 
         return $this->_em->createQuery("SELECT j, d FROM JMSJobQueueBundle:Job j LEFT JOIN j.dependencies d WHERE j.id IN (:ids)")
-                    ->setParameter('ids', $jobIds)
+                    ->setParameter('ids', $jobIds, Connection::PARAM_INT_ARRAY)
                     ->getResult();
     }
 
@@ -399,14 +400,14 @@ class JobRepository extends EntityRepository
         }
 
         return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.id IN (:ids)")
-                    ->setParameter('ids', $jobIds)
+                    ->setParameter('ids', $jobIds, Connection::PARAM_INT_ARRAY)
                     ->getResult();
     }
 
     private function getJobIdsOfIncomingDependencies(Job $job)
     {
         $jobIds = $this->_em->getConnection()
-            ->executeQuery("SELECT source_job_id FROM jms_job_dependencies WHERE dest_job_id = :id", array('id' => $job->getId()))
+            ->executeQuery("SELECT source_job_id FROM jms_job_dependencies WHERE dest_job_id = :id", array('id' => $job->getId()), array('id' => \PDO::PARAM_INT))
             ->fetchAll(\PDO::FETCH_COLUMN);
 
         return $jobIds;
