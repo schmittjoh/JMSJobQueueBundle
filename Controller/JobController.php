@@ -160,13 +160,13 @@ class JobController
     }
 
     /** @return \Doctrine\ORM\EntityManager */
-    private function getEm()
+    protected function getEm()
     {
         return $this->registry->getManagerForClass('JMSJobQueueBundle:Job');
     }
 
     /** @return \JMS\JobQueueBundle\Entity\Repository\JobRepository */
-    private function getRepo()
+    protected function getRepo()
     {
         return $this->getEm()->getRepository('JMSJobQueueBundle:Job');
     }
