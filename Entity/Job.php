@@ -128,8 +128,8 @@ class Job
     /**
      * @ORM\ManyToMany(targetEntity = "Job", fetch = "EAGER")
      * @ORM\JoinTable(name="jms_job_dependencies",
-     *     joinColumns = { @ORM\JoinColumn(name = "source_job_id", referencedColumnName = "id") },
-     *     inverseJoinColumns = { @ORM\JoinColumn(name = "dest_job_id", referencedColumnName = "id")}
+     *     joinColumns = { @ORM\JoinColumn(name = "source_job_id", referencedColumnName = "id", onDelete="cascade") },
+     *     inverseJoinColumns = { @ORM\JoinColumn(name = "dest_job_id", referencedColumnName = "id", onDelete="cascade") }
      * )
      */
     private $dependencies;
