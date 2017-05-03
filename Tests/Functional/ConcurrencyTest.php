@@ -38,7 +38,7 @@ class ConcurrencyTest extends BaseTestCase
         unlink($filename);
 
         for ($i=0; $i<5; $i++) {
-            $this->assertSame(2, substr_count($logOutput, 'Job-'.$i));
+            $this::assertSame(2, substr_count($logOutput, 'Job-'.$i));
         }
 
         $workers = array();
@@ -50,7 +50,7 @@ class ConcurrencyTest extends BaseTestCase
         $workers = array_unique($workers);
         sort($workers);
 
-        $this->assertEquals(array('one', 'two'), $workers);
+        $this::assertEquals(array('one', 'two'), $workers);
     }
 
     protected function setUp()

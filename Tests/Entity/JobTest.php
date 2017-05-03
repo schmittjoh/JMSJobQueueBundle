@@ -26,18 +26,18 @@ class JobTest extends \PHPUnit_Framework_TestCase
     {
         $job = new Job('a:b', array('a', 'b', 'c'));
 
-        $this->assertEquals('a:b', $job->getCommand());
-        $this->assertEquals(array('a', 'b', 'c'), $job->getArgs());
-        $this->assertNotNull($job->getCreatedAt());
-        $this->assertEquals('pending', $job->getState());
-        $this->assertNull($job->getStartedAt());
+        $this::assertEquals('a:b', $job->getCommand());
+        $this::assertEquals(array('a', 'b', 'c'), $job->getArgs());
+        $this::assertNotNull($job->getCreatedAt());
+        $this::assertEquals('pending', $job->getState());
+        $this::assertNull($job->getStartedAt());
 
         return $job;
     }
 
     /**
      * @depends testConstruct
-     * @expectedException JMS\JobQueueBundle\Exception\InvalidStateTransitionException
+     * @expectedException \JMS\JobQueueBundle\Exception\InvalidStateTransitionException
      */
     public function testInvalidTransition(Job $job)
     {
@@ -50,10 +50,10 @@ class JobTest extends \PHPUnit_Framework_TestCase
     public function testStateToRunning(Job $job)
     {
         $job->setState('running');
-        $this->assertEquals('running', $job->getState());
-        $this->assertNotNull($startedAt = $job->getStartedAt());
+        $this::assertEquals('running', $job->getState());
+        $this::assertNotNull($startedAt = $job->getStartedAt());
         $job->setState('running');
-        $this->assertSame($startedAt, $job->getStartedAt());
+        $this::assertSame($startedAt, $job->getStartedAt());
 
         return $job;
     }
@@ -66,7 +66,7 @@ class JobTest extends \PHPUnit_Framework_TestCase
         $job = clone $job;
         $job->setState('running');
         $job->setState('failed');
-        $this->assertEquals('failed', $job->getState());
+        $this::assertEquals('failed', $job->getState());
     }
 
     /**
@@ -77,7 +77,7 @@ class JobTest extends \PHPUnit_Framework_TestCase
         $job = clone $job;
         $job->setState('running');
         $job->setState('terminated');
-        $this->assertEquals('terminated', $job->getState());
+        $this::assertEquals('terminated', $job->getState());
     }
 
     /**
@@ -88,60 +88,60 @@ class JobTest extends \PHPUnit_Framework_TestCase
         $job = clone $job;
         $job->setState('running');
         $job->setState('finished');
-        $this->assertEquals('finished', $job->getState());
+        $this::assertEquals('finished', $job->getState());
     }
 
     public function testAddOutput()
     {
         $job = new Job('foo');
-        $this->assertNull($job->getOutput());
+        $this::assertNull($job->getOutput());
         $job->addOutput('foo');
-        $this->assertEquals('foo', $job->getOutput());
+        $this::assertEquals('foo', $job->getOutput());
         $job->addOutput('bar');
-        $this->assertEquals('foobar', $job->getOutput());
+        $this::assertEquals('foobar', $job->getOutput());
     }
 
     public function testAddErrorOutput()
     {
         $job = new Job('foo');
-        $this->assertNull($job->getErrorOutput());
+        $this::assertNull($job->getErrorOutput());
         $job->addErrorOutput('foo');
-        $this->assertEquals('foo', $job->getErrorOutput());
+        $this::assertEquals('foo', $job->getErrorOutput());
         $job->addErrorOutput('bar');
-        $this->assertEquals('foobar', $job->getErrorOutput());
+        $this::assertEquals('foobar', $job->getErrorOutput());
     }
 
     public function testSetOutput()
     {
         $job = new Job('foo');
-        $this->assertNull($job->getOutput());
+        $this::assertNull($job->getOutput());
         $job->setOutput('foo');
-        $this->assertEquals('foo', $job->getOutput());
+        $this::assertEquals('foo', $job->getOutput());
         $job->setOutput('bar');
-        $this->assertEquals('bar', $job->getOutput());
+        $this::assertEquals('bar', $job->getOutput());
     }
 
     public function testSetErrorOutput()
     {
         $job = new Job('foo');
-        $this->assertNull($job->getErrorOutput());
+        $this::assertNull($job->getErrorOutput());
         $job->setErrorOutput('foo');
-        $this->assertEquals('foo', $job->getErrorOutput());
+        $this::assertEquals('foo', $job->getErrorOutput());
         $job->setErrorOutput('bar');
-        $this->assertEquals('bar', $job->getErrorOutput());
+        $this::assertEquals('bar', $job->getErrorOutput());
     }
 
     public function testAddDependency()
     {
         $a = new Job('a');
         $b = new Job('b');
-        $this->assertCount(0, $a->getDependencies());
-        $this->assertCount(0, $b->getDependencies());
+        $this::assertCount(0, $a->getDependencies());
+        $this::assertCount(0, $b->getDependencies());
 
         $a->addDependency($b);
-        $this->assertCount(1, $a->getDependencies());
-        $this->assertCount(0, $b->getDependencies());
-        $this->assertSame($b, $a->getDependencies()->first());
+        $this::assertCount(1, $a->getDependencies());
+        $this::assertCount(0, $b->getDependencies());
+        $this::assertSame($b, $a->getDependencies()->first());
     }
 
     /**
@@ -163,8 +163,8 @@ class JobTest extends \PHPUnit_Framework_TestCase
         $b = new Job('b');
         $a->addRetryJob($b);
 
-        $this->assertCount(1, $a->getRetryJobs());
-        $this->assertSame($b, $a->getRetryJobs()->get(0));
+        $this::assertCount(1, $a->getRetryJobs());
+        $this::assertSame($b, $a->getRetryJobs()->get(0));
 
         return $a;
     }
@@ -174,8 +174,8 @@ class JobTest extends \PHPUnit_Framework_TestCase
      */
     public function testIsRetryJob(Job $a)
     {
-        $this->assertFalse($a->isRetryJob());
-        $this->assertTrue($a->getRetryJobs()->get(0)->isRetryJob());
+        $this::assertFalse($a->isRetryJob());
+        $this::assertTrue($a->getRetryJobs()->get(0)->isRetryJob());
     }
 
     /**
@@ -183,21 +183,21 @@ class JobTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetOriginalJob(Job $a)
     {
-        $this->assertSame($a, $a->getOriginalJob());
-        $this->assertSame($a, $a->getRetryJobs()->get(0)->getOriginalJob());
+        $this::assertSame($a, $a->getOriginalJob());
+        $this::assertSame($a, $a->getRetryJobs()->get(0)->getOriginalJob());
     }
 
     public function testCheckedAt()
     {
         $job = new Job('a');
-        $this->assertNull($job->getCheckedAt());
+        $this::assertNull($job->getCheckedAt());
 
         $job->checked();
-        $this->assertInstanceOf('DateTime', $checkedAtA = $job->getCheckedAt());
+        $this::assertInstanceOf('DateTime', $checkedAtA = $job->getCheckedAt());
 
         $job->checked();
-        $this->assertInstanceOf('DateTime', $checkedAtB = $job->getCheckedAt());
-        $this->assertNotSame($checkedAtA, $checkedAtB);
+        $this::assertInstanceOf('DateTime', $checkedAtB = $job->getCheckedAt());
+        $this::assertNotSame($checkedAtA, $checkedAtB);
     }
 
     public function testSameDependencyIsNotAddedTwice()
@@ -205,11 +205,11 @@ class JobTest extends \PHPUnit_Framework_TestCase
         $a = new Job('a');
         $b = new Job('b');
 
-        $this->assertCount(0, $a->getDependencies());
+        $this::assertCount(0, $a->getDependencies());
         $a->addDependency($b);
-        $this->assertCount(1, $a->getDependencies());
+        $this::assertCount(1, $a->getDependencies());
         $a->addDependency($b);
-        $this->assertCount(1, $a->getDependencies());
+        $this::assertCount(1, $a->getDependencies());
     }
 
     public function testHasDependency()
@@ -217,23 +217,23 @@ class JobTest extends \PHPUnit_Framework_TestCase
         $a = new Job('a');
         $b = new Job('b');
 
-        $this->assertFalse($a->hasDependency($b));
+        $this::assertFalse($a->hasDependency($b));
         $a->addDependency($b);
-        $this->assertTrue($a->hasDependency($b));
+        $this::assertTrue($a->hasDependency($b));
     }
 
     public function testIsRetryAllowed()
     {
         $job = new Job('a');
-        $this->assertFalse($job->isRetryAllowed());
+        $this::assertFalse($job->isRetryAllowed());
 
         $job->setMaxRetries(1);
-        $this->assertTrue($job->isRetryAllowed());
+        $this::assertTrue($job->isRetryAllowed());
 
         $job->setState('running');
         $retry = new Job('a');
         $job->addRetryJob($retry);
-        $this->assertFalse($job->isRetryAllowed());
+        $this::assertFalse($job->isRetryAllowed());
     }
 
     public function testCloneDoesNotChangeQueue()
@@ -241,7 +241,7 @@ class JobTest extends \PHPUnit_Framework_TestCase
         $job = new Job('a', array(), true, 'foo');
         $clonedJob = clone $job;
 
-        $this->assertEquals('foo', $clonedJob->getQueue());
+        $this::assertEquals('foo', $clonedJob->getQueue());
     }
 
     private function setField($obj, $field, $value)
