@@ -26,7 +26,6 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 use JMS\JobQueueBundle\Exception\LogicException;
 use JMS\JobQueueBundle\Exception\InvalidArgumentException;
 use JMS\JobQueueBundle\Event\NewOutputEvent;
-use Symfony\Component\Process\ProcessBuilder;
 use Symfony\Component\Process\Process;
 use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Event\StateChangeEvent;
@@ -354,16 +353,15 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $em->persist($job);
         $em->flush($job);
 
-        $pb = $this->getCommandProcessBuilder();
-        $pb
-            ->add($job->getCommand())
-            ->add('--jms-job-id='.$job->getId())
-        ;
+        $cls = $this->getCommandLineString();
+        $cls .= "'".$job->getCommand()."' ";
+        $cls .= "'--jms-job-id=".$job->getId()."' ";
 
         foreach ($job->getArgs() as $arg) {
-            $pb->add($arg);
+            $cls .= "'".$arg."' ";
         }
-        $proc = $pb->getProcess();
+        
+        $proc = new Process($cls);
         $proc->start();
         $this->output->writeln(sprintf('Started %s.', $job));
 
@@ -401,16 +399,14 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
                 continue;
             }
 
-            $pb = $this->getCommandProcessBuilder();
-            $pb
-                ->add('jms-job-queue:mark-incomplete')
-                ->add($job->getId())
-                ->add('--env='.$this->env)
-                ->add('--verbose')
-            ;
-
+            $cls = $this->getCommandLineString();
+            $cls .= "'jms-job-queue:mark-incomplete' ";
+            $cls .= "'".$job->getId()."' ";
+            $cls .= "'--env=".$this->env."' ";
+            $cls .= "'--verbose'";
+            
             // We use a separate process to clean up.
-            $proc = $pb->getProcess();
+            $proc = new Process($cls);
             if (0 !== $proc->run()) {
                 $ex = new ProcessFailedException($proc);
 
@@ -420,29 +416,27 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     }
 
     /**
-     * @return ProcessBuilder
+     * @return string
      */
-    private function getCommandProcessBuilder()
+    private function getCommandLineString()
     {
-        $pb = new ProcessBuilder();
+        $cls = '';
 
         // PHP wraps the process in "sh -c" by default, but we need to control
         // the process directly.
         if ( ! defined('PHP_WINDOWS_VERSION_MAJOR')) {
-            $pb->add('exec');
+            $cls .= "'exec' ";
         }
 
-        $pb
-            ->add(PHP_BINARY)
-            ->add($this->consoleFile)
-            ->add('--env='.$this->env)
-        ;
+        $cls .= "'".PHP_BINARY."' ";
+        $cls .= "'".$this->consoleFile."' ";
+        $cls .= "'--env=".$this->env."' ";
 
         if ($this->verbose) {
-            $pb->add('--verbose');
+            $cls .= "'--verbose' ";
         }
 
-        return $pb;
+        return $cls;
     }
 
     private function findConsoleFile()
