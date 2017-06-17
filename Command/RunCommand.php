@@ -363,7 +363,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         foreach ($job->getArgs() as $arg) {
             $pb->add($arg);
         }
-        $proc = $pb->getProcess();
+        
+        $proc = new Process($pb->getProcess()->getCommandLine());
         $proc->start();
         $this->output->writeln(sprintf('Started %s.', $job));
 
@@ -410,7 +411,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             ;
 
             // We use a separate process to clean up.
-            $proc = $pb->getProcess();
+            $proc = new Process($pb->getProcess()->getCommandLine());
             if (0 !== $proc->run()) {
                 $ex = new ProcessFailedException($proc);
 
