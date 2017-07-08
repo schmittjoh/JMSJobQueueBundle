@@ -52,7 +52,9 @@ class ScheduleCommand extends ContainerAwareCommand
             return 0;
         }
 
-        $jobsLastRunAt = $this->populateJobsLastRunAt($registry->getManagerForClass(CronJob::class), $jobSchedulers);
+        /** @var \Doctrine\ORM\EntityManager $em */
+        $em = $registry->getManagerForClass(CronJob::class);
+        $jobsLastRunAt = $this->populateJobsLastRunAt($em, $jobSchedulers);
 
         $startedAt = time();
         while (true) {
@@ -61,6 +63,11 @@ class ScheduleCommand extends ContainerAwareCommand
             if ($now - $startedAt > $maxRuntime) {
                 $output->writeln('Max. runtime reached, exiting...');
                 break;
+            }
+
+            if ($em->getConnection()->ping() === false) {
+                $em->getConnection()->close();
+                $em->getConnection()->connect();
             }
 
             $this->scheduleJobs($output, $registry, $jobSchedulers, $jobsLastRunAt);
