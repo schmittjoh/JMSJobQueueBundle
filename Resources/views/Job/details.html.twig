@@ -22,6 +22,16 @@
         <th>State</th>
         <td>{{ macros.state(job) }}</td>
     </tr>
+    {% if job.workerName %}
+    <tr>
+        <th>WorkerName</th>
+        <td>{{ job.workerName }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <th>Queue</th>
+        <td>{{ macros.queue(job) }}</td>
+    </tr>
     <tr>
         <th>Created</th>
         <td>{{ macros.ago(job.createdAt) }}</td>
