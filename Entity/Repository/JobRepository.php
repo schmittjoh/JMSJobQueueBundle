@@ -436,14 +436,12 @@ class JobRepository extends EntityRepository
         return $newQueueArray;
     }
 
-
     public function getAvailableJobsForQueueCount($jobQueue)
     {
         $result = $this->_em->createQuery("SELECT j.queue FROM JMSJobQueueBundle:Job j WHERE j.state IN (:availableStates) AND j.queue = :queue")
             ->setParameter('availableStates', array(Job::STATE_RUNNING, Job::STATE_NEW, Job::STATE_PENDING))
             ->setParameter('queue', $jobQueue)
-            ->setMaxResults(1)
-            ->getOneOrNullResult();
+            ->getResult();
 
         return count($result);
     }
