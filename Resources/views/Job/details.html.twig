@@ -131,7 +131,12 @@
         <ol class="traces list_ex" id="traces_{{ position }}" style="display: none;">
             {% for i, trace in ex.trace %}
                 <li>
-                    {% include 'TwigBundle:Exception:trace.html.twig' with { 'prefix': position, 'i': i, 'trace': trace } only %}
+                    {% include 'TwigBundle:Exception:trace.html.twig' with {
+                        'prefix': position,
+                        'i': i,
+                        'trace': trace,
+                        '_display_code_snippet': false,
+                    } only %}
                 </li>
             {% endfor %}
         </ol>
