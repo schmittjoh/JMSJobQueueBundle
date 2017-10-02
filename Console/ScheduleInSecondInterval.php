@@ -7,12 +7,12 @@ use Symfony\Component\Console\Command\Command;
 
 trait ScheduleInSecondInterval
 {
-    public function shouldBeScheduled(\DateTime $lastRunAt)
+    public function shouldBeScheduled(\DateTimeInterface $lastRunAt)
     {
         return time() - $lastRunAt->getTimestamp() >= $this->getScheduleInterval();
     }
 
-    public function createCronJob(\DateTime $_)
+    public function createCronJob(\DateTimeInterface $_)
     {
         if ( ! $this instanceof Command) {
             throw new \LogicException('This trait must be used in Symfony console commands only.');

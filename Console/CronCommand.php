@@ -9,10 +9,10 @@ interface CronCommand
     /**
      * @return Job
      */
-    public function createCronJob(\DateTime $lastRunAt);
+    public function createCronJob(\DateTimeInterface $lastRunAt);
 
     /**
      * @return boolean
      */
-    public function shouldBeScheduled(\DateTime $lastRunAt);
+    public function shouldBeScheduled(\DateTimeInterface $lastRunAt);
 }

@@ -13,12 +13,12 @@ class CommandScheduler implements JobScheduler
         $this->command = $command;
     }
 
-    public function shouldSchedule($_, \DateTime $lastRunAt)
+    public function shouldSchedule($_, \DateTimeInterface $lastRunAt)
     {
         return $this->command->shouldBeScheduled($lastRunAt);
     }
 
-    public function createJob($_, \DateTime $lastRunAt)
+    public function createJob($_, \DateTimeInterface $lastRunAt)
     {
         return $this->command->createCronJob($lastRunAt);
     }

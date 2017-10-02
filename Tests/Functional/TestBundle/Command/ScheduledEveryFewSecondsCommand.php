@@ -10,12 +10,12 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ScheduledEveryFewSecondsCommand extends ContainerAwareCommand implements CronCommand
 {
-    public function shouldBeScheduled(\DateTime $lastRunAt)
+    public function shouldBeScheduled(\DateTimeInterface $lastRunAt)
     {
         return time() - $lastRunAt->getTimestamp() >= 5;
     }
 
-    public function createCronJob(\DateTime $_)
+    public function createCronJob(\DateTimeInterface $_)
     {
         return new Job('scheduled-every-few-seconds');
     }
