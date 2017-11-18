@@ -21,7 +21,7 @@ matrix:
 before_script:
   - composer self-update
   - if [ "$DEPENDENCIES" = "beta" ]; then composer config minimum-stability beta; fi;
-  - if [ "$TRAVIS_PHP_VERSION" != "hhvm" ]; then echo "memory_limit=2G" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini; fi;  
+  - if [ "$TRAVIS_PHP_VERSION" != "hhvm" ]; then echo "memory_limit=3G" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini; fi;  
   - if [[ ${TRAVIS_PHP_VERSION:0:2} == "5." ]]; then composer require --dev "phpunit/phpunit=4.8.*"; fi
   - if [[ ${TRAVIS_PHP_VERSION:0:2} == "7." ]]; then composer require --dev "phpunit/phpunit=5.7.*"; fi
 
