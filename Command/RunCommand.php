@@ -26,7 +26,6 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 use JMS\JobQueueBundle\Exception\LogicException;
 use JMS\JobQueueBundle\Exception\InvalidArgumentException;
 use JMS\JobQueueBundle\Event\NewOutputEvent;
-use Symfony\Component\Process\ProcessBuilder;
 use Symfony\Component\Process\Process;
 use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Event\StateChangeEvent;
@@ -354,17 +353,14 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $em->persist($job);
         $em->flush($job);
 
-        $pb = $this->getCommandProcessBuilder();
-        $pb
-            ->add($job->getCommand())
-            ->add('--jms-job-id='.$job->getId())
-        ;
+        $commandSegments = [$job->getCommand(), '--jms-job-id='.$job->getId()];
+
 
         foreach ($job->getArgs() as $arg) {
-            $pb->add($arg);
+            $commandSegments[] = $arg;
         }
         
-        $proc = new Process($pb->getProcess()->getCommandLine());
+        $proc = $this->getCommandProcess($commandSegments);
         $proc->start();
         $this->output->writeln(sprintf('Started %s.', $job));
 
@@ -402,16 +398,8 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
                 continue;
             }
 
-            $pb = $this->getCommandProcessBuilder();
-            $pb
-                ->add('jms-job-queue:mark-incomplete')
-                ->add($job->getId())
-                ->add('--env='.$this->env)
-                ->add('--verbose')
-            ;
-
             // We use a separate process to clean up.
-            $proc = new Process($pb->getProcess()->getCommandLine());
+            $proc = $this->getCommandProcess(['jms-job-queue:mark-incomplete', $job->getId()]);
             if (0 !== $proc->run()) {
                 $ex = new ProcessFailedException($proc);
 
@@ -421,29 +409,29 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     }
 
     /**
-     * @return ProcessBuilder
+     * @return Process
      */
-    private function getCommandProcessBuilder()
+    private function getCommandProcess($commandSegments)
     {
-        $pb = new ProcessBuilder();
 
-        // PHP wraps the process in "sh -c" by default, but we need to control
-        // the process directly.
+        $commandDefaultSegments = [];
+
         if ( ! defined('PHP_WINDOWS_VERSION_MAJOR')) {
-            $pb->add('exec');
+            $commandDefaultSegments[] = 'exec';
         }
 
-        $pb
-            ->add(PHP_BINARY)
-            ->add($this->consoleFile)
-            ->add('--env='.$this->env)
-        ;
+        $commandDefaultSegments[] = PHP_BINARY;
+        $commandDefaultSegments[] = $this->consoleFile;
+        $commandDefaultSegments[] = '--env=' . $this->env;
 
-        if ($this->verbose) {
-            $pb->add('--verbose');
+        if($this->verbose) {
+            $commandDefaultSegments[] = '--verbose';
         }
 
-        return $pb;
+        $commandSegments = array_merge($commandDefaultSegments, $commandSegments);
+
+        return new Process(implode(' ', $commandSegments));
+
     }
 
     private function findConsoleFile()
