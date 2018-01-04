@@ -14,20 +14,20 @@ class RunCommandTest extends BaseTestCase
 
     public function testRun()
     {
-        $a = new Job('a');
-        $b = new Job('b', array('foo'));
+        $a = new Job('aNonExistingCommand');
+        $b = new Job('dependentCommand', array('foo'));
         $b->addDependency($a);
         $this->em->persist($a);
         $this->em->persist($b);
         $this->em->flush();
 
         $output = $this->doRun(array('--max-runtime' => 5, '--worker-name' => 'test'));
-        $expectedOutput = "Started Job(id = 1, command = \"a\").\n"
-                         ."Job(id = 1, command = \"a\") finished with exit code 1.\n";
+        $expectedOutput = "Started Job(id = 1, command = \"aNonExistingCommand\").\n"
+                         ."Job(id = 1, command = \"aNonExistingCommand\") finished with exit code 1.\n";
         $this->assertEquals($expectedOutput, $output);
         $this->assertEquals('failed', $a->getState());
         $this->assertEquals('', $a->getOutput());
-        $this->assertContains('Command "a" is not defined.', $a->getErrorOutput());
+        $this->assertContains('Command "aNonExistingCommand" is not defined.', $a->getErrorOutput());
         $this->assertEquals('canceled', $b->getState());
     }
 
