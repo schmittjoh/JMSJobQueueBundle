@@ -1,5 +1,5 @@
-{% extends "JMSJobQueueBundle::base.html.twig" %}
-{% import "JMSJobQueueBundle:Job:macros.html.twig" as macros %}
+{% extends "@JMSJobQueue/base.html.twig" %}
+{% import "@JMSJobQueue/Job/macros.html.twig" as macros %}
 
 {% block title %}Job "{{ job.command }}" (ID: {{ job.id }})" - {{ parent() }}{% endblock %}
 
