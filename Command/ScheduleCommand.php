@@ -17,10 +17,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ScheduleCommand extends ContainerAwareCommand
 {
+    protected static $defaultName = 'jms-job-queue:schedule';
+
     protected function configure()
     {
         $this
-            ->setName('jms-job-queue:schedule')
             ->setDescription('Schedules jobs at defined intervals')
             ->addOption('max-runtime', null, InputOption::VALUE_REQUIRED, 'The maximum runtime of this command.', 3600)
             ->addOption('min-job-interval', null, InputOption::VALUE_REQUIRED, 'The minimum time between schedules jobs in seconds.', 5)

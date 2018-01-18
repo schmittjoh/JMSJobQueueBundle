@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+        <defaults public="false" />
+
+        <service id="jms_job_queue.command.clean_up" class="JMS\JobQueueBundle\Command\CleanUpCommand">
+            <tag name="console.command"></tag>
+        </service>
+
+        <service id="jms_job_queue.command.mark_job_incomplete" class="JMS\JobQueueBundle\Command\MarkJobIncompleteCommand">
+            <tag name="console.command"></tag>
+        </service>
+
+        <service id="jms_job_queue.command.run" class="JMS\JobQueueBundle\Command\RunCommand">
+            <tag name="console.command"></tag>
+        </service>
+
+        <service id="jms_job_queue.command.schedule" class="JMS\JobQueueBundle\Command\ScheduleCommand">
+            <tag name="console.command"></tag>
+        </service>
+    </services>
+</container>

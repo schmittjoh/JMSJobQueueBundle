@@ -10,10 +10,11 @@ use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 
 class MarkJobIncompleteCommand extends ContainerAwareCommand
 {
+    protected static $defaultName = 'jms-job-queue:mark-incomplete';
+
     protected function configure()
     {
         $this
-            ->setName('jms-job-queue:mark-incomplete')
             ->setDescription('Internal command (do not use). It marks jobs as incomplete.')
             ->addArgument('job-id', InputArgument::REQUIRED, 'The ID of the Job.')
         ;
