@@ -67,20 +67,6 @@ exception stack traces for your jobs, you need to add the following to your
         type: annotation
         prefix: /jobs
 
-and also include the ``pagerfanta/pagerfanta`` package in your composer file:
-
-.. code-block :: js
-
-    // composer.json
-    {
-        // ...
-        require: {
-            // ...
-            "jms/job-queue-bundle": "dev-master",
-            "pagerfanta/pagerfanta": "dev-master"
-        }
-    }
-
 Then, update your dependencies using
 
 .. code-block :: bash

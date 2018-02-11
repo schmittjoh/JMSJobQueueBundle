@@ -16,11 +16,21 @@
 <table class="table table-bordered table-striped">
     <tr>
         <th width="20%">Command</th>
-        <td>{{ macros.command(job) }}</td>
+        <td>{{ macros.command(job, true) }}</td>
     </tr>
     <tr>
         <th>State</th>
         <td>{{ macros.state(job) }}</td>
+    </tr>
+    {% if job.workerName %}
+    <tr>
+        <th>WorkerName</th>
+        <td>{{ job.workerName }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <th>Queue</th>
+        <td>{{ macros.queue(job) }}</td>
     </tr>
     <tr>
         <th>Created</th>

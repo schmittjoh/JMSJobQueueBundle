@@ -5,9 +5,7 @@ namespace JMS\JobQueueBundle\Controller;
 use Doctrine\Common\Util\ClassUtils;
 use JMS\DiExtraBundle\Annotation as DI;
 use JMS\JobQueueBundle\Entity\Job;
-use Pagerfanta\Adapter\DoctrineORMAdapter;
-use Pagerfanta\Pagerfanta;
-use Pagerfanta\View\TwitterBootstrapView;
+use JMS\JobQueueBundle\View\JobFilter;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -31,33 +29,46 @@ class JobController
      */
     public function overviewAction(Request $request)
     {
-        $lastJobsWithError = $this->getRepo()->findLastJobsWithError(5);
+        $jobFilter = JobFilter::fromRequest($request);
 
         $qb = $this->getEm()->createQueryBuilder();
         $qb->select('j')->from('JMSJobQueueBundle:Job', 'j')
-                ->where($qb->expr()->isNull('j.originalJob'))
-                ->orderBy('j.id', 'desc');
+            ->where($qb->expr()->isNull('j.originalJob'))
+            ->orderBy('j.id', 'desc');
 
+        $lastJobsWithError = $jobFilter->isDefaultPage() ? $this->getRepo()->findLastJobsWithError(5) : [];
         foreach ($lastJobsWithError as $i => $job) {
             $qb->andWhere($qb->expr()->neq('j.id', '?'.$i));
             $qb->setParameter($i, $job->getId());
         }
 
-        $pager = new Pagerfanta(new DoctrineORMAdapter($qb));
-        $pager->setCurrentPage(max(1, (integer) $request->query->get('page', 1)));
-        $pager->setMaxPerPage(max(5, min(50, (integer) $request->query->get('per_page', 20))));
+        if ( ! empty($jobFilter->command)) {
+            $qb->andWhere($qb->expr()->orX(
+                $qb->expr()->like('j.command', ':commandQuery'),
+                $qb->expr()->like('j.args', ':commandQuery')
+            ))
+                ->setParameter('commandQuery', '%'.$jobFilter->command.'%');
+        }
 
-        $pagerView = new TwitterBootstrapView();
-        $router = $this->router;
-        $routeGenerator = function($page) use ($router, $pager) {
-            return $router->generate('jms_jobs_overview', array('page' => $page, 'per_page' => $pager->getMaxPerPage()));
-        };
+        if ( ! empty($jobFilter->state)) {
+            $qb->andWhere($qb->expr()->eq('j.state', ':jobState'))
+                ->setParameter('jobState', $jobFilter->state);
+        }
+
+        $perPage = 50;
+
+        $query = $qb->getQuery();
+        $query->setMaxResults($perPage + 1);
+        $query->setFirstResult(($jobFilter->page - 1) * $perPage);
+
+        $jobs = $query->getResult();
 
         return array(
             'jobsWithError' => $lastJobsWithError,
-            'jobPager' => $pager,
-            'jobPagerView' => $pagerView,
-            'jobPagerGenerator' => $routeGenerator,
+            'jobs' => array_slice($jobs, 0, $perPage),
+            'jobFilter' => $jobFilter,
+            'hasMore' => count($jobs) > $perPage,
+            'jobStates' => Job::getStates(),
         );
     }
 
