@@ -101,6 +101,9 @@ class Job
     /** @ORM\Column(type = "smallint") */
     private $priority = 0;
 
+    /** @ORM\Column(type = "float") */
+    private $progress = 0.0;
+
     /** @ORM\Column(type = "datetime", name="createdAt") */
     private $createdAt;
 
@@ -227,6 +230,7 @@ class Job
     public function __clone()
     {
         $this->state = self::STATE_PENDING;
+        $this->progress = 0.0;
         $this->createdAt = new \DateTime();
         $this->startedAt = null;
         $this->checkedAt = null;
@@ -335,6 +339,16 @@ class Job
         }
 
         $this->state = $newState;
+    }
+
+    public function getProgress()
+    {
+        return $this->progress;
+    }
+
+    public function setProgress($progress)
+    {
+        $this->progress = $progress;
     }
 
     public function getCreatedAt()
