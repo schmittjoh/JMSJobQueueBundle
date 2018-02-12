@@ -296,9 +296,6 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
                 $data['process']->stop(5);
 
                 $this->output->writeln($data['job'].' terminated; maximum runtime exceeded.');
-                $data['job']->setProgress(1);
-                $em = $this->getEntityManager();
-                $em->persist($data['job']);
                 $em->flush();
                 $this->getRepository()->closeJob($data['job'], Job::STATE_TERMINATED);
                 unset($this->runningJobs[$i]);
@@ -324,6 +321,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             // get access to the stack trace. This might be useful for listeners.
             $this->getEntityManager()->refresh($data['job']);
 
+            $data['job']->setProgress(1);
             $data['job']->setExitCode($data['process']->getExitCode());
             $data['job']->setOutput($data['process']->getOutput());
             $data['job']->setErrorOutput($data['process']->getErrorOutput());
