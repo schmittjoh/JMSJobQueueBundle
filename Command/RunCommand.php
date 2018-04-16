@@ -346,7 +346,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         }
 
         if (Job::STATE_RUNNING !== $newState) {
-            throw new \LogicException(sprintf('Unsupported new state "%s".', $newState));
+            throw new LogicException(sprintf('Unsupported new state "%s".', $newState));
         }
 
         $job->setState(Job::STATE_RUNNING);
@@ -356,7 +356,6 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
         $pb = $this->getCommandProcessBuilder();
         $pb
-            ->setEnv('jmsJobId', $job->getId())
             ->add($job->getCommand())
         ;
 
@@ -365,6 +364,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         }
         
         $proc = new Process($pb->getProcess()->getCommandLine());
+        $proc->setEnv(array('jmsJobId' => $job->getId()));
         $proc->start();
         $this->output->writeln(sprintf('Started %s.', $job));
 

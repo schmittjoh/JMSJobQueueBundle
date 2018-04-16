@@ -9,7 +9,6 @@ use Doctrine\DBAL\Types\Type;
 use Symfony\Component\Console\ConsoleEvents;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Console\Event\ConsoleExceptionEvent;
-use Symfony\Component\Console\Event\ConsoleTerminateEvent;
 use Symfony\Component\Debug\Exception\FlattenException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -39,10 +38,12 @@ class ConsoleListener implements EventSubscriberInterface
         $this->doctrine = $doctrine;
         $this->collectStatistics = $collectStatistics;
 
-        if (isset($_ENV['jmsJobId'])) {
-            $this->jobId = $_ENV['jmsJobId'];
+        if ($jobId = getenv('jmsJobId')) {
+            $this->jobId = $jobId;
         } elseif (isset($_SERVER['jmsJobId'])) {
             $this->jobId = $_SERVER['jmsJobId'];
+        } elseif (isset($_ENV['jmsJobId'])) {
+            $this->jobId = $_ENV['jmsJobId'];
         }
     }
 
@@ -68,12 +69,20 @@ class ConsoleListener implements EventSubscriberInterface
 
     public function onException(ConsoleExceptionEvent $event)
     {
+        if (!$this->jobId) {
+            return;
+        }
+
         $ex = $event->getException();
         $this->exception = $ex;
     }
 
     public function onTerminate()
     {
+        if (!$this->jobId) {
+            return;
+        }
+
         $this->saveDebugInformation();
     }
 
@@ -95,10 +104,6 @@ class ConsoleListener implements EventSubscriberInterface
 
     private function saveDebugInformation()
     {
-        if (!$this->jobId) {
-            return;
-        }
-
         $this->getConnection()->executeUpdate("UPDATE jms_jobs SET stackTrace = :trace, memoryUsage = :memoryUsage, memoryUsageReal = :memoryUsageReal WHERE id = :id", array(
             'id' => $this->jobId,
             'memoryUsage' => memory_get_peak_usage(),
