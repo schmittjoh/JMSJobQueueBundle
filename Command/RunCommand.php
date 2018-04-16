@@ -362,9 +362,27 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         foreach ($job->getArgs() as $arg) {
             $pb->add($arg);
         }
-        
-        $proc = new Process($pb->getProcess()->getCommandLine());
-        $proc->setEnv(array('jmsJobId' => $job->getId()));
+
+        $env = array('jmsJobId' => $job->getId());
+        // Workaround for symfony/process < 3.3
+        if (!method_exists('Symfony\Component\Process\Process', 'inheritEnvironmentVariables')) {
+            foreach ($_SERVER as $k => $v) {
+                if (is_string($v) && false !== $v = getenv($k)) {
+                    $env[$k] = $v;
+                }
+            }
+
+            foreach ($_ENV as $k => $v) {
+                if (is_string($v)) {
+                    $env[$k] = $v;
+                }
+            }
+        }
+
+        $proc = new Process($pb->getProcess()->getCommandLine(), null, $env);
+        if (method_exists('Symfony\Component\Process\Process', 'inheritEnvironmentVariables')) {
+            $proc->inheritEnvironmentVariables(true);
+        }
         $proc->start();
         $this->output->writeln(sprintf('Started %s.', $job));
 
