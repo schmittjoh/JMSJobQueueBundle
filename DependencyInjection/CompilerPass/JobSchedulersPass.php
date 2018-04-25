@@ -21,7 +21,7 @@ class JobSchedulersPass implements CompilerPassInterface
             }
         }
 
-        $container->getDefinition('jms_job_queue.scheduler_registry')
+        $container->findDefinition('jms_job_queue.scheduler_registry')
             ->addArgument($schedulers);
     }
 }
