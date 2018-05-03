@@ -8,16 +8,29 @@ use Doctrine\ORM\Query;
 use JMS\JobQueueBundle\Console\CronCommand;
 use JMS\JobQueueBundle\Cron\CommandScheduler;
 use JMS\JobQueueBundle\Cron\JobScheduler;
+use JMS\JobQueueBundle\Cron\SchedulerRegistry;
 use JMS\JobQueueBundle\Entity\CronJob;
 use JMS\JobQueueBundle\Entity\Job;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class ScheduleCommand extends ContainerAwareCommand
+class ScheduleCommand extends Command
 {
     protected static $defaultName = 'jms-job-queue:schedule';
+
+    private $registry;
+    private $schedulerRegistry;
+
+    public function __construct(ManagerRegistry $managerRegistry, SchedulerRegistry $schedulerRegistry)
+    {
+        parent::__construct();
+
+        $this->registry = $managerRegistry;
+        $this->schedulerRegistry = $schedulerRegistry;
+    }
 
     protected function configure()
     {
@@ -30,9 +43,6 @@ class ScheduleCommand extends ContainerAwareCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        /** @var ManagerRegistry $registry */
-        $registry = $this->getContainer()->get('doctrine');
-
         $maxRuntime = $input->getOption('max-runtime');
         if ($maxRuntime > 300) {
             $maxRuntime += mt_rand(0, (integer)($input->getOption('max-runtime') * 0.05));
@@ -53,7 +63,7 @@ class ScheduleCommand extends ContainerAwareCommand
             return 0;
         }
 
-        $jobsLastRunAt = $this->populateJobsLastRunAt($registry->getManagerForClass(CronJob::class), $jobSchedulers);
+        $jobsLastRunAt = $this->populateJobsLastRunAt($this->registry->getManagerForClass(CronJob::class), $jobSchedulers);
 
         $startedAt = time();
         while (true) {
@@ -64,7 +74,7 @@ class ScheduleCommand extends ContainerAwareCommand
                 break;
             }
 
-            $this->scheduleJobs($output, $registry, $jobSchedulers, $jobsLastRunAt);
+            $this->scheduleJobs($output, $jobSchedulers, $jobsLastRunAt);
 
             $timeToWait = microtime(true) - $lastRunAt + $minJobInterval;
             if ($timeToWait > 0) {
@@ -79,7 +89,7 @@ class ScheduleCommand extends ContainerAwareCommand
      * @param JobScheduler[] $jobSchedulers
      * @param \DateTime[] $jobsLastRunAt
      */
-    private function scheduleJobs(OutputInterface $output, ManagerRegistry $registry, array $jobSchedulers, array &$jobsLastRunAt)
+    private function scheduleJobs(OutputInterface $output, array $jobSchedulers, array &$jobsLastRunAt)
     {
         foreach ($jobSchedulers as $name => $scheduler) {
             $lastRunAt = $jobsLastRunAt[$name];
@@ -88,23 +98,23 @@ class ScheduleCommand extends ContainerAwareCommand
                 continue;
             }
 
-            list($success, $newLastRunAt) = $this->acquireLock($registry, $name, $lastRunAt);
+            list($success, $newLastRunAt) = $this->acquireLock($name, $lastRunAt);
             $jobsLastRunAt[$name] = $newLastRunAt;
 
             if ($success) {
                 $output->writeln('Scheduling command '.$name);
                 $job = $scheduler->createJob($name, $lastRunAt);
-                $em = $registry->getManagerForClass(Job::class);
+                $em = $this->registry->getManagerForClass(Job::class);
                 $em->persist($job);
                 $em->flush($job);
             }
         }
     }
 
-    private function acquireLock(ManagerRegistry $registry, $commandName, \DateTime $lastRunAt)
+    private function acquireLock($commandName, \DateTime $lastRunAt)
     {
         /** @var EntityManager $em */
-        $em = $registry->getManagerForClass(CronJob::class);
+        $em = $this->registry->getManagerForClass(CronJob::class);
         $con = $em->getConnection();
 
         $now = new \DateTime();
@@ -136,7 +146,7 @@ class ScheduleCommand extends ContainerAwareCommand
 
     private function populateJobSchedulers()
     {
-        $schedulers = $this->getContainer()->get('jms_job_queue.scheduler_registry')->getSchedulers();
+        $schedulers = $this->schedulerRegistry->getSchedulers();
 
         foreach ($this->getApplication()->all() as $name => $command) {
             if ( ! $command instanceof CronCommand) {

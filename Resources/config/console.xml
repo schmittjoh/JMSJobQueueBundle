@@ -21,6 +21,8 @@
 
         <service id="jms_job_queue.command.schedule" class="JMS\JobQueueBundle\Command\ScheduleCommand">
             <tag name="console.command"></tag>
+            <argument type="service" id="doctrine" />
+            <argument type="service" id="jms_job_queue.scheduler_registry" />
         </service>
     </services>
 </container>
