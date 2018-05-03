@@ -16,6 +16,7 @@ matrix:
 before_script:
   - composer self-update
   - if [ "$DEPENDENCIES" = "beta" ]; then composer config minimum-stability beta; fi;
+  - echo "memory_limit=4096M" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini;
 
 install: composer install --dev
 
