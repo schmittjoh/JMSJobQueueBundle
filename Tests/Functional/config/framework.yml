@@ -4,8 +4,7 @@ framework:
     session:
         storage_id: session.storage.filesystem
     form:            true
-    csrf_protection: true
-    validation:       
+    validation:
         enabled: true
         enable_annotations: true
     router:

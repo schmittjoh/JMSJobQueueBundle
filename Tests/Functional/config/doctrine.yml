@@ -1,7 +1,7 @@
 doctrine:
     dbal:
-        driver:   pdo_sqlite
-        memory:   true
+        driver: 'pdo_sqlite'
+        memory: 'true'
 
     orm:
         auto_generate_proxy_classes: "%kernel.debug%"
