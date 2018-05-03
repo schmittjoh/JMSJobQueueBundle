@@ -31,7 +31,7 @@
         "symfony/twig-bundle": "*",
         "symfony/form": "*",
         "symfony/validator": "*",
-        "phpunit/phpunit": "^5.2",
+        "phpunit/phpunit": "^6.4",
         "symfony/intl": "*"
     },
     "suggest": {
@@ -40,7 +40,7 @@
     },
     "minimum-stability": "dev",
     "autoload": {
-        "psr-4": { "JMS\\JobQueueBundle": "" }
+        "psr-4": { "JMS\\JobQueueBundle\\": "" }
     },
     "target-dir": "JMS/JobQueueBundle",
     "extra": {
