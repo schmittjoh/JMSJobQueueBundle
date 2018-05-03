@@ -44,14 +44,17 @@ Implement JobScheduler
 
 This is useful if you want to run a third-party command or a Symfony command as a scheduled command via this bundle.
 
+.. code-block :: yml
+
+    services:
+        App\MyJobScheduler:
+            tags:
+                - [name: 'jms_job_queue.scheduler', attributes: ['command': 'my-command']]
+
 .. code-block :: php
 
-    use JMS\DiExtraBundle\Annotation as DI;
+    namespace App;
 
-    /**
-     * @DI\Service
-     * @DI\Tag("jms_job_queue.scheduler", attributes = {"command": "my-command"})
-     */
     class MyJobScheduler implements JobScheduler
     {
         public function shouldSchedule($commandName, \DateTime $lastRunAt)

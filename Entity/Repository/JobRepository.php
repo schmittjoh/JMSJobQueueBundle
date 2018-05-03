@@ -24,14 +24,12 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Query\Parameter;
 use Doctrine\ORM\Query\ResultSetMappingBuilder;
-use JMS\DiExtraBundle\Annotation as DI;
 use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Event\StateChangeEvent;
 use JMS\JobQueueBundle\Retry\ExponentialRetryScheduler;
 use JMS\JobQueueBundle\Retry\RetryScheduler;
 use Symfony\Bridge\Doctrine\RegistryInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use DateTime;
 use Doctrine\DBAL\Connection;
 
 class JobRepository extends EntityRepository
@@ -40,10 +38,18 @@ class JobRepository extends EntityRepository
     private $registry;
     private $retryScheduler;
 
+    public function __construct(
+        EventDispatcherInterface $dispatcher,
+        RegistryInterface $registry,
+        RetryScheduler $retryScheduler
+    ) {
+        $this->dispatcher = $dispatcher;
+        $this->registry = $registry;
+        $this->retryScheduler = $retryScheduler;
+    }
+
     /**
-     * @DI\InjectParams({
-     *     "dispatcher" = @DI\Inject("event_dispatcher"),
-     * })
+     * @deprecated since 2.0, replace constructor argument instead
      */
     public function setDispatcher(EventDispatcherInterface $dispatcher)
     {
@@ -51,9 +57,7 @@ class JobRepository extends EntityRepository
     }
 
     /**
-     * @DI\InjectParams({
-     *     "retryScheduler" = @DI\Inject("jms_job_queue.retry_scheduler"),
-     * })
+     * @deprecated since 2.0, replace constructor argument instead
      */
     public function setRetryScheduler(RetryScheduler $retryScheduler)
     {
@@ -61,9 +65,7 @@ class JobRepository extends EntityRepository
     }
 
     /**
-     * @DI\InjectParams({
-     *     "registry" = @DI\Inject("doctrine"),
-     * })
+     * @deprecated since 2.0, replace constructor argument instead
      */
     public function setRegistry(RegistryInterface $registry)
     {
