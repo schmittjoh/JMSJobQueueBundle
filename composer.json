@@ -40,7 +40,7 @@
     },
     "minimum-stability": "dev",
     "autoload": {
-        "psr-0": { "JMS\\JobQueueBundle": "" }
+        "psr-4": { "JMS\\JobQueueBundle": "" }
     },
     "target-dir": "JMS/JobQueueBundle",
     "extra": {
