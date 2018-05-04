@@ -78,7 +78,15 @@ class JobRepository extends EntityRepository
             ->setMaxResults(1)
             ->getOneOrNullResult();
     }
-
+    public function findPendingJobByCommand($command, array $args = array())
+    {
+        return $this->_em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.command = :command AND j.args = :args And j.state = :state ORDER BY j.createdAt DESC")
+            ->setParameter('command', $command)
+            ->setParameter('args', $args, Type::JSON_ARRAY)
+            ->setParameter('state', Job::STATE_PENDING)
+            ->setMaxResults(1)
+            ->getOneOrNullResult();
+    }
     public function getJob($command, array $args = array())
     {
         if (null !== $job = $this->findJob($command, $args)) {
