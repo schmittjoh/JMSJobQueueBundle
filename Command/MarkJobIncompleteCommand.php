@@ -36,8 +36,6 @@ class MarkJobIncompleteCommand extends ContainerAwareCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $c = $this->getContainer();
-
         /** @var EntityManager $em */
         $em = $this->registry->getManagerForClass(Job::class);
 

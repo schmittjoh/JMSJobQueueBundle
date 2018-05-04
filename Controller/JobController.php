@@ -144,7 +144,7 @@ class JobController extends Controller
         $this->getEm()->persist($retryJob);
         $this->getEm()->flush();
 
-        $url = $this->generateUrl('jms_jobs_details', array('id' => $retryJob->getId()), false);
+        $url = $this->generateUrl('jms_jobs_details', array('id' => $retryJob->getId()));
 
         return new RedirectResponse($url, 201);
     }
@@ -156,6 +156,6 @@ class JobController extends Controller
 
     private function getRepo(): JobManager
     {
-        return $this->getEm()->getRepository(Job::class);
+        return $this->get('jms_job_queue.job_manager');
     }
 }
