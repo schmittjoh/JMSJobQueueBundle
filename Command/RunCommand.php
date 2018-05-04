@@ -397,7 +397,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
                 continue;
             }
 
-            $args = $this->getCommandLineArgs();
+            $args = $this->getBasicCommandLineArgs();
             $args[] = 'jms-job-queue:mark-incomplete';
             $args[] = $job->getId();
 
