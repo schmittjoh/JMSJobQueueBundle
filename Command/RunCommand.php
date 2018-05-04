@@ -20,7 +20,7 @@ namespace JMS\JobQueueBundle\Command;
 
 use Doctrine\ORM\EntityManager;
 use JMS\JobQueueBundle\Entity\Job;
-use JMS\JobQueueBundle\Entity\Repository\JobRepository;
+use JMS\JobQueueBundle\Entity\Repository\JobManager;
 use JMS\JobQueueBundle\Event\NewOutputEvent;
 use JMS\JobQueueBundle\Event\StateChangeEvent;
 use JMS\JobQueueBundle\Exception\InvalidArgumentException;
@@ -56,8 +56,6 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
     /** @var bool */
     private $shouldShutdown = false;
-
-    private $consoleFile;
 
     protected function configure()
     {
@@ -196,7 +194,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     {
         $excludedIds = array();
         while (count($this->runningJobs) < $maxJobs) {
-            $pendingJob = $this->getRepository()->findStartableJob(
+            $pendingJob = $this->getJobManager()->findStartableJob(
                 $workerName,
                 $excludedIds,
                 $this->getExcludedQueues($queueOptionsDefaults, $queueOptions, $maxJobs),
@@ -293,7 +291,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
                 $data['process']->stop(5);
 
                 $this->output->writeln($data['job'].' terminated; maximum runtime exceeded.');
-                $this->getRepository()->closeJob($data['job'], Job::STATE_TERMINATED);
+                $this->getJobManager()->closeJob($data['job'], Job::STATE_TERMINATED);
                 unset($this->runningJobs[$i]);
 
                 continue;
@@ -323,7 +321,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             $data['job']->setRuntime(time() - $data['start_time']);
 
             $newState = 0 === $data['process']->getExitCode() ? Job::STATE_FINISHED : Job::STATE_FAILED;
-            $this->getRepository()->closeJob($data['job'], $newState);
+            $this->getJobManager()->closeJob($data['job'], $newState);
             unset($this->runningJobs[$i]);
         }
 
@@ -337,7 +335,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $newState = $event->getNewState();
 
         if (Job::STATE_CANCELED === $newState) {
-            $this->getRepository()->closeJob($job, Job::STATE_CANCELED);
+            $this->getJobManager()->closeJob($job, Job::STATE_CANCELED);
 
             return;
         }
@@ -415,7 +413,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     {
         $args = array(
             PHP_BINARY,
-            $_SERVER['argv'][0],
+            $_SERVER['SYMFONY_CONSOLE_FILE'] ?? $_SERVER['argv'][0],
             '--env='.$this->env
         );
 
@@ -435,10 +433,10 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     }
 
     /**
-     * @return JobRepository
+     * @return JobManager
      */
-    private function getRepository()
+    private function getJobManager()
     {
-        return $this->getEntityManager()->getRepository('JMSJobQueueBundle:Job');
+        return $this->getContainer()->get('jms_job_queue.job_manager');
     }
 }

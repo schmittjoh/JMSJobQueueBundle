@@ -4,9 +4,10 @@ namespace JMS\JobQueueBundle\Tests\Functional;
 
 use Doctrine\ORM\EntityManager;
 use JMS\JobQueueBundle\Entity\Job;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\Process\Process;
 
-class SignalTest extends \PHPUnit_Framework_TestCase
+class SignalTest extends TestCase
 {
     public function testControlledExit()
     {

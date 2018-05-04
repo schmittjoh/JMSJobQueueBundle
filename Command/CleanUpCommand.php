@@ -6,7 +6,7 @@ use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
 use JMS\JobQueueBundle\Entity\Job;
-use JMS\JobQueueBundle\Entity\Repository\JobRepository;
+use JMS\JobQueueBundle\Entity\Repository\JobManager;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -15,6 +15,17 @@ use Symfony\Component\Console\Output\OutputInterface;
 class CleanUpCommand extends ContainerAwareCommand
 {
     protected static $defaultName = 'jms-job-queue:clean-up';
+
+    private $jobManager;
+    private $registry;
+
+    public function __construct(ManagerRegistry $registry, JobManager $jobManager)
+    {
+        parent::__construct();
+
+        $this->jobManager = $jobManager;
+        $this->registry = $registry;
+    }
 
     protected function configure()
     {
@@ -28,11 +39,8 @@ class CleanUpCommand extends ContainerAwareCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        /** @var ManagerRegistry $registry */
-        $registry = $this->getContainer()->get('doctrine');
-
         /** @var EntityManager $em */
-        $em = $registry->getManagerForClass('JMSJobQueueBundle:Job');
+        $em = $this->registry->getManagerForClass(Job::class);
         $con = $em->getConnection();
 
         $this->cleanUpExpiredJobs($em, $con, $input);
@@ -41,15 +49,12 @@ class CleanUpCommand extends ContainerAwareCommand
 
     private function collectStaleJobs(EntityManager $em)
     {
-        /** @var JobRepository $repository */
-        $repository = $em->getRepository(Job::class);
-
         foreach ($this->findStaleJobs($em) as $job) {
             if ($job->isRetried()) {
                 continue;
             }
 
-            $repository->closeJob($job, Job::STATE_INCOMPLETE);
+            $this->jobManager->closeJob($job, Job::STATE_INCOMPLETE);
         }
     }
 
@@ -116,9 +121,7 @@ class CleanUpCommand extends ContainerAwareCommand
         // If this job has failed, or has otherwise not succeeded, we need to set the
         // incoming dependencies to failed if that has not been done already.
         if ( ! $job->isFinished()) {
-            /** @var JobRepository $repository */
-            $repository = $em->getRepository(Job::class);
-            foreach ($repository->findIncomingDependencies($job) as $incomingDep) {
+            foreach ($this->jobManager->findIncomingDependencies($job) as $incomingDep) {
                 if ($incomingDep->isInFinalState()) {
                     continue;
                 }
@@ -128,7 +131,7 @@ class CleanUpCommand extends ContainerAwareCommand
                     $finalState = Job::STATE_FAILED;
                 }
 
-                $repository->closeJob($incomingDep, $finalState);
+                $this->jobManager->closeJob($incomingDep, $finalState);
             }
         }
 
