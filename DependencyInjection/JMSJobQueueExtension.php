@@ -18,6 +18,8 @@
 
 namespace JMS\JobQueueBundle\DependencyInjection;
 
+use JMS\JobQueueBundle\Console\CronCommand;
+use JMS\JobQueueBundle\Cron\JobScheduler;
 use JMS\JobQueueBundle\Entity\Type\SafeObjectType;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Config\FileLocator;
@@ -48,6 +50,11 @@ class JMSJobQueueExtension extends Extension implements PrependExtensionInterfac
         if ($config['statistics']) {
             $loader->load('statistics.xml');
         }
+
+        $container->registerForAutoconfiguration(JobScheduler::class)
+            ->addTag('jms_job_queue.scheduler');
+        $container->registerForAutoconfiguration(CronCommand::class)
+            ->addTag('jms_job_queue.cron_command');
 
         $container->setParameter('jms_job_queue.queue_options_defaults', $config['queue_options_defaults']);
         $container->setParameter('jms_job_queue.queue_options', $config['queue_options']);

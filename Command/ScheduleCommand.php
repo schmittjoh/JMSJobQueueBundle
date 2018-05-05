@@ -22,14 +22,16 @@ class ScheduleCommand extends Command
     protected static $defaultName = 'jms-job-queue:schedule';
 
     private $registry;
-    private $schedulerRegistry;
+    private $schedulers;
+    private $cronCommands;
 
-    public function __construct(ManagerRegistry $managerRegistry, SchedulerRegistry $schedulerRegistry)
+    public function __construct(ManagerRegistry $managerRegistry, iterable $schedulers, iterable $cronCommands)
     {
         parent::__construct();
 
         $this->registry = $managerRegistry;
-        $this->schedulerRegistry = $schedulerRegistry;
+        $this->schedulers = $schedulers;
+        $this->cronCommands = $cronCommands;
     }
 
     protected function configure()
@@ -146,14 +148,20 @@ class ScheduleCommand extends Command
 
     private function populateJobSchedulers()
     {
-        $schedulers = $this->schedulerRegistry->getSchedulers();
+        $schedulers = [];
+        foreach ($this->schedulers as $scheduler) {
+            foreach ($scheduler->getCommands() as $name) {
+                $schedulers[$name] = $scheduler;
+            }
+        }
 
-        foreach ($this->getApplication()->all() as $name => $command) {
-            if ( ! $command instanceof CronCommand) {
-                continue;
+        foreach ($this->cronCommands as $command) {
+            /** @var CronCommand $command */
+            if ( ! $command instanceof Command) {
+                throw new \RuntimeException('CronCommand should only be used on Symfony commands.');
             }
 
-            $schedulers[$name] = new CommandScheduler($command);
+            $schedulers[$command->getName()] = new CommandScheduler($command->getName(), $command);
         }
 
         return $schedulers;
