@@ -2,8 +2,8 @@
 
 require_once __DIR__.'/AppKernel.php';
 
-use JMS\JobQueueBundle\Console\Application;
 use JMS\JobQueueBundle\Tests\Functional\AppKernel;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
 
 $kernel = new AppKernel(getenv('SYMFONY_CONFIG') ?: 'persistent_db.yml');
 $kernel->boot();

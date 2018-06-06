@@ -45,13 +45,6 @@ new bundle:
         // ...
     );
 
-Finally, have your ``app/console`` use JMSJobQueueBundle's ``Application``:
-
-.. code-block :: php
-
-    // use Symfony\Bundle\FrameworkBundle\Console\Application;
-    use JMS\JobQueueBundle\Console\Application;
-
 
 Enabling the Webinterface
 =========================

@@ -346,7 +346,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         }
 
         if (Job::STATE_RUNNING !== $newState) {
-            throw new \LogicException(sprintf('Unsupported new state "%s".', $newState));
+            throw new LogicException(sprintf('Unsupported new state "%s".', $newState));
         }
 
         $job->setState(Job::STATE_RUNNING);
@@ -357,14 +357,32 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $pb = $this->getCommandProcessBuilder();
         $pb
             ->add($job->getCommand())
-            ->add('--jms-job-id='.$job->getId())
         ;
 
         foreach ($job->getArgs() as $arg) {
             $pb->add($arg);
         }
-        
-        $proc = new Process($pb->getProcess()->getCommandLine());
+
+        $env = array('jmsJobId' => $job->getId());
+        // Workaround for symfony/process < 3.3
+        if (!method_exists('Symfony\Component\Process\Process', 'inheritEnvironmentVariables')) {
+            foreach ($_SERVER as $k => $v) {
+                if (is_string($v) && false !== $v = getenv($k)) {
+                    $env[$k] = $v;
+                }
+            }
+
+            foreach ($_ENV as $k => $v) {
+                if (is_string($v)) {
+                    $env[$k] = $v;
+                }
+            }
+        }
+
+        $proc = new Process($pb->getProcess()->getCommandLine(), null, $env);
+        if (method_exists('Symfony\Component\Process\Process', 'inheritEnvironmentVariables')) {
+            $proc->inheritEnvironmentVariables(true);
+        }
         $proc->start();
         $this->output->writeln(sprintf('Started %s.', $job));
 
