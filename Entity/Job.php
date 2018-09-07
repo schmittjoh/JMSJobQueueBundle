@@ -390,7 +390,9 @@ class Job
 
     public function addRelatedEntity($entity)
     {
-        assert('is_object($entity)');
+        if (!is_object($entity)) {
+            throw new \InvalidArgumentException(sprintf('Invalid entity argument "%s".', print_r($entity, true)));
+        }
 
         if ($this->relatedEntities->contains($entity)) {
             return;

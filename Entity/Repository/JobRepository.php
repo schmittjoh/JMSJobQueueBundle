@@ -198,7 +198,9 @@ class JobRepository extends EntityRepository
 
     private function getRelatedEntityIdentifier($entity)
     {
-        assert('is_object($entity)');
+        if (!is_object($entity)) {
+            throw new \InvalidArgumentException(sprintf('Invalid entity argument "%s".', print_r($entity, true)));
+        }
 
         if ($entity instanceof \Doctrine\Common\Persistence\Proxy) {
             $entity->__load();
