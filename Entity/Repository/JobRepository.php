@@ -198,7 +198,7 @@ class JobRepository extends EntityRepository
 
     private function getRelatedEntityIdentifier($entity)
     {
-        assert('is_object($entity)');
+        assert(is_object($entity));
 
         if ($entity instanceof \Doctrine\Common\Persistence\Proxy) {
             $entity->__load();
