@@ -17,12 +17,12 @@ Implement CronCommand
     {
         // configure, execute, etc. ...
 
-        public function shouldBeScheduled(\DateTime $lastRunAt)
+        public function shouldBeScheduled(\DateTimeInterface $lastRunAt)
         {
             return time() - $lastRunAt->getTimestamp() >= 60; // Executed at most every minute.
         }
 
-        public function createCronJob(\DateTime $lastRunAt)
+        public function createCronJob(\DateTimeInterface $lastRunAt)
         {
             return new Job('my-scheduled-command');
         }
@@ -54,7 +54,7 @@ This is useful if you want to run a third-party command or a Symfony command as 
      */
     class MyJobScheduler implements JobScheduler
     {
-        public function shouldSchedule($commandName, \DateTime $lastRunAt)
+        public function shouldSchedule($commandName, \DateTimeInterface $lastRunAt)
         {
             return time() - $lastRunAt->getTimestamp() >= 60; // Executed at most every minute.
         }

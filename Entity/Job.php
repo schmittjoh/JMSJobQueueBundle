@@ -352,7 +352,7 @@ class Job
         return $this->executeAfter;
     }
 
-    public function setExecuteAfter(\DateTime $executeAfter)
+    public function setExecuteAfter(\DateTimeInterface $executeAfter)
     {
         $this->executeAfter = $executeAfter;
     }

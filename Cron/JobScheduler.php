@@ -9,10 +9,10 @@ interface JobScheduler
     /**
      * @return boolean
      */
-    public function shouldSchedule($command, \DateTime $lastRunAt);
+    public function shouldSchedule($command, \DateTimeInterface $lastRunAt);
 
     /**
      * @return Job
      */
-    public function createJob($command, \DateTime $lastRunAt);
+    public function createJob($command, \DateTimeInterface $lastRunAt);
 }

@@ -100,7 +100,7 @@ class ScheduleCommand extends ContainerAwareCommand
         }
     }
 
-    private function acquireLock(ManagerRegistry $registry, $commandName, \DateTime $lastRunAt)
+    private function acquireLock(ManagerRegistry $registry, $commandName, \DateTimeInterface $lastRunAt)
     {
         /** @var EntityManager $em */
         $em = $registry->getManagerForClass(CronJob::class);
