@@ -8,10 +8,8 @@ use Doctrine\ORM\Query;
 use JMS\JobQueueBundle\Console\CronCommand;
 use JMS\JobQueueBundle\Cron\CommandScheduler;
 use JMS\JobQueueBundle\Cron\JobScheduler;
-use JMS\JobQueueBundle\Cron\SchedulerRegistry;
 use JMS\JobQueueBundle\Entity\CronJob;
 use JMS\JobQueueBundle\Entity\Job;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -150,6 +148,7 @@ class ScheduleCommand extends Command
     {
         $schedulers = [];
         foreach ($this->schedulers as $scheduler) {
+            /** @var JobScheduler $scheduler */
             foreach ($scheduler->getCommands() as $name) {
                 $schedulers[$name] = $scheduler;
             }

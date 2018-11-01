@@ -6,5 +6,7 @@ framework:
 
 services:
     JMS\JobQueueBundle\Tests\Functional\TestBundle\Command\:
+        autoconfigure: true
+        autowire: true
         resource: '../TestBundle/Command'
         tags: ['console.command']
