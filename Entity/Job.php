@@ -390,7 +390,9 @@ class Job
 
     public function addRelatedEntity($entity)
     {
-        assert('is_object($entity)');
+        if ( ! is_object($entity)) {
+            throw new \RuntimeException(sprintf('$entity must be an object.'));
+        }
 
         if ($this->relatedEntities->contains($entity)) {
             return;
