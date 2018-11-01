@@ -173,7 +173,9 @@ class JobManager
 
     private function getRelatedEntityIdentifier($entity)
     {
-        assert('is_object($entity)');
+        if ( ! is_object($entity)) {
+            throw new \RuntimeException('$entity must be an object.');
+        }
 
         if ($entity instanceof \Doctrine\Common\Persistence\Proxy) {
             $entity->__load();
