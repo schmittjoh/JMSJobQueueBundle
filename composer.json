@@ -1,7 +1,7 @@
 {
     "name":         "jms/job-queue-bundle",
-    "description":  "Allows to schedule Symfony2 console commands as jobs.",
-    "keywords":     ["job","queue"],
+    "description":  "Allows to run and schedule Symfony console commands as background jobs.",
+    "keywords":     ["job","queue", "background", "cron", "scheduled"],
     "homepage":     "http://jmsyst.com/bundles/JMSJobQueueBundle",
     "type":         "symfony-bundle",
     "license":      "Apache-2.0",
@@ -12,11 +12,11 @@
         }
     ],
     "require": {
-        "php": "^5.5.0 || ^7.0",
-        "symfony/framework-bundle": "^2.1 || ^3.1 || ^4.0",
-        "symfony/debug": "^2.3 || ^3.0 || ^4.0",
+        "php": "^7.1",
+        "symfony/framework-bundle": "^3.4 || ^4.0",
+        "symfony/debug": "^3.4 || ^4.0",
         "doctrine/common": "^2.3",
-        "jms/di-extra-bundle": "^1.1"
+        "symfony/process": "^3.4 || ^4.0"
     },
     "require-dev": {
         "doctrine/doctrine-fixtures-bundle": "*",
@@ -26,27 +26,25 @@
         "symfony/browser-kit": "*",
         "symfony/finder": "*",
         "symfony/css-selector": "*",
-        "symfony/process": "*",
         "doctrine/doctrine-bundle": "*",
         "doctrine/orm": "*",
         "symfony/twig-bundle": "*",
         "symfony/form": "*",
         "symfony/validator": "*",
-        "phpunit/phpunit": "^5.2",
+        "phpunit/phpunit": "^6.0",
         "symfony/intl": "*"
     },
     "suggest": {
         "sensio/framework-extra-bundle": "Required when using the webinterface.",
         "symfony/twig-bundle": "Required when using the webinterface."
     },
-    "minimum-stability": "dev",
     "autoload": {
         "psr-0": { "JMS\\JobQueueBundle": "" }
     },
     "target-dir": "JMS/JobQueueBundle",
     "extra": {
         "branch-alias": {
-            "dev-master": "2.0.x-dev"
+            "dev-master": "3.0.x-dev"
         }
     }
 }

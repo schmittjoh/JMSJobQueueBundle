@@ -25,7 +25,7 @@ use JMS\JobQueueBundle\Exception\LogicException;
 use Symfony\Component\Debug\Exception\FlattenException;
 
 /**
- * @ORM\Entity(repositoryClass = "JMS\JobQueueBundle\Entity\Repository\JobRepository")
+ * @ORM\Entity
  * @ORM\Table(name = "jms_jobs", indexes = {
  *     @ORM\Index("cmd_search_index", columns = {"command"}),
  *     @ORM\Index("sorting_index", columns = {"state", "priority", "id"}),

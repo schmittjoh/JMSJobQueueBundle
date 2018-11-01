@@ -46,14 +46,13 @@ This is useful if you want to run a third-party command or a Symfony command as 
 
 .. code-block :: php
 
-    use JMS\DiExtraBundle\Annotation as DI;
-
-    /**
-     * @DI\Service
-     * @DI\Tag("jms_job_queue.scheduler", attributes = {"command": "my-command"})
-     */
     class MyJobScheduler implements JobScheduler
     {
+        public function getCommands(): array
+        {
+            return ['my-command'];
+        }
+
         public function shouldSchedule($commandName, \DateTime $lastRunAt)
         {
             return time() - $lastRunAt->getTimestamp() >= 60; // Executed at most every minute.

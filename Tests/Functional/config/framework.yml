@@ -1,12 +1,12 @@
 framework:
     secret: test
-    test: ~
-    session:
-        storage_id: session.storage.filesystem
-    form:            true
-    csrf_protection: true
-    validation:       
-        enabled: true
-        enable_annotations: true
+    test: true
     router:
-        resource: %kernel.root_dir%/config/routing.yml
+        resource: "%kernel.root_dir%/config/routing.yml"
+
+services:
+    JMS\JobQueueBundle\Tests\Functional\TestBundle\Command\:
+        autoconfigure: true
+        autowire: true
+        resource: '../TestBundle/Command'
+        tags: ['console.command']
