@@ -8,12 +8,12 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
 use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Entity\Repository\JobManager;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class CleanUpCommand extends ContainerAwareCommand
+class CleanUpCommand extends Command
 {
     protected static $defaultName = 'jms-job-queue:clean-up';
 
@@ -149,9 +149,7 @@ class CleanUpCommand extends ContainerAwareCommand
                 ->setMaxResults(100)
                 ->getResult();
         };
-        foreach ($this->whileResults($succeededJobs) as $job) {
-            yield $job;
-        }
+        yield from $this->whileResults( $succeededJobs );
 
         $finishedJobs = function(array $excludedIds) use ($em, $input) {
             return $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)")
@@ -160,9 +158,7 @@ class CleanUpCommand extends ContainerAwareCommand
                 ->setMaxResults(100)
                 ->getResult();
         };
-        foreach ($this->whileResults($finishedJobs) as $job) {
-            yield $job;
-        }
+        yield from $this->whileResults( $finishedJobs );
 
         $canceledJobs = function(array $excludedIds) use ($em, $input) {
             return $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.state = :canceled AND j.createdAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)")
@@ -172,9 +168,7 @@ class CleanUpCommand extends ContainerAwareCommand
                 ->setMaxResults(100)
                 ->getResult();
         };
-        foreach ($this->whileResults($canceledJobs) as $job) {
-            yield $job;
-        }
+        yield from $this->whileResults( $canceledJobs );
     }
 
     private function whileResults(callable $resultProducer)

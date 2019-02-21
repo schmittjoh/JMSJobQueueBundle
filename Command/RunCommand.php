@@ -27,15 +27,15 @@ use JMS\JobQueueBundle\Exception\InvalidArgumentException;
 use LogicException;
 use RuntimeException;
 use Symfony\Bridge\Doctrine\ManagerRegistry;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
-class RunCommand extends ContainerAwareCommand
+class RunCommand extends Command
 {
     protected static $defaultName = 'jms-job-queue:run';
 
@@ -51,7 +51,10 @@ class RunCommand extends ContainerAwareCommand
     /** @var ManagerRegistry */
     private $registry;
 
-    /** @var EventDispatcher */
+    /** @var JobManager */
+    private $jobManager;
+
+    /** @var EventDispatcherInterface */
     private $dispatcher;
 
     /** @var array */
@@ -59,6 +62,23 @@ class RunCommand extends ContainerAwareCommand
 
     /** @var bool */
     private $shouldShutdown = false;
+
+    /** @var array */
+    private $queueOptionsDefault;
+
+    /** @var array */
+    private $queueOptions;
+
+    public function __construct(ManagerRegistry $managerRegistry, JobManager $jobManager, EventDispatcherInterface $dispatcher, array $queueOptionsDefault, array $queueOptions)
+    {
+        parent::__construct();
+
+        $this->registry = $managerRegistry;
+        $this->jobManager = $jobManager;
+        $this->dispatcher = $dispatcher;
+        $this->queueOptionsDefault = $queueOptionsDefault;
+        $this->queueOptions = $queueOptions;
+    }
 
     protected function configure()
     {
@@ -82,7 +102,7 @@ class RunCommand extends ContainerAwareCommand
         }
 
         if ($maxRuntime > 600) {
-            $maxRuntime += mt_rand(-120, 120);
+            $maxRuntime += random_int(-120, 120);
         }
 
         $maxJobs = (integer) $input->getOption('max-concurrent-jobs');
@@ -113,8 +133,6 @@ class RunCommand extends ContainerAwareCommand
         $this->env = $input->getOption('env');
         $this->verbose = $input->getOption('verbose');
         $this->output = $output;
-        $this->registry = $this->getContainer()->get('doctrine');
-        $this->dispatcher = $this->getContainer()->get('event_dispatcher');
         $this->getEntityManager()->getConnection()->getConfiguration()->setSQLLogger(null);
 
         if ($this->verbose) {
@@ -130,8 +148,8 @@ class RunCommand extends ContainerAwareCommand
             $idleTime,
             $maxJobs,
             $restrictedQueues,
-            $this->getContainer()->getParameter('jms_job_queue.queue_options_defaults'),
-            $this->getContainer()->getParameter('jms_job_queue.queue_options')
+            $this->queueOptionsDefault,
+            $this->queueOptions
         );
     }
 
@@ -164,7 +182,7 @@ class RunCommand extends ContainerAwareCommand
             $this->checkRunningJobs();
             $this->startJobs($workerName, $idleTime, $maxJobs, $restrictedQueues, $queueOptionsDefaults, $queueOptions);
 
-            $waitTimeInMs = mt_rand(500, 1000);
+            $waitTimeInMs = random_int(500, 1000);
             usleep($waitTimeInMs * 1E3);
         }
 
@@ -197,7 +215,7 @@ class RunCommand extends ContainerAwareCommand
     {
         $excludedIds = [];
         while (count($this->runningJobs) < $maxJobs) {
-            $pendingJob = $this->getJobManager()->findStartableJob(
+            $pendingJob = $this->jobManager->findStartableJob(
                 $workerName,
                 $excludedIds,
                 $this->getExcludedQueues($queueOptionsDefaults, $queueOptions, $maxJobs),
@@ -294,7 +312,7 @@ class RunCommand extends ContainerAwareCommand
                 $data['process']->stop(5);
 
                 $this->output->writeln($data['job'].' terminated; maximum runtime exceeded.');
-                $this->getJobManager()->closeJob($data['job'], Job::STATE_TERMINATED);
+                $this->jobManager->closeJob($data['job'], Job::STATE_TERMINATED);
                 unset($this->runningJobs[$i]);
 
                 continue;
@@ -324,7 +342,7 @@ class RunCommand extends ContainerAwareCommand
             $data['job']->setRuntime(time() - $data['start_time']);
 
             $newState = 0 === $data['process']->getExitCode() ? Job::STATE_FINISHED : Job::STATE_FAILED;
-            $this->getJobManager()->closeJob($data['job'], $newState);
+            $this->jobManager->closeJob($data['job'], $newState);
             unset($this->runningJobs[$i]);
         }
 
@@ -338,7 +356,7 @@ class RunCommand extends ContainerAwareCommand
         $newState = $event->getNewState();
 
         if (Job::STATE_CANCELED === $newState) {
-            $this->getJobManager()->closeJob($job, Job::STATE_CANCELED);
+            $this->jobManager->closeJob($job, Job::STATE_CANCELED);
 
             return;
         }
@@ -430,13 +448,5 @@ class RunCommand extends ContainerAwareCommand
     private function getEntityManager(): EntityManager
     {
         return /** @var EntityManager */ $this->registry->getManagerForClass('JMSJobQueueBundle:Job');
-    }
-
-    /**
-     * @return JobManager
-     */
-    private function getJobManager()
-    {
-        return $this->getContainer()->get('jms_job_queue.job_manager');
     }
 }

@@ -47,7 +47,7 @@ class ScheduleCommand extends Command
     {
         $maxRuntime = $input->getOption('max-runtime');
         if ($maxRuntime > 300) {
-            $maxRuntime += mt_rand(0, (integer)($input->getOption('max-runtime') * 0.05));
+            $maxRuntime += random_int(0, (integer)($input->getOption('max-runtime') * 0.05));
         }
         if ($maxRuntime <= 0) {
             throw new RuntimeException('Max. runtime must be greater than zero.');
