@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace JMS\JobQueueBundle\Console;
 
+use DateTime;
 use JMS\JobQueueBundle\Entity\Job;
 
 interface CronCommand
@@ -13,12 +14,12 @@ interface CronCommand
      *
      * @return Job
      */
-    public function createCronJob(\DateTime $lastRunAt): Job;
+    public function createCronJob( DateTime $lastRunAt): Job;
 
     /**
      * Returns whether this command should be scheduled.
      *
      * @return boolean
      */
-    public function shouldBeScheduled(\DateTime $lastRunAt): bool;
+    public function shouldBeScheduled( DateTime $lastRunAt): bool;
 }

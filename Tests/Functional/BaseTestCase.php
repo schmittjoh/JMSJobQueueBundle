@@ -4,11 +4,12 @@ namespace JMS\JobQueueBundle\Tests\Functional;
 
 use Doctrine\ORM\EntityManager;
 
+use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class BaseTestCase extends WebTestCase
 {
-    static protected function createKernel(array $options = array())
+    static protected function createKernel(array $options = [])
     {
         $config = isset($options['config']) ? $options['config'] : 'default.yml';
 
@@ -26,7 +27,7 @@ class BaseTestCase extends WebTestCase
     {
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         if (!empty($metadata)) {
-            $schemaTool = new \Doctrine\ORM\Tools\SchemaTool($em);
+            $schemaTool = new SchemaTool($em);
             $schemaTool->createSchema($metadata);
         }
     }

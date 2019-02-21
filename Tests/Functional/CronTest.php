@@ -17,13 +17,13 @@ class CronTest extends BaseTestCase
 
     public function testSchedulesCommands()
     {
-        $output = $this->doRun(array('--min-job-interval' => 1, '--max-runtime' => 12));
+        $output = $this->doRun(['--min-job-interval' => 1, '--max-runtime' => 12]);
         $this->assertEquals(2, substr_count($output, 'Scheduling command scheduled-every-few-seconds'), $output);
     }
 
     protected function setUp()
     {
-        $this->createClient(array('config' => 'persistent_db.yml'));
+        $this->createClient(['config' => 'persistent_db.yml']);
 
         if (is_file($databaseFile = self::$kernel->getCacheDir().'/database.sqlite')) {
             unlink($databaseFile);
@@ -38,7 +38,7 @@ class CronTest extends BaseTestCase
         $this->em = self::$kernel->getContainer()->get('doctrine')->getManagerForClass('JMSJobQueueBundle:Job');
     }
 
-    private function doRun(array $args = array())
+    private function doRun(array $args = [])
     {
         array_unshift($args, 'jms-job-queue:schedule');
         $output = new MemoryOutput();

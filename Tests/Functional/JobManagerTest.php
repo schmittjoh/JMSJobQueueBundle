@@ -28,13 +28,13 @@ class JobManagerTest extends BaseTestCase
 
     public function testGetOne()
     {
-        $a = new Job('a', array('foo'));
+        $a = new Job('a', ['foo']);
         $a2 = new Job('a');
         $this->em->persist($a);
         $this->em->persist($a2);
         $this->em->flush();
 
-        $this->assertSame($a, $this->jobManager->getJob('a', array('foo')));
+        $this->assertSame($a, $this->jobManager->getJob('a', ['foo']));
         $this->assertSame($a2, $this->jobManager->getJob('a'));
     }
 
@@ -51,7 +51,7 @@ class JobManagerTest extends BaseTestCase
     {
         $a = $this->jobManager->getOrCreateIfNotExists('a');
         $this->assertSame($a, $this->jobManager->getOrCreateIfNotExists('a'));
-        $this->assertNotSame($a, $this->jobManager->getOrCreateIfNotExists('a', array('foo')));
+        $this->assertNotSame($a, $this->jobManager->getOrCreateIfNotExists('a', ['foo']));
     }
 
     public function testFindPendingJobReturnsAllDependencies()
@@ -70,7 +70,7 @@ class JobManagerTest extends BaseTestCase
         $this->em->flush();
         $this->em->clear();
 
-        $cReloaded = $this->jobManager->findPendingJob(array($a->getId(), $b->getId()));
+        $cReloaded = $this->jobManager->findPendingJob([$a->getId(), $b->getId()]);
         $this->assertNotNull($cReloaded);
         $this->assertEquals($c->getId(), $cReloaded->getId());
         $this->assertCount(2, $cReloaded->getDependencies());
@@ -88,7 +88,7 @@ class JobManagerTest extends BaseTestCase
         $this->em->flush();
 
         $this->assertSame($b, $this->jobManager->findPendingJob());
-        $this->assertNull($this->jobManager->findPendingJob(array($b->getId())));
+        $this->assertNull($this->jobManager->findPendingJob([$b->getId()]));
     }
 
     public function testFindPendingJobInRestrictedQueue()
@@ -96,13 +96,13 @@ class JobManagerTest extends BaseTestCase
         $this->assertNull($this->jobManager->findPendingJob());
 
         $a = new Job('a');
-        $b = new Job('b', array(), true, 'other_queue');
+        $b = new Job('b', [], true, 'other_queue');
         $this->em->persist($a);
         $this->em->persist($b);
         $this->em->flush();
 
         $this->assertSame($a, $this->jobManager->findPendingJob());
-        $this->assertSame($b, $this->jobManager->findPendingJob(array(), array(), array('other_queue')));
+        $this->assertSame($b, $this->jobManager->findPendingJob([], [], ['other_queue']));
     }
 
     public function testFindStartableJob()
@@ -119,10 +119,10 @@ class JobManagerTest extends BaseTestCase
         $this->em->persist($c);
         $this->em->flush();
 
-        $excludedIds = array();
+        $excludedIds = [];
 
         $this->assertSame($c, $this->jobManager->findStartableJob('my-name', $excludedIds));
-        $this->assertEquals(array($b->getId()), $excludedIds);
+        $this->assertEquals([$b->getId()], $excludedIds);
     }
 
     public function testFindJobByRelatedEntity()
@@ -158,11 +158,11 @@ class JobManagerTest extends BaseTestCase
         $this->assertTrue($this->em->contains($a));
         $this->assertTrue($this->em->contains($b));
 
-        $excludedIds = array();
+        $excludedIds = [];
         $startableJob = $this->jobManager->findStartableJob('my-name', $excludedIds);
         $this->assertNotNull($startableJob);
         $this->assertEquals($b->getId(), $startableJob->getId());
-        $this->assertEquals(array($a->getId()), $excludedIds);
+        $this->assertEquals([$a->getId()], $excludedIds);
         $this->assertFalse($this->em->contains($a));
         $this->assertTrue($this->em->contains($b));
     }

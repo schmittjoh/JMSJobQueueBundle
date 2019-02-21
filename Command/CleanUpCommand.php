@@ -2,6 +2,7 @@
 
 namespace JMS\JobQueueBundle\Command;
 
+use DateTime;
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
@@ -63,7 +64,7 @@ class CleanUpCommand extends ContainerAwareCommand
      */
     private function findStaleJobs(EntityManager $em)
     {
-        $excludedIds = array(-1);
+        $excludedIds = [-1];
 
         do {
             $em->clear();
@@ -73,7 +74,7 @@ class CleanUpCommand extends ContainerAwareCommand
                                       WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge
                                                 AND j.id NOT IN (:excludedIds)")
                 ->setParameter('running', Job::STATE_RUNNING)
-                ->setParameter('maxAge', new \DateTime('-5 minutes'), 'datetime')
+                ->setParameter('maxAge', new DateTime('-5 minutes'), 'datetime')
                 ->setParameter('excludedIds', $excludedIds)
                 ->setMaxResults(1)
                 ->getOneOrNullResult();
@@ -96,7 +97,7 @@ class CleanUpCommand extends ContainerAwareCommand
 
             $count++;
 
-            $result = $con->executeQuery($incomingDepsSql, array('id' => $job->getId()));
+            $result = $con->executeQuery($incomingDepsSql, ['id' => $job->getId()]);
             if ($result->fetchColumn() !== false) {
                 $em->transactional(function() use ($em, $job) {
                     $this->resolveDependencies($em, $job);
@@ -135,14 +136,14 @@ class CleanUpCommand extends ContainerAwareCommand
             }
         }
 
-        $em->getConnection()->executeUpdate("DELETE FROM jms_job_dependencies WHERE dest_job_id = :id", array('id' => $job->getId()));
+        $em->getConnection()->executeUpdate("DELETE FROM jms_job_dependencies WHERE dest_job_id = :id", ['id' => $job->getId()]);
     }
 
     private function findExpiredJobs(EntityManager $em, InputInterface $input)
     {
         $succeededJobs = function(array $excludedIds) use ($em, $input) {
             return $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL AND j.state = :succeeded AND j.id NOT IN (:excludedIds)")
-                ->setParameter('maxRetentionTime', new \DateTime('-'.$input->getOption('max-retention-succeeded')))
+                ->setParameter('maxRetentionTime', new DateTime('-'.$input->getOption('max-retention-succeeded')))
                 ->setParameter('excludedIds', $excludedIds)
                 ->setParameter('succeeded', Job::STATE_FINISHED)
                 ->setMaxResults(100)
@@ -154,7 +155,7 @@ class CleanUpCommand extends ContainerAwareCommand
 
         $finishedJobs = function(array $excludedIds) use ($em, $input) {
             return $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)")
-                ->setParameter('maxRetentionTime', new \DateTime('-'.$input->getOption('max-retention')))
+                ->setParameter('maxRetentionTime', new DateTime('-'.$input->getOption('max-retention')))
                 ->setParameter('excludedIds', $excludedIds)
                 ->setMaxResults(100)
                 ->getResult();
@@ -165,7 +166,7 @@ class CleanUpCommand extends ContainerAwareCommand
 
         $canceledJobs = function(array $excludedIds) use ($em, $input) {
             return $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.state = :canceled AND j.createdAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)")
-                ->setParameter('maxRetentionTime', new \DateTime('-'.$input->getOption('max-retention')))
+                ->setParameter('maxRetentionTime', new DateTime('-'.$input->getOption('max-retention')))
                 ->setParameter('canceled', Job::STATE_CANCELED)
                 ->setParameter('excludedIds', $excludedIds)
                 ->setMaxResults(100)
@@ -178,7 +179,7 @@ class CleanUpCommand extends ContainerAwareCommand
 
     private function whileResults(callable $resultProducer)
     {
-        $excludedIds = array(-1);
+        $excludedIds = [-1];
 
         do {
             /** @var Job[] $jobs */

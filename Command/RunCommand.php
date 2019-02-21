@@ -24,7 +24,10 @@ use JMS\JobQueueBundle\Entity\Repository\JobManager;
 use JMS\JobQueueBundle\Event\NewOutputEvent;
 use JMS\JobQueueBundle\Event\StateChangeEvent;
 use JMS\JobQueueBundle\Exception\InvalidArgumentException;
+use LogicException;
+use RuntimeException;
 use Symfony\Bridge\Doctrine\ManagerRegistry;
+use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -32,7 +35,7 @@ use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
-class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand
+class RunCommand extends ContainerAwareCommand
 {
     protected static $defaultName = 'jms-job-queue:run';
 
@@ -52,7 +55,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
     private $dispatcher;
 
     /** @var array */
-    private $runningJobs = array();
+    private $runningJobs = [];
 
     /** @var bool */
     private $shouldShutdown = false;
@@ -64,7 +67,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
             ->addOption('max-runtime', 'r', InputOption::VALUE_REQUIRED, 'The maximum runtime in seconds.', 900)
             ->addOption('max-concurrent-jobs', 'j', InputOption::VALUE_REQUIRED, 'The maximum number of concurrent jobs.', 4)
             ->addOption('idle-time', null, InputOption::VALUE_REQUIRED, 'Time to sleep when the queue ran out of jobs.', 2)
-            ->addOption('queue', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'Restrict to one or more queues.', array())
+            ->addOption('queue', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'Restrict to one or more queues.', [])
             ->addOption('worker-name', null, InputOption::VALUE_REQUIRED, 'The name that uniquely identifies this worker process.')
         ;
     }
@@ -100,7 +103,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         }
 
         if (strlen($workerName) > 50) {
-            throw new \RuntimeException(sprintf(
+            throw new RuntimeException(sprintf(
                 '"worker-name" must not be longer than 50 chars, but got "%s" (%d chars).',
                 $workerName,
                 strlen($workerName)
@@ -192,7 +195,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
     private function startJobs($workerName, $idleTime, $maxJobs, array $restrictedQueues, array $queueOptionsDefaults, array $queueOptions)
     {
-        $excludedIds = array();
+        $excludedIds = [];
         while (count($this->runningJobs) < $maxJobs) {
             $pendingJob = $this->getJobManager()->findStartableJob(
                 $workerName,
@@ -213,7 +216,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
     private function getExcludedQueues(array $queueOptionsDefaults, array $queueOptions, $maxConcurrentJobs)
     {
-        $excludedQueues = array();
+        $excludedQueues = [];
         foreach ($this->getRunningJobsPerQueue() as $queue => $count) {
             if ($count >= $this->getMaxConcurrentJobs($queue, $queueOptionsDefaults, $queueOptions, $maxConcurrentJobs)) {
                 $excludedQueues[] = $queue;
@@ -238,7 +241,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
     private function getRunningJobsPerQueue()
     {
-        $runningJobsPerQueue = array();
+        $runningJobsPerQueue = [];
         foreach ($this->runningJobs as $jobDetails) {
             /** @var Job $job */
             $job = $jobDetails['job'];
@@ -341,7 +344,7 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         }
 
         if (Job::STATE_RUNNING !== $newState) {
-            throw new \LogicException(sprintf('Unsupported new state "%s".', $newState));
+            throw new LogicException(sprintf('Unsupported new state "%s".', $newState));
         }
 
         $job->setState(Job::STATE_RUNNING);
@@ -361,13 +364,13 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
         $proc->start();
         $this->output->writeln(sprintf('Started %s.', $job));
 
-        $this->runningJobs[] = array(
+        $this->runningJobs[] = [
             'process' => $proc,
             'job' => $job,
             'start_time' => time(),
             'output_pointer' => 0,
             'error_output_pointer' => 0,
-        );
+        ];
     }
 
     /**
@@ -411,11 +414,11 @@ class RunCommand extends \Symfony\Bundle\FrameworkBundle\Command\ContainerAwareC
 
     private function getBasicCommandLineArgs(): array
     {
-        $args = array(
+        $args = [
             PHP_BINARY,
             $_SERVER['SYMFONY_CONSOLE_FILE'] ?? $_SERVER['argv'][0],
             '--env='.$this->env
-        );
+        ];
 
         if ($this->verbose) {
             $args[] = '--verbose';

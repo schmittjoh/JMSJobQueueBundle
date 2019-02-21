@@ -10,7 +10,7 @@ class LinkGeneratorsPass implements CompilerPassInterface
 {
     public function process(ContainerBuilder $container)
     {
-        $generators = array();
+        $generators = [];
         foreach ($container->findTaggedServiceIds('jms_job_queue.link_generator') as $id => $attrs) {
             $generators[] = new Reference($id);
         }

@@ -20,15 +20,16 @@ namespace JMS\JobQueueBundle\Tests\Entity;
 
 use JMS\JobQueueBundle\Entity\Job;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 
 class JobTest extends TestCase
 {
     public function testConstruct()
     {
-        $job = new Job('a:b', array('a', 'b', 'c'));
+        $job = new Job('a:b', ['a', 'b', 'c']);
 
         $this->assertEquals('a:b', $job->getCommand());
-        $this->assertEquals(array('a', 'b', 'c'), $job->getArgs());
+        $this->assertEquals(['a', 'b', 'c'], $job->getArgs());
         $this->assertNotNull($job->getCreatedAt());
         $this->assertEquals('pending', $job->getState());
         $this->assertNull($job->getStartedAt());
@@ -239,7 +240,7 @@ class JobTest extends TestCase
 
     public function testCloneDoesNotChangeQueue()
     {
-        $job = new Job('a', array(), true, 'foo');
+        $job = new Job('a', [], true, 'foo');
         $clonedJob = clone $job;
 
         $this->assertEquals('foo', $clonedJob->getQueue());
@@ -247,7 +248,7 @@ class JobTest extends TestCase
 
     private function setField($obj, $field, $value)
     {
-        $ref = new \ReflectionProperty($obj, $field);
+        $ref = new ReflectionProperty($obj, $field);
         $ref->setAccessible(true);
         $ref->setValue($obj, $value);
     }

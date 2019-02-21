@@ -5,14 +5,23 @@ namespace JMS\JobQueueBundle\Tests\Functional;
 // Set-up composer auto-loading if Client is insulated.
 call_user_func(function() {
     if ( ! is_file($autoloadFile = __DIR__.'/../../vendor/autoload.php')) {
-        throw new \LogicException('The autoload file "vendor/autoload.php" was not found. Did you run "composer install --dev"?');
+        throw new LogicException('The autoload file "vendor/autoload.php" was not found. Did you run "composer install --dev"?');
     }
 
     require_once $autoloadFile;
 });
 
-\Doctrine\Common\Annotations\AnnotationRegistry::registerLoader('class_exists');
+AnnotationRegistry::registerLoader('class_exists');
 
+use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
+use Doctrine\Bundle\FixturesBundle\DoctrineFixturesBundle;
+use Doctrine\Common\Annotations\AnnotationRegistry;
+use JMS\JobQueueBundle\JMSJobQueueBundle;
+use JMS\JobQueueBundle\Tests\Functional\TestBundle\TestBundle;
+use LogicException;
+use RuntimeException;
+use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
+use Symfony\Bundle\TwigBundle\TwigBundle;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpKernel\Kernel;
@@ -31,7 +40,7 @@ class AppKernel extends Kernel
         }
 
         if ( ! is_file($config)) {
-            throw new \RuntimeException(sprintf('The config file "%s" does not exist.', $config));
+            throw new RuntimeException(sprintf('The config file "%s" does not exist.', $config));
         }
 
         $this->config = $config;
@@ -39,15 +48,15 @@ class AppKernel extends Kernel
 
     public function registerBundles()
     {
-        return array(
-            new \Symfony\Bundle\FrameworkBundle\FrameworkBundle(),
-            new \Doctrine\Bundle\DoctrineBundle\DoctrineBundle(),
-            new \Doctrine\Bundle\FixturesBundle\DoctrineFixturesBundle(),
-            new \Symfony\Bundle\TwigBundle\TwigBundle(),
+        return [
+            new FrameworkBundle(),
+            new DoctrineBundle(),
+            new DoctrineFixturesBundle(),
+            new TwigBundle(),
 
-            new \JMS\JobQueueBundle\Tests\Functional\TestBundle\TestBundle(),
-            new \JMS\JobQueueBundle\JMSJobQueueBundle(),
-        );
+            new TestBundle(),
+            new JMSJobQueueBundle(),
+        ];
     }
 
     public function registerContainerConfiguration(LoaderInterface $loader)

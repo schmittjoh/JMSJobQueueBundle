@@ -10,6 +10,7 @@ use Doctrine\Common\Collections\Criteria;
 use Doctrine\Common\Collections\Expr\ClosureExpressionVisitor;
 use Doctrine\Common\Collections\Selectable;
 use JMS\JobQueueBundle\Entity\Job;
+use LogicException;
 use Symfony\Bridge\Doctrine\RegistryInterface;
 
 /**
@@ -113,7 +114,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      */
     public function remove($key)
     {
-        throw new \LogicException('remove() is not supported.');
+        throw new LogicException('remove() is not supported.');
     }
 
     /**
@@ -124,7 +125,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      */
     public function removeElement($element)
     {
-        throw new \LogicException('removeElement() is not supported.');
+        throw new LogicException('removeElement() is not supported.');
     }
 
     /**
@@ -169,7 +170,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      */
     public function offsetSet($offset, $value)
     {
-        throw new \LogicException('Adding new related entities is not supported after initial creation.');
+        throw new LogicException('Adding new related entities is not supported after initial creation.');
     }
 
     /**
@@ -182,7 +183,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      */
     public function offsetUnset($offset)
     {
-        throw new \LogicException('unset() is not supported.');
+        throw new LogicException('unset() is not supported.');
     }
 
     /**
@@ -320,7 +321,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      */
     public function set($key, $value)
     {
-        throw new \LogicException('set() is not supported.');
+        throw new LogicException('set() is not supported.');
     }
 
     /**
@@ -331,7 +332,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      */
     public function add($value)
     {
-        throw new \LogicException('Adding new entities is not supported after creation.');
+        throw new LogicException('Adding new entities is not supported after creation.');
     }
 
     /**
@@ -421,7 +422,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
     {
         $this->initialize();
 
-        $coll1 = $coll2 = array();
+        $coll1 = $coll2 = [];
         foreach ($this->entities as $key => $element) {
             if ($p($key, $element)) {
                 $coll1[$key] = $element;
@@ -429,7 +430,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
                 $coll2[$key] = $element;
             }
         }
-        return array(new ArrayCollection($coll1), new ArrayCollection($coll2));
+        return [new ArrayCollection($coll1), new ArrayCollection($coll2)];
     }
 
     /**
@@ -447,7 +448,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      */
     public function clear()
     {
-        throw new \LogicException('clear() is not supported.');
+        throw new LogicException('clear() is not supported.');
     }
 
     /**
@@ -514,7 +515,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
         }
 
         $con = $this->registry->getManagerForClass('JMSJobQueueBundle:Job')->getConnection();
-        $entitiesPerClass = array();
+        $entitiesPerClass = [];
         $count = 0;
         foreach ($con->query("SELECT related_class, related_id FROM jms_job_related_entities WHERE job_id = ".$this->job->getId()) as $data) {
             $count += 1;
@@ -522,12 +523,12 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
         }
 
         if (0 === $count) {
-            $this->entities = array();
+            $this->entities = [];
 
             return;
         }
 
-        $entities = array();
+        $entities = [];
         foreach ($entitiesPerClass as $className => $ids) {
             $em = $this->registry->getManagerForClass($className);
             $qb = $em->createQueryBuilder()

@@ -2,6 +2,7 @@
 
 namespace JMS\JobQueueBundle\Cron;
 
+use DateTime;
 use JMS\JobQueueBundle\Entity\Job;
 
 interface JobScheduler
@@ -18,7 +19,7 @@ interface JobScheduler
      *
      * @return boolean
      */
-    public function shouldSchedule(string $command, \DateTime $lastRunAt): bool;
+    public function shouldSchedule(string $command, DateTime $lastRunAt): bool;
 
     /**
      * Creates the given command when it is scheduled.
@@ -27,5 +28,5 @@ interface JobScheduler
      * @param \DateTime $lastRunAt
      * @return Job
      */
-    public function createJob(string $command, \DateTime $lastRunAt): Job;
+    public function createJob(string $command, DateTime $lastRunAt): Job;
 }

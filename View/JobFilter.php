@@ -27,10 +27,10 @@ class JobFilter
 
     public function toArray()
     {
-        return array(
+        return [
             'page' => $this->page,
             'command' => $this->command,
             'state' => $this->state,
-        );
+        ];
     }
 }

@@ -2,35 +2,38 @@
 
 namespace JMS\JobQueueBundle\Twig;
 
-class JobQueueExtension extends \Twig_Extension
-{
-    private $linkGenerators = array();
+use RuntimeException;
+use Twig_Extension;
 
-    public function __construct(array $generators = array())
+class JobQueueExtension extends Twig_Extension
+{
+    private $linkGenerators = [];
+
+    public function __construct(array $generators = [])
     {
         $this->linkGenerators = $generators;
     }
 
     public function getTests()
     {
-        return array(
-            new \Twig_SimpleTest('jms_job_queue_linkable', array($this, 'isLinkable'))
-        );
+        return [
+            new \Twig_SimpleTest('jms_job_queue_linkable', [$this, 'isLinkable'])
+        ];
     }
 
     public function getFunctions()
     {
-        return array(
-            new \Twig_SimpleFunction('jms_job_queue_path', array($this, 'generatePath'), array('is_safe' => array('html' => true)))
-        );
+        return [
+            new \Twig_SimpleFunction('jms_job_queue_path', [$this, 'generatePath'], ['is_safe' => ['html' => true]])
+        ];
     }
 
     public function getFilters()
     {
-        return array(
-            new \Twig_SimpleFilter('jms_job_queue_linkname', array($this, 'getLinkname')),
-            new \Twig_SimpleFilter('jms_job_queue_args', array($this, 'formatArgs'))
-        );
+        return [
+            new \Twig_SimpleFilter('jms_job_queue_linkname', [$this, 'getLinkname']),
+            new \Twig_SimpleFilter('jms_job_queue_args', [$this, 'formatArgs'])
+        ];
     }
 
     public function formatArgs(array $args, $maxLength = 60)
@@ -75,7 +78,7 @@ class JobQueueExtension extends \Twig_Extension
             }
         }
 
-        throw new \RuntimeException(sprintf('The entity "%s" has no link generator.', get_class($entity)));
+        throw new RuntimeException(sprintf('The entity "%s" has no link generator.', get_class($entity)));
     }
 
     public function getLinkname($entity)
@@ -86,7 +89,7 @@ class JobQueueExtension extends \Twig_Extension
             }
         }
 
-        throw new \RuntimeException(sprintf('The entity "%s" has no link generator.', get_class($entity)));
+        throw new RuntimeException(sprintf('The entity "%s" has no link generator.', get_class($entity)));
     }
 
     public function getName()

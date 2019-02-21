@@ -16,10 +16,10 @@ class StatisticsListener
         }
 
         $table = $schema->createTable('jms_job_statistics');
-        $table->addColumn('job_id', 'bigint', array('notnull' => true, 'unsigned' => true));
-        $table->addColumn('characteristic', 'string', array('length' => 30, 'notnull' => true));
-        $table->addColumn('createdAt', 'datetime', array('notnull' => true));
-        $table->addColumn('charValue', 'float', array('notnull' => true));
-        $table->setPrimaryKey(array('job_id', 'characteristic', 'createdAt'));
+        $table->addColumn('job_id', 'bigint', ['notnull' => true, 'unsigned' => true]);
+        $table->addColumn('characteristic', 'string', ['length' => 30, 'notnull' => true]);
+        $table->addColumn('createdAt', 'datetime', ['notnull' => true]);
+        $table->addColumn('charValue', 'float', ['notnull' => true]);
+        $table->setPrimaryKey(['job_id', 'characteristic', 'createdAt']);
     }
 }
