@@ -11,11 +11,10 @@ call_user_func(function() {
     require_once $autoloadFile;
 });
 
-AnnotationRegistry::registerLoader('class_exists');
+\Doctrine\Common\Annotations\AnnotationRegistry::registerLoader('class_exists');
 
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use Doctrine\Bundle\FixturesBundle\DoctrineFixturesBundle;
-use Doctrine\Common\Annotations\AnnotationRegistry;
 use JMS\JobQueueBundle\JMSJobQueueBundle;
 use JMS\JobQueueBundle\Tests\Functional\TestBundle\TestBundle;
 use LogicException;
