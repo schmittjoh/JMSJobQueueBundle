@@ -21,6 +21,11 @@
 
         <service id="jms_job_queue.command.run" class="JMS\JobQueueBundle\Command\RunCommand">
             <tag name="console.command" />
+            <argument type="service" id="doctrine" />
+            <argument type="service" id="jms_job_queue.job_manager" />
+            <argument type="service" id="event_dispatcher" />
+            <argument key="$queueOptionsDefault">%jms_job_queue.queue_options_defaults%</argument>
+            <argument key="$queueOptions">%jms_job_queue.queue_options%</argument>
         </service>
 
         <service id="jms_job_queue.command.schedule" class="JMS\JobQueueBundle\Command\ScheduleCommand">
