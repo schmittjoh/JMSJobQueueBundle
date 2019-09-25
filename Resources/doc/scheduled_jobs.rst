@@ -2,7 +2,7 @@ Scheduled Jobs
 ==============
 
 This bundle also allows you to have scheduled jobs which are executed in certain intervals. This can either be achieved
-by implementing ``JMS\JobQueueBundle\Command\CronCommand`` in your command, or implementing ``JMS\JobQueueBundle\Cron\JobScheduler``
+by implementing ``JMS\JobQueueBundle\Console\CronCommand`` in your command then tag the concrete class with ``['jms_job_queue.cron_command']``, or implementing ``JMS\JobQueueBundle\Cron\JobScheduler``
 in a service and tagging the service with ``jms_job_queue.scheduler``.
 
 The jobs are then scheduled with the ``jms-job-queue:schedule`` command that is run as an additional background process.
