@@ -170,6 +170,9 @@ class Job
     /** @ORM\Column(type = "integer", name="memoryUsageReal", nullable = true, options = {"unsigned": true}) */
     private $memoryUsageReal;
 
+    /** @ORM\Column(type = "smallint", nullable = true, options = {"unsigned": true}) */
+    private $progress;
+
     /**
      * This may store any entities which are related to this job, and are
      * managed by Doctrine.
@@ -239,6 +242,7 @@ class Job
         $this->runtime = null;
         $this->memoryUsage = null;
         $this->memoryUsageReal = null;
+        $this->progress = null;
         $this->relatedEntities = new ArrayCollection();
     }
 
@@ -309,6 +313,7 @@ class Job
                 if ($newState === self::STATE_RUNNING) {
                     $this->startedAt = new \DateTime();
                     $this->checkedAt = new \DateTime();
+                    $this->progress = 0;
                 } else if ($newState === self::STATE_CANCELED) {
                     $this->closedAt = new \DateTime();
                 }
@@ -321,6 +326,7 @@ class Job
                 }
 
                 $this->closedAt = new \DateTime();
+                $this->progress = 100;
 
                 break;
 
@@ -432,6 +438,16 @@ class Job
     public function setRuntime($time)
     {
         $this->runtime = (integer) $time;
+    }
+
+    public function getProgress()
+    {
+        return $this->progress;
+    }
+
+    public function setProgress($progress)
+    {
+        $this->progress = (integer) $progress;
     }
 
     public function getMemoryUsage()
