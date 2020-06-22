@@ -1,7 +1,17 @@
-{% extends "JMSJobQueueBundle::base.html.twig" %}
-{% import "JMSJobQueueBundle:Job:macros.html.twig" as macros %}
+{% extends "@JMSJobQueue/base.html.twig" %}
+{% import "@JMSJobQueue/Job/macros.html.twig" as macros %}
 
 {% block title %}Job "{{ job.command }}" (ID: {{ job.id }})" - {{ parent() }}{% endblock %}
+
+{% block stylesheets %}
+    <style type="text/css">
+        {% include "@Twig/exception.css.twig" %}
+
+        .trace-code {
+            padding-left:30px;
+        }
+    </style>
+{% endblock %}
 
 {% block content %}
 <ul class="breadcrumb">
@@ -116,25 +126,39 @@
 
 {% if job.stackTrace is not empty %}
 <h3>Stack Trace</h3>
-{% for position, ex in job.stackTrace.toarray %}
-    <div class="block">
-        <h4>
-            {{ ex.class|abbr_class }}: <small>{{ ex.message|nl2br|format_file_from_text }}</small>&nbsp;
-            {% spaceless %}
-            <a href="#" onclick="toggle('traces_{{ position }}', 'traces'); switchIcons('icon_traces_{{ position }}_open', 'icon_traces_{{ position }}_close'); return false;">
-                <img class="toggle" id="icon_traces_{{ position }}_close" alt="-" src="{{ asset('bundles/framework/images/blue_picto_less.gif') }}" style="visibility: hidden;" />
-                <img class="toggle" id="icon_traces_{{ position }}_open" alt="+" src="{{ asset('bundles/framework/images/blue_picto_more.gif') }}" style="visibility: display; margin-left: -18px" />
-            </a>
-            {% endspaceless %}
-        </h4>
-        <a id="traces_link_{{ position }}"></a>
-        <ol class="traces list_ex" id="traces_{{ position }}" style="display: none;">
-            {% for i, trace in ex.trace %}
-                <li>
-                    {% include 'TwigBundle:Exception:trace.html.twig' with { 'prefix': position, 'i': i, 'trace': trace } only %}
-                </li>
-            {% endfor %}
-        </ol>
+{% for index, exception in job.stackTrace.toarray %}
+    <div class="trace trace-as-html">
+        <div class="trace-details">
+            <div class="trace-head">
+            <span class="sf-toggle" data-toggle-selector="#trace-html-{{ index }}" data-toggle-initial="{{ loop.first ? "display" }}">
+                <h3 class="trace-class">
+                    <span class="trace-namespace">
+                        {{ exception.class|split('\\')|slice(0, -1)|join('\\') }}
+                        {{- exception.class|split('\\')|length > 1 ? '\\' }}
+                    </span>
+                    {{ exception.class|split('\\')|last }}
+
+                    <span class="icon icon-close">{{ include('@Twig/images/icon-minus-square-o.svg') }}</span>
+                    <span class="icon icon-open">{{ include('@Twig/images/icon-plus-square-o.svg') }}</span>
+                </h3>
+
+                {% if exception.message is not empty and index > 1 %}
+                    <p class="break-long-words trace-message">{{ exception.message }}</p>
+                {% endif %}
+            </span>
+            </div>
+
+            <div id="trace-html-{{ index }}" class="sf-toggle-content">
+                {% set _is_first_user_code = true %}
+                {% for i, trace in exception.trace %}
+                    {% set _display_code_snippet = _is_first_user_code and ('/vendor/' not in trace.file) and ('/var/cache/' not in trace.file) and (trace.file is not empty) %}
+                    {% if _display_code_snippet %}{% set _is_first_user_code = false %}{% endif %}
+                    <div class="trace-line">
+                        {{ include('@Twig/Exception/trace.html.twig', { prefix: index, i: i, trace: trace, _display_code_snippet: _display_code_snippet }, with_context = false) }}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 {% endfor %}
 {% endif %}
@@ -180,36 +204,16 @@
     </script>
     {% endif %}
 
-    <script language="javascript" type="text/javascript">//<![CDATA[
+    {% include "@Twig/base_js.html.twig" %}
 
-        function toggle(id, clazz) {
-            var el = document.getElementById(id),
-                current = el.style.display,
-                i;
-
-            if (clazz) {
-                var tags = document.getElementsByTagName('*');
-                for (i = tags.length - 1; i >= 0 ; i--) {
-                    if (tags[i].className === clazz) {
-                        tags[i].style.display = 'none';
-                    }
-                }
+    <script>
+        $(document).ready(function() {
+            // If the toolbar is also loaded, then toggling won't work as the toggling listeners are attached twice
+            // and eventually cancel each other out. We will attach them a third-time so that we get the same behavior
+            // as if they were only attached once.
+            if ($('#sf-toolbar').length > 0) {
+                Sfjs.createToggles();
             }
-
-            el.style.display = current === 'none' ? 'block' : 'none';
-        }
-
-        function switchIcons(id1, id2) {
-            var icon1, icon2, visibility1, visibility2;
-
-            icon1 = document.getElementById(id1);
-            icon2 = document.getElementById(id2);
-
-            visibility1 = icon1.style.visibility;
-            visibility2 = icon2.style.visibility;
-
-            icon1.style.visibility = visibility2;
-            icon2.style.visibility = visibility1;
-        }
-      //]]></script>
+        });
+    </script>
 {% endblock %}

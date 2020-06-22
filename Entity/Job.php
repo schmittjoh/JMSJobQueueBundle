@@ -25,7 +25,7 @@ use JMS\JobQueueBundle\Exception\LogicException;
 use Symfony\Component\Debug\Exception\FlattenException;
 
 /**
- * @ORM\Entity(repositoryClass = "JMS\JobQueueBundle\Entity\Repository\JobRepository")
+ * @ORM\Entity
  * @ORM\Table(name = "jms_jobs", indexes = {
  *     @ORM\Index("cmd_search_index", columns = {"command"}),
  *     @ORM\Index("sorting_index", columns = {"state", "priority", "id"}),
@@ -390,7 +390,9 @@ class Job
 
     public function addRelatedEntity($entity)
     {
-        assert('is_object($entity)');
+        if ( ! is_object($entity)) {
+            throw new \RuntimeException(sprintf('$entity must be an object.'));
+        }
 
         if ($this->relatedEntities->contains($entity)) {
             return;

@@ -10,17 +10,31 @@ use JMS\JobQueueBundle\Cron\CommandScheduler;
 use JMS\JobQueueBundle\Cron\JobScheduler;
 use JMS\JobQueueBundle\Entity\CronJob;
 use JMS\JobQueueBundle\Entity\Job;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class ScheduleCommand extends ContainerAwareCommand
+class ScheduleCommand extends Command
 {
+    protected static $defaultName = 'jms-job-queue:schedule';
+
+    private $registry;
+    private $schedulers;
+    private $cronCommands;
+
+    public function __construct(ManagerRegistry $managerRegistry, iterable $schedulers, iterable $cronCommands)
+    {
+        parent::__construct();
+
+        $this->registry = $managerRegistry;
+        $this->schedulers = $schedulers;
+        $this->cronCommands = $cronCommands;
+    }
+
     protected function configure()
     {
         $this
-            ->setName('jms-job-queue:schedule')
             ->setDescription('Schedules jobs at defined intervals')
             ->addOption('max-runtime', null, InputOption::VALUE_REQUIRED, 'The maximum runtime of this command.', 3600)
             ->addOption('min-job-interval', null, InputOption::VALUE_REQUIRED, 'The minimum time between schedules jobs in seconds.', 5)
@@ -29,12 +43,9 @@ class ScheduleCommand extends ContainerAwareCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        /** @var ManagerRegistry $registry */
-        $registry = $this->getContainer()->get('doctrine');
-
         $maxRuntime = $input->getOption('max-runtime');
         if ($maxRuntime > 300) {
-            $maxRuntime += mt_rand(0, (integer)($input->getOption('max-runtime') * 0.05));
+            $maxRuntime += random_int(0, (integer)($input->getOption('max-runtime') * 0.05));
         }
         if ($maxRuntime <= 0) {
             throw new \RuntimeException('Max. runtime must be greater than zero.');
@@ -52,7 +63,7 @@ class ScheduleCommand extends ContainerAwareCommand
             return 0;
         }
 
-        $jobsLastRunAt = $this->populateJobsLastRunAt($registry->getManagerForClass(CronJob::class), $jobSchedulers);
+        $jobsLastRunAt = $this->populateJobsLastRunAt($this->registry->getManagerForClass(CronJob::class), $jobSchedulers);
 
         $startedAt = time();
         while (true) {
@@ -63,7 +74,7 @@ class ScheduleCommand extends ContainerAwareCommand
                 break;
             }
 
-            $this->scheduleJobs($output, $registry, $jobSchedulers, $jobsLastRunAt);
+            $this->scheduleJobs($output, $jobSchedulers, $jobsLastRunAt);
 
             $timeToWait = microtime(true) - $lastRunAt + $minJobInterval;
             if ($timeToWait > 0) {
@@ -78,7 +89,7 @@ class ScheduleCommand extends ContainerAwareCommand
      * @param JobScheduler[] $jobSchedulers
      * @param \DateTime[] $jobsLastRunAt
      */
-    private function scheduleJobs(OutputInterface $output, ManagerRegistry $registry, array $jobSchedulers, array &$jobsLastRunAt)
+    private function scheduleJobs(OutputInterface $output, array $jobSchedulers, array &$jobsLastRunAt)
     {
         foreach ($jobSchedulers as $name => $scheduler) {
             $lastRunAt = $jobsLastRunAt[$name];
@@ -87,23 +98,23 @@ class ScheduleCommand extends ContainerAwareCommand
                 continue;
             }
 
-            list($success, $newLastRunAt) = $this->acquireLock($registry, $name, $lastRunAt);
+            list($success, $newLastRunAt) = $this->acquireLock($name, $lastRunAt);
             $jobsLastRunAt[$name] = $newLastRunAt;
 
             if ($success) {
                 $output->writeln('Scheduling command '.$name);
                 $job = $scheduler->createJob($name, $lastRunAt);
-                $em = $registry->getManagerForClass(Job::class);
+                $em = $this->registry->getManagerForClass(Job::class);
                 $em->persist($job);
                 $em->flush($job);
             }
         }
     }
 
-    private function acquireLock(ManagerRegistry $registry, $commandName, \DateTime $lastRunAt)
+    private function acquireLock($commandName, \DateTime $lastRunAt)
     {
         /** @var EntityManager $em */
-        $em = $registry->getManagerForClass(CronJob::class);
+        $em = $this->registry->getManagerForClass(CronJob::class);
         $con = $em->getConnection();
 
         $now = new \DateTime();
@@ -135,14 +146,21 @@ class ScheduleCommand extends ContainerAwareCommand
 
     private function populateJobSchedulers()
     {
-        $schedulers = $this->getContainer()->get('jms_job_queue.scheduler_registry')->getSchedulers();
+        $schedulers = [];
+        foreach ($this->schedulers as $scheduler) {
+            /** @var JobScheduler $scheduler */
+            foreach ($scheduler->getCommands() as $name) {
+                $schedulers[$name] = $scheduler;
+            }
+        }
 
-        foreach ($this->getApplication()->all() as $name => $command) {
-            if ( ! $command instanceof CronCommand) {
-                continue;
+        foreach ($this->cronCommands as $command) {
+            /** @var CronCommand $command */
+            if ( ! $command instanceof Command) {
+                throw new \RuntimeException('CronCommand should only be used on Symfony commands.');
             }
 
-            $schedulers[$name] = new CommandScheduler($command);
+            $schedulers[$command->getName()] = new CommandScheduler($command->getName(), $command);
         }
 
         return $schedulers;

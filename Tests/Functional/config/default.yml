@@ -1,4 +1,4 @@
 imports:
     - { resource: framework.yml }
     - { resource: doctrine.yml }
-    - { resource: twig.yml }
+

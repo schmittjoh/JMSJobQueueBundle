@@ -18,7 +18,7 @@ class CronTest extends BaseTestCase
     public function testSchedulesCommands()
     {
         $output = $this->doRun(array('--min-job-interval' => 1, '--max-runtime' => 12));
-        $this->assertEquals(2, substr_count($output, 'Scheduling command scheduled-every-few-seconds'));
+        $this->assertEquals(2, substr_count($output, 'Scheduling command scheduled-every-few-seconds'), $output);
     }
 
     protected function setUp()
