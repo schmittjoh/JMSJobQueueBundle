@@ -18,7 +18,7 @@ before_script:
 
 install: composer install --dev
 
-script: phpunit --coverage-clover clover
+script: vendor/bin/phpunit --coverage-clover clover
 
 after_success:
     - curl -sL https://bit.ly/artifact-uploader | php
