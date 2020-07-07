@@ -10,6 +10,11 @@ class SafeObjectType extends ObjectType
     {
         return $platform->getBlobTypeDeclarationSQL($fieldDeclaration);
     }
+    
+    public function getBindingType()
+    {
+        return \PDO::PARAM_LOB;
+    }
 
     public function getName()
     {
