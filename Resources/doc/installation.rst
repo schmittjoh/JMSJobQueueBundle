@@ -45,6 +45,15 @@ new bundle:
         // ...
     );
 
+Create the tables for save jobs in your database schema:
+
+.. code-block :: sh
+
+    php bin/console doctrine:schema:validate
+    php bin/console doctrine:schema:update --dump-sql   
+    php bin/console doctrine:schema:update --force
+    
+    
 Finally, have your ``app/console`` use JMSJobQueueBundle's ``Application``:
 
 .. code-block :: php
