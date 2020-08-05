@@ -324,8 +324,16 @@ class Job
 
                 break;
 
-            case self::STATE_FINISHED:
             case self::STATE_FAILED:
+                if ( ! in_array($newState, array(self::STATE_FINISHED))) {
+                    throw new InvalidStateTransitionException($this, $newState, array(self::STATE_FINISHED));
+                }
+
+                $this->closedAt = new \DateTime();
+
+                break;
+
+            case self::STATE_FINISHED:
             case self::STATE_TERMINATED:
             case self::STATE_INCOMPLETE:
                 throw new InvalidStateTransitionException($this, $newState);
