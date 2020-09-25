@@ -23,9 +23,15 @@
     <h1>Job "{{ job.command }}" <small>(ID: {{ job.id }})</small></h1>
 </div>
 
+<p>
+    <a href="{{ path('jms_jobs_details',{'id': job.id}) }}" class="btn btn-default">
+        reload
+    </a>
+</p>
+
 <table class="table table-bordered table-striped">
     <tr>
-        <th width="20%">Command</th>
+        <th style="width:20%;">Command</th>
         <td>{{ macros.command(job, true) }}</td>
     </tr>
     <tr>
@@ -33,10 +39,10 @@
         <td>{{ macros.state(job) }}</td>
     </tr>
     {% if job.workerName %}
-    <tr>
-        <th>WorkerName</th>
-        <td>{{ job.workerName }}</td>
-    </tr>
+        <tr>
+            <th>WorkerName</th>
+            <td>{{ job.workerName }}</td>
+        </tr>
     {% endif %}
     <tr>
         <th>Queue</th>
@@ -46,81 +52,94 @@
         <th>Created</th>
         <td>{{ macros.ago(job.createdAt) }}</td>
     </tr>
+    <tr>
+        <th>Execute after</th>
+        <td>{{ macros.ago(job.executeAfter) }}</td>
+    </tr>
+    <tr>
+        <th>Started</th>
+        <td>{{ macros.ago(job.startedAt) }}</td>
+    </tr>
     {% if job.closedAt %}
-    <tr>
-        <th>Runtime</th>
-        <td>{{ macros.runtime(job) }}</td>
-    </tr>
-    <tr>
-        <th>Closed</th>
-        <td>{{ macros.ago(job.closedAt) }}</td>
-    </tr>
+        <tr>
+            <th>Runtime</th>
+            <td>{{ macros.runtime(job) }}</td>
+        </tr>
+        <tr>
+            <th>Closed</th>
+            <td>{{ macros.ago(job.closedAt) }}</td>
+        </tr>
+    {% else %}
+        <tr>
+            <th>Runtime</th>
+            <td>{{ ('now'|date('U')-job.startedAt|date('U')) }} s</td>
+        </tr>
     {% endif %}
     {% if job.isRetryJob() %}
-    <tr>
-        <th>Original Job</th>
-        <td><a href="{{ path("jms_jobs_details", {"id": job.originalJob.id}) }}">#{{ job.originalJob.id }}</a> {{ macros.state(job.originalJob) }}</td>
-    </tr>
+        <tr>
+            <th>Original Job</th>
+            <td><a href="{{ path("jms_jobs_details", {"id": job.originalJob.id}) }}">#{{ job.originalJob.id }}</a> {{ macros.state(job.originalJob) }}</td>
+        </tr>
     {% endif %}
     {% if relatedEntities|length > 0 %}
-    <tr>
-        <th>Related Entities</th>
-        <td>
-            {%- for entity in relatedEntities %}
-                {%- if entity.raw is jms_job_queue_linkable -%}
-                    <a href="{{ jms_job_queue_path(entity.raw) }}">{{ entity.raw|jms_job_queue_linkname }}</a>
-                {%- else -%}
-                    {{ entity.class }} ({{ entity.id }})
-                {%- endif -%}
-                {% if not loop.last %}, {% endif -%}
-            {% endfor -%}
-        </td>
-    </tr>
+        <tr>
+            <th>Related Entities</th>
+            <td>
+                {%- for entity in relatedEntities %}
+                    {%- if entity.raw is jms_job_queue_linkable -%}
+                        <a href="{{ jms_job_queue_path(entity.raw) }}">{{ entity.raw|jms_job_queue_linkname }}</a>
+                    {%- else -%}
+                        {{ entity.class }} ({{ entity.id }})
+                    {%- endif -%}
+                    {% if not loop.last %}, {% endif -%}
+                {% endfor -%}
+            </td>
+        </tr>
     {% endif %}
     {% if job.dependencies|length > 0 %}
-    <tr>
-        <th>Dependencies</th>
-        <td>
-            {%- for dep in job.dependencies -%}
-                <a href="{{ path("jms_jobs_details", {"id": dep.id}) }}" title="{{ dep.command }}{% for arg in dep.args %} {{ arg }}{% endfor %} (ID {{ dep.id }})">{{ dep.command }}</a> {{ macros.state(dep) }}
-                {%- if not loop.last %}, {% endif -%}
-            {%- endfor -%}
-    </tr>
+        <tr>
+            <th>Dependencies</th>
+            <td>
+                {%- for dep in job.dependencies -%}
+                    <a href="{{ path("jms_jobs_details", {"id": dep.id}) }}" title="{{ dep.command }}{% for arg in dep.args %} {{ arg }}{% endfor %} (ID {{ dep.id }})">{{ dep.command }}</a> {{ macros.state(dep) }}
+                    {%- if not loop.last %}, {% endif -%}
+                {%- endfor -%}
+        </tr>
     {% endif %}
     {% if incomingDependencies|length > 0 %}
-    <tr>
-        <th>Incoming Dependencies</th>
-        <td>
-            {%- for dep in incomingDependencies -%}
-                <a href="{{ path("jms_jobs_details", {"id": dep.id}) }}" title="{{ dep.command }}{% for arg in dep.args %} {{ arg }}{% endfor %} (ID {{ dep.id }})">{{ dep.command }}</a> {{ macros.state(dep) }}
-            {%- endfor -%}
-        </td>
-    </tr>
+        <tr>
+            <th>Incoming Dependencies</th>
+            <td>
+                {%- for dep in incomingDependencies -%}
+                    <a href="{{ path("jms_jobs_details", {"id": dep.id}) }}" title="{{ dep.command }}{% for arg in dep.args %} {{ arg }}{% endfor %} (ID {{ dep.id }})">{{ dep.command }}</a> {{ macros.state(dep) }}
+                {%- endfor -%}
+            </td>
+        </tr>
     {% endif %}
 </table>
 
 {% if job.retryJobs|length > 0 %}
-<h3>Retry Jobs</h3>
+    <h3>Retry Jobs</h3>
 
-<table class="table table-bordered table-striped table-condensed">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Created</th>
-            <th>State</th>
-        </tr>
-    </thead>
+    <table class="table table-bordered table-striped table-condensed">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Created</th>
+                <th>State</th>
+            </tr>
+        </thead>
 
-    <tbody>
-        {% for retryJob in job.retryJobs %}
-        <tr>
-            <td><a href="{{ path("jms_jobs_details", {"id": retryJob.id}) }}">{{ retryJob.id }}</a></td>
-            <td>{{ macros.ago(retryJob.createdAt) }}</td>
-            <td>{{ macros.state(retryJob) }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+        <tbody>
+            {% for retryJob in job.retryJobs %}
+            <tr>
+                <td><a href="{{ path("jms_jobs_details", {"id": retryJob.id}) }}">{{ retryJob.id }}</a></td>
+                <td>{{ macros.ago(retryJob.createdAt) }}</td>
+                <td>{{ macros.state(retryJob) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
 {% endif %}
 

@@ -33,6 +33,7 @@
             <th>Created At</th>
             <th>Runtime</th>
             <th>Queue</th>
+            <th>Worker</th>
         </tr>
         </thead>
 
@@ -47,10 +48,11 @@
                         <td>{{ macros.ago(job.createdAt) }}</td>
                         <td>{{ macros.runtime(job) }}</td>
                         <td>{{ macros.queue(job) }}</td>
+                        <td>{{ job.workerName|default('-') }}</td>
                     </tr>
                 {% endfor %}
                 <tr>
-                    <td style="height:4px; background-color: #ccc;" colspan="6"></td>
+                    <td style="height:4px; background-color: #ccc;" colspan="7"></td>
                 </tr>
             {% endif %}
 
@@ -62,10 +64,11 @@
                     <td>{{ macros.ago(job.createdAt) }}</td>
                     <td>{{ macros.runtime(job) }}</td>
                     <td>{{ macros.queue(job) }}</td>
+                    <td>{{ job.workerName|default('-') }}</td>
                 </tr>
             {% else %}
                 <tr>
-                    <td colspan="6">There are no jobs.</td>
+                    <td colspan="7">There are no jobs.</td>
                 </tr>
             {% endfor %}
         </tbody>
