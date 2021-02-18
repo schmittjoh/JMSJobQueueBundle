@@ -34,7 +34,7 @@ class MarkJobIncompleteCommand extends Command
         ;
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         /** @var EntityManager $em */
         $em = $this->registry->getManagerForClass(Job::class);

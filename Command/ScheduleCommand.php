@@ -41,7 +41,7 @@ class ScheduleCommand extends Command
         ;
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $maxRuntime = $input->getOption('max-runtime');
         if ($maxRuntime > 300) {
