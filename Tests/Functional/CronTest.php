@@ -3,7 +3,6 @@
 namespace JMS\JobQueueBundle\Tests\Functional;
 
 use Doctrine\ORM\EntityManager;
-use JMS\JobQueueBundle\Entity\Job;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 
@@ -21,7 +20,7 @@ class CronTest extends BaseTestCase
         $this->assertEquals(2, substr_count($output, 'Scheduling command scheduled-every-few-seconds'), $output);
     }
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->createClient(array('config' => 'persistent_db.yml'));
 

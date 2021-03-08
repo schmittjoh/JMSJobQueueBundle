@@ -47,7 +47,7 @@ class SignalTest extends TestCase
             }
         );
 
-        $this->assertContains('All jobs finished, exiting.', $proc->getOutput());
+        $this->assertStringContainsString('All jobs finished, exiting.', $proc->getOutput());
     }
 
     private function assertTrueWithin($seconds, callable $block, callable $failureHandler)

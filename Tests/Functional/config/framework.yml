@@ -2,7 +2,7 @@ framework:
     secret: test
     test: true
     router:
-        resource: "%kernel.root_dir%/config/routing.yml"
+        resource: "%kernel.project_dir%/config/routing.yml"
 
 services:
     JMS\JobQueueBundle\Tests\Functional\TestBundle\Command\:

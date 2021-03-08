@@ -53,7 +53,7 @@ class ConcurrencyTest extends BaseTestCase
         $this->assertEquals(array('one', 'two'), $workers);
     }
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->databaseFile = tempnam(sys_get_temp_dir(), 'db');
         $this->configFile = tempnam(sys_get_temp_dir(), 'di-cfg');
@@ -77,7 +77,7 @@ CONFIG
         $this->importDatabaseSchema();
     }
 
-    protected function tearDown()
+    protected function tearDown(): void
     {
         @unlink($this->databaseFile);
         @unlink($this->configFile);

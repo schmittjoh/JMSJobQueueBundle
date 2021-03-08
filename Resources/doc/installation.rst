@@ -109,7 +109,7 @@ Below, is a sample configuration that you can use with supervisord:
 .. code-block :: ini
 
     [program:jms_job_queue_runner]
-    command=php %kernel.root_dir%/console jms-job-queue:run --env=prod --verbose
+    command=php %kernel.project_dir%/console jms-job-queue:run --env=prod --verbose
     process_name=%(program_name)s
     numprocs=1
     directory=/tmp
