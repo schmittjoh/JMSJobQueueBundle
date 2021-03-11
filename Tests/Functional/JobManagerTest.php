@@ -3,11 +3,8 @@
 namespace JMS\JobQueueBundle\Tests\Functional;
 
 use JMS\JobQueueBundle\Retry\ExponentialRetryScheduler;
-use JMS\JobQueueBundle\Retry\RetryScheduler;
 use JMS\JobQueueBundle\Tests\Functional\TestBundle\Entity\Train;
-
 use JMS\JobQueueBundle\Tests\Functional\TestBundle\Entity\Wagon;
-
 use PHPUnit\Framework\Constraint\LogicalNot;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Doctrine\ORM\EntityManager;
@@ -38,12 +35,10 @@ class JobManagerTest extends BaseTestCase
         $this->assertSame($a2, $this->jobManager->getJob('a'));
     }
 
-    /**
-     * @expectedException RuntimeException
-     * @expectedExceptionMessage Found no job for command
-     */
     public function testGetOneThrowsWhenNotFound()
     {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Found no job for command');
         $this->jobManager->getJob('foo');
     }
 
@@ -177,12 +172,12 @@ class JobManagerTest extends BaseTestCase
         $this->em->persist($b);
         $this->em->flush();
 
-        $this->dispatcher->expects($this->at(0))
+        $this->dispatcher->expects(self::exactly(2))
             ->method('dispatch')
-            ->with('jms_job_queue.job_state_change', new StateChangeEvent($a, 'terminated'));
-        $this->dispatcher->expects($this->at(1))
-            ->method('dispatch')
-            ->with('jms_job_queue.job_state_change', new StateChangeEvent($b, 'canceled'));
+            ->withConsecutive(
+                [new StateChangeEvent($a, 'terminated'), 'jms_job_queue.job_state_change'],
+                [new StateChangeEvent($b, 'canceled'), 'jms_job_queue.job_state_change'],
+            );
 
         $this->assertEquals('running', $a->getState());
         $this->assertEquals('pending', $b->getState());
@@ -202,13 +197,12 @@ class JobManagerTest extends BaseTestCase
         $this->em->persist($b);
         $this->em->flush();
 
-        $this->dispatcher->expects($this->at(0))
+        $this->dispatcher->expects(self::exactly(2))
             ->method('dispatch')
-            ->with('jms_job_queue.job_state_change', new StateChangeEvent($a, 'canceled'));
-
-        $this->dispatcher->expects($this->at(1))
-            ->method('dispatch')
-            ->with('jms_job_queue.job_state_change', new StateChangeEvent($b, 'canceled'));
+            ->withConsecutive(
+                [new StateChangeEvent($a, 'canceled'), 'jms_job_queue.job_state_change'],
+                [new StateChangeEvent($b, 'canceled'), 'jms_job_queue.job_state_change'],
+            );
 
         $this->jobManager->closeJob($a, 'canceled');
         $this->assertEquals('canceled', $a->getState());
@@ -225,15 +219,13 @@ class JobManagerTest extends BaseTestCase
         $this->em->persist($a);
         $this->em->flush();
 
-        $this->dispatcher->expects($this->at(0))
+        $this->dispatcher->expects(self::exactly(3))
             ->method('dispatch')
-            ->with('jms_job_queue.job_state_change', new StateChangeEvent($a, 'failed'));
-        $this->dispatcher->expects($this->at(1))
-            ->method('dispatch')
-            ->with('jms_job_queue.job_state_change', new LogicalNot($this->equalTo(new StateChangeEvent($a, 'failed'))));
-        $this->dispatcher->expects($this->at(2))
-            ->method('dispatch')
-            ->with('jms_job_queue.job_state_change', new LogicalNot($this->equalTo(new StateChangeEvent($a, 'failed'))));
+            ->withConsecutive(
+                [new StateChangeEvent($a, 'failed'), 'jms_job_queue.job_state_change'],
+                [new LogicalNot($this->equalTo(new StateChangeEvent($a, 'failed'))), 'jms_job_queue.job_state_change'],
+                [new LogicalNot($this->equalTo(new StateChangeEvent($a, 'failed'))), 'jms_job_queue.job_state_change'],
+            );
 
         $this->assertCount(0, $a->getRetryJobs());
         $this->jobManager->closeJob($a, 'failed');
@@ -287,7 +279,7 @@ class JobManagerTest extends BaseTestCase
         $this->assertTrue($defEm->contains($reloadedWagon->train));
     }
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->createClient();
         $this->importDatabaseSchema();

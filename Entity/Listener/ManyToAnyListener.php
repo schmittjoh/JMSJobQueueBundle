@@ -1,6 +1,7 @@
 <?php
 
 namespace JMS\JobQueueBundle\Entity\Listener;
+use Doctrine\Bundle\DoctrineBundle\Registry;
 use Doctrine\ORM\Event\LifecycleEventArgs;
 use JMS\JobQueueBundle\Entity\Job;
 
@@ -19,7 +20,7 @@ class ManyToAnyListener
     private $registry;
     private $ref;
 
-    public function __construct(\Doctrine\Common\Persistence\ManagerRegistry $registry)
+    public function __construct(Registry $registry)
     {
         $this->registry = $registry;
         $this->ref = new \ReflectionProperty('JMS\JobQueueBundle\Entity\Job', 'relatedEntities');
