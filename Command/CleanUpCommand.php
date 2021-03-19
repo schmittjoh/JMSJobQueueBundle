@@ -4,7 +4,7 @@ namespace JMS\JobQueueBundle\Command;
 
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Entity\Repository\JobManager;
 use Symfony\Component\Console\Command\Command;
@@ -39,7 +39,7 @@ class CleanUpCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        /** @var EntityManager $em */
+        /** @var EntityManagerInterface $em */
         $em = $this->registry->getManagerForClass(Job::class);
         $con = $em->getConnection();
 
@@ -47,7 +47,7 @@ class CleanUpCommand extends Command
         $this->collectStaleJobs($em);
     }
 
-    private function collectStaleJobs(EntityManager $em)
+    private function collectStaleJobs(EntityManagerInterface $em)
     {
         foreach ($this->findStaleJobs($em) as $job) {
             if ($job->isRetried()) {
@@ -61,7 +61,7 @@ class CleanUpCommand extends Command
     /**
      * @return Job[]
      */
-    private function findStaleJobs(EntityManager $em)
+    private function findStaleJobs(EntityManagerInterface $em)
     {
         $excludedIds = array(-1);
 
@@ -86,7 +86,7 @@ class CleanUpCommand extends Command
         } while ($job !== null);
     }
 
-    private function cleanUpExpiredJobs(EntityManager $em, Connection $con, InputInterface $input)
+    private function cleanUpExpiredJobs(EntityManagerInterface $em, Connection $con, InputInterface $input)
     {
         $incomingDepsSql = $con->getDatabasePlatform()->modifyLimitQuery("SELECT 1 FROM jms_job_dependencies WHERE dest_job_id = :id", 1);
 
@@ -116,7 +116,7 @@ class CleanUpCommand extends Command
         $em->flush();
     }
 
-    private function resolveDependencies(EntityManager $em, Job $job)
+    private function resolveDependencies(EntityManagerInterface $em, Job $job)
     {
         // If this job has failed, or has otherwise not succeeded, we need to set the
         // incoming dependencies to failed if that has not been done already.
@@ -138,7 +138,7 @@ class CleanUpCommand extends Command
         $em->getConnection()->executeUpdate("DELETE FROM jms_job_dependencies WHERE dest_job_id = :id", array('id' => $job->getId()));
     }
 
-    private function findExpiredJobs(EntityManager $em, InputInterface $input)
+    private function findExpiredJobs(EntityManagerInterface $em, InputInterface $input)
     {
         $succeededJobs = function(array $excludedIds) use ($em, $input) {
             return $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL AND j.state = :succeeded AND j.id NOT IN (:excludedIds)")

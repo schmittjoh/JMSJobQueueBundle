@@ -3,7 +3,7 @@
 namespace JMS\JobQueueBundle\Command;
 
 use Doctrine\Common\Persistence\ManagerRegistry;
-use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 use JMS\JobQueueBundle\Console\CronCommand;
 use JMS\JobQueueBundle\Cron\CommandScheduler;
@@ -113,7 +113,7 @@ class ScheduleCommand extends Command
 
     private function acquireLock($commandName, \DateTime $lastRunAt)
     {
-        /** @var EntityManager $em */
+        /** @var EntityManagerInterface $em */
         $em = $this->registry->getManagerForClass(CronJob::class);
         $con = $em->getConnection();
 
@@ -166,7 +166,7 @@ class ScheduleCommand extends Command
         return $schedulers;
     }
 
-    private function populateJobsLastRunAt(EntityManager $em, array $jobSchedulers)
+    private function populateJobsLastRunAt(EntityManagerInterface $em, array $jobSchedulers)
     {
         $jobsLastRunAt = array();
 
