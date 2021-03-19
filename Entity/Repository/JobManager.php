@@ -22,7 +22,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Util\ClassUtils;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Type;
-use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Parameter;
 use Doctrine\ORM\Query\ResultSetMappingBuilder;
 use JMS\JobQueueBundle\Entity\Job;
@@ -425,7 +425,7 @@ class JobManager
         return count($result);
     }
     
-    private function getJobManager(): EntityManager
+    private function getJobManager(): EntityManagerInterface
     {
         return $this->registry->getManagerForClass(Job::class);
     }
