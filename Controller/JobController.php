@@ -3,7 +3,7 @@
 namespace JMS\JobQueueBundle\Controller;
 
 use Doctrine\Common\Util\ClassUtils;
-use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Entity\Repository\JobManager;
 use JMS\JobQueueBundle\View\JobFilter;
@@ -149,7 +149,7 @@ class JobController extends Controller
         return new RedirectResponse($url, 201);
     }
 
-    private function getEm(): EntityManager
+    private function getEm(): EntityManagerInterface
     {
         return $this->get('doctrine')->getManagerForClass(Job::class);
     }
