@@ -22,6 +22,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Util\ClassUtils;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Query\Parameter;
 use Doctrine\ORM\Query\ResultSetMappingBuilder;
@@ -37,7 +38,7 @@ class JobManager
     private $dispatcher;
     private $registry;
     private $retryScheduler;
-    
+
     public function __construct(ManagerRegistry $managerRegistry, EventDispatcherInterface $eventDispatcher, RetryScheduler $retryScheduler)
     {
         $this->registry = $managerRegistry;
@@ -49,7 +50,7 @@ class JobManager
     {
         return $this->getJobManager()->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.command = :command AND j.args = :args")
             ->setParameter('command', $command)
-            ->setParameter('args', $args, Type::JSON_ARRAY)
+            ->setParameter('args', $args, Types::JSON_ARRAY)
             ->setMaxResults(1)
             ->getOneOrNullResult();
     }
@@ -113,7 +114,7 @@ class JobManager
 
     private function acquireLock($workerName, Job $job)
     {
-        $affectedRows = $this->getJobManager()->getConnection()->executeUpdate(
+        $affectedRows = $this->getJobManager()->getConnection()->executeStatement(
             "UPDATE jms_jobs SET workerName = :worker WHERE id = :id AND workerName IS NULL",
             array(
                 'worker' => $workerName,
@@ -269,7 +270,7 @@ class JobManager
 
         if (null !== $this->dispatcher && ($job->isRetryJob() || 0 === count($job->getRetryJobs()))) {
             $event = new StateChangeEvent($job, $finalState);
-            $this->dispatcher->dispatch('jms_job_queue.job_state_change', $event);
+            $this->dispatcher->dispatch($event, 'jms_job_queue.job_state_change');
             $finalState = $event->getNewState();
         }
 
@@ -424,7 +425,7 @@ class JobManager
 
         return count($result);
     }
-    
+
     private function getJobManager(): EntityManager
     {
         return $this->registry->getManagerForClass(Job::class);

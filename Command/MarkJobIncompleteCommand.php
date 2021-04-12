@@ -2,7 +2,7 @@
 
 namespace JMS\JobQueueBundle\Command;
 
-use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManager;
 use JMS\JobQueueBundle\Entity\Job;
 use Symfony\Component\Console\Command\Command;
@@ -34,7 +34,7 @@ class MarkJobIncompleteCommand extends Command
         ;
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         /** @var EntityManager $em */
         $em = $this->registry->getManagerForClass(Job::class);
