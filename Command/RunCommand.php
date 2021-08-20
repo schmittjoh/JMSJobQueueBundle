@@ -173,15 +173,20 @@ class RunCommand extends Command
                 pcntl_signal_dispatch();
             }
 
-            if ($this->shouldShutdown || time() - $startTime > $maxRuntime) {
+            $this->checkRunningJobs();
+
+            $shouldShutdown = $this->shouldShutdown || time() - $startTime > $maxRuntime;
+
+            if($shouldShutdown === true && empty($this->runningJobs)){
                 break;
             }
 
-            $this->checkRunningJobs();
-            $this->startJobs($workerName, $idleTime, $maxJobs, $restrictedQueues, $queueOptionsDefaults, $queueOptions);
+            if($shouldShutdown === false){
+                $this->startJobs($workerName, $idleTime, $maxJobs, $restrictedQueues, $queueOptionsDefaults, $queueOptions);
+            }
 
             $waitTimeInMs = random_int(500, 1000);
-            usleep($waitTimeInMs * 1E3);
+            usleep((int) ($waitTimeInMs * 1E3));
         }
 
         if ($this->verbose) {
