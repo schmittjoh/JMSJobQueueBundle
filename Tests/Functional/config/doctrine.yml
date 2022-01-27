@@ -16,4 +16,4 @@ doctrine:
                 mappings:
                     TestBundle:
                         is_bundle: true
-                        type: annotation                        
+                        type: annotation

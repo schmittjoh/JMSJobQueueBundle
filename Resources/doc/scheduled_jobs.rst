@@ -13,7 +13,7 @@ Implement CronCommand
 
 .. code-block :: php
 
-    class MyScheduledCommand extends ContainerAwareCommand implements CronCommand
+    class MyScheduledCommand extends Command implements CronCommand
     {
         // configure, execute, etc. ...
 
@@ -32,7 +32,7 @@ For common intervals, you can also use one of the provided traits:
 
 .. code-block :: php
 
-    class MyScheduledCommand extends ContainerAwareCommand implements CronCommand
+    class MyScheduledCommand extends Command implements CronCommand
     {
         use ScheduleEveryMinute;
     

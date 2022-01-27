@@ -9,7 +9,8 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\Criteria;
 use Doctrine\Common\Collections\Expr\ClosureExpressionVisitor;
 use Doctrine\Common\Collections\Selectable;
-use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\DBAL\Connection;
+use Doctrine\Persistence\ManagerRegistry;
 use JMS\JobQueueBundle\Entity\Job;
 
 /**
@@ -21,9 +22,9 @@ use JMS\JobQueueBundle\Entity\Job;
  */
 class PersistentRelatedEntitiesCollection implements Collection, Selectable
 {
-    private $registry;
-    private $job;
-    private $entities;
+    private ManagerRegistry $registry;
+    private Job $job;
+    private ?array $entities = null;
 
     public function __construct(ManagerRegistry $registry, Job $job)
     {
@@ -513,10 +514,12 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
             return;
         }
 
-        $con = $this->registry->getManagerForClass('JMSJobQueueBundle:Job')->getConnection();
+        /** @var Connection $con */
+        $con = $this->registry->getManagerForClass(Job::class)->getConnection();
         $entitiesPerClass = array();
         $count = 0;
-        foreach ($con->query("SELECT related_class, related_id FROM jms_job_related_entities WHERE job_id = ".$this->job->getId()) as $data) {
+
+        foreach ($con->executeQuery("SELECT related_class, related_id FROM jms_job_related_entities WHERE job_id = ".$this->job->getId())->fetchAllAssociative() as $data) {
             $count += 1;
             $entitiesPerClass[$data['related_class']][] = json_decode($data['related_id'], true);
         }
