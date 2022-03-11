@@ -136,7 +136,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * @param mixed $offset
      * @return bool
      */
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         $this->initialize();
 
@@ -151,7 +151,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * @param mixed $offset
      * @return mixed
      */
-    public function offsetGet($offset)
+    public function offsetGet($offset): object
     {
         $this->initialize();
 
@@ -168,7 +168,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * @param mixed $value
      * @return bool
      */
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
         throw new \LogicException('Adding new related entities is not supported after initial creation.');
     }
@@ -181,7 +181,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * @param mixed $offset
      * @return mixed
      */
-    public function offsetUnset($offset)
+    public function offsetUnset($offset): void
     {
         throw new \LogicException('unset() is not supported.');
     }
@@ -192,7 +192,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * @param mixed $key The key to check for.
      * @return boolean TRUE if the given key/index exists, FALSE otherwise.
      */
-    public function containsKey($key)
+    public function containsKey($key): bool
     {
         $this->initialize();
 
@@ -209,7 +209,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * @return boolean TRUE if the given element is contained in the collection,
      *          FALSE otherwise.
      */
-    public function contains($element)
+    public function contains($element): bool
     {
         $this->initialize();
 
@@ -228,7 +228,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * @param Closure $p The predicate.
      * @return boolean TRUE if the predicate is TRUE for at least one element, FALSE otherwise.
      */
-    public function exists(Closure $p)
+    public function exists(Closure $p): bool
     {
         $this->initialize();
 
@@ -319,7 +319,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * @param mixed $key
      * @param mixed $value
      */
-    public function set($key, $value)
+    public function set($key, $value): never
     {
         throw new \LogicException('set() is not supported.');
     }
@@ -330,7 +330,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * @param mixed $value
      * @return boolean Always TRUE.
      */
-    public function add($value)
+    public function add($value): never
     {
         throw new \LogicException('Adding new entities is not supported after creation.');
     }
@@ -342,7 +342,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * @return boolean TRUE if the collection is empty, FALSE otherwise.
      */
-    public function isEmpty()
+    public function isEmpty(): bool
     {
         $this->initialize();
 
@@ -354,7 +354,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * @return ArrayIterator
      */
-    public function getIterator()
+    public function getIterator(): \Traversable
     {
         $this->initialize();
 
