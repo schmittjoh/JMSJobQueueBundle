@@ -303,7 +303,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * @return integer The number of elements in the collection.
      */
-    public function count()
+    public function count(): int
     {
         $this->initialize();
 
