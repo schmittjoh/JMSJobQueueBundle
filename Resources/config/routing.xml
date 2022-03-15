@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<routes xmlns="http://symfony.com/schema/routing"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://symfony.com/schema/routing
+        http://symfony.com/schema/routing/routing-1.0.xsd">
+
+    <route id="jms_jobs_overview" controller="jms_job_queue.job_controller:overviewAction" path="/" />
+    <route id="jms_jobs_details" controller="jms_job_queue.job_controller:detailsAction" path="/{id}" />
+    <route id="jms_jobs_retry_job" controller="jms_job_queue.job_controller:retryJobAction" path="/{id}/retry" />
+
+</routes>
