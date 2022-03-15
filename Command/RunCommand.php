@@ -87,6 +87,7 @@ class RunCommand extends Command
             ->addOption('idle-time', null, InputOption::VALUE_REQUIRED, 'Time to sleep when the queue ran out of jobs.', 2)
             ->addOption('queue', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'Restrict to one or more queues.', array())
             ->addOption('worker-name', null, InputOption::VALUE_REQUIRED, 'The name that uniquely identifies this worker process.')
+            ->addOption('exit-on-idle', null, InputOption::VALUE_NONE, 'Whether to exit if there are no more jobs to run.')
         ;
     }
 
@@ -147,13 +148,14 @@ class RunCommand extends Command
             $maxJobs,
             $restrictedQueues,
             $this->queueOptionsDefault,
-            $this->queueOptions
+            $this->queueOptions,
+            $input->getOption('exit-on-idle')
         );
 
         return 0;
     }
 
-    private function runJobs($workerName, $startTime, $maxRuntime, $idleTime, $maxJobs, array $restrictedQueues, array $queueOptionsDefaults, array $queueOptions)
+    private function runJobs($workerName, $startTime, $maxRuntime, $idleTime, $maxJobs, array $restrictedQueues, array $queueOptionsDefaults, array $queueOptions, bool $exitOnIdle)
     {
         $hasPcntl = extension_loaded('pcntl');
 
@@ -181,6 +183,10 @@ class RunCommand extends Command
 
             $this->checkRunningJobs();
             $this->startJobs($workerName, $idleTime, $maxJobs, $restrictedQueues, $queueOptionsDefaults, $queueOptions);
+
+            if ($exitOnIdle && empty($this->runningJobs)) {
+                break;
+            }
 
             $waitTimeInMs = random_int(500, 1000);
             usleep($waitTimeInMs * 1E3);
