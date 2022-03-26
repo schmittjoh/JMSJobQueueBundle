@@ -13,12 +13,17 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\Routing\RouterInterface;
 use Symfony\Contracts\Service\ServiceSubscriberInterface;
 use Twig\Environment;
 
 class JobController
 {
-    public function __construct(private JobManager $jobManager, private ManagerRegistry $managerRegistry, private Environment $twig, private bool $enableStats)
+    public function __construct(private JobManager $jobManager,
+                                private ManagerRegistry $managerRegistry, 
+                                private Environment $twig,
+                                private RouterInterface $router,
+                                private bool $enableStats)
     {
     }
 
@@ -142,7 +147,7 @@ class JobController
         $this->getEm()->persist($retryJob);
         $this->getEm()->flush();
 
-        $url = $this->generateUrl('jms_jobs_details', array('id' => $retryJob->getId()));
+        $url = $this->router->generate('jms_jobs_details', array('id' => $retryJob->getId()));
 
         return new RedirectResponse($url, 201);
     }

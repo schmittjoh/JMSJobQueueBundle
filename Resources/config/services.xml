@@ -17,6 +17,7 @@
             <argument type="service" id="jms_job_queue.job_manager" />
             <argument type="service" id="doctrine" />
             <argument type="service" id="twig" />
+            <argument type="service" id="router" />
             <argument>%jms_job_queue.statistics%</argument>
         </service>
         <service id="jms_job_queue.retry_scheduler" class="%jms_job_queue.retry_scheduler.class%" />
