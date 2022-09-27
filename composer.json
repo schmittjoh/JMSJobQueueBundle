@@ -4,7 +4,7 @@
     "keywords":     ["job","queue"],
     "homepage":     "http://jmsyst.com/bundles/JMSJobQueueBundle",
     "type":         "symfony-bundle",
-    "license":      "Apache2",
+    "license":      "MIT",
     "authors": [
         {
             "name":   "Johannes M. Schmitt",
