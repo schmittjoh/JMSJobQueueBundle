@@ -11,8 +11,13 @@ class SafeObjectType extends ObjectType
         return $platform->getBlobTypeDeclarationSQL($fieldDeclaration);
     }
 
-    public function getName()
+    public function getName(): string
     {
         return 'jms_job_safe_object';
+    }
+
+    public function requiresSQLCommentHint(AbstractPlatform $platform): bool
+    {
+        return true;
     }
 }
