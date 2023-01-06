@@ -29,6 +29,7 @@ use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Event\StateChangeEvent;
 use JMS\JobQueueBundle\Retry\ExponentialRetryScheduler;
 use JMS\JobQueueBundle\Retry\RetryScheduler;
+use RuntimeException;
 use Symfony\Bridge\Doctrine\RegistryInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use DateTime;
@@ -85,7 +86,7 @@ class JobRepository extends EntityRepository
             return $job;
         }
 
-        throw new \RuntimeException(sprintf('Found no job for command "%s" with args "%s".', $command, json_encode($args)));
+        throw new RuntimeException(sprintf('Found no job for command "%s" with args "%s".', $command, json_encode($args)));
     }
 
     public function getOrCreateIfNotExists($command, array $args = array())
@@ -198,7 +199,9 @@ class JobRepository extends EntityRepository
 
     private function getRelatedEntityIdentifier($entity)
     {
-        assert('is_object($entity)');
+        if (!is_object($entity)) {
+            throw new RuntimeException('$entity must be an object.');
+        }
 
         if ($entity instanceof \Doctrine\Common\Persistence\Proxy) {
             $entity->__load();
