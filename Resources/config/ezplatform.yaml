@@ -1,0 +1,7 @@
+orm:
+    entity_mappings:
+        JMSJobQueueBundle:
+            is_bundle: true
+            type: annotation
+            dir: Entity
+            prefix: JMS\JobQueueBundle\Entity
