@@ -2,9 +2,9 @@
 
 namespace JMS\JobQueueBundle\Command;
 
-use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
+use Doctrine\Persistence\ManagerRegistry;
 use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Entity\Repository\JobManager;
 use Symfony\Component\Console\Command\Command;
@@ -16,8 +16,8 @@ class CleanUpCommand extends Command
 {
     protected static $defaultName = 'jms-job-queue:clean-up';
 
-    private $jobManager;
-    private $registry;
+    private JobManager $jobManager;
+    private ManagerRegistry $registry;
 
     public function __construct(ManagerRegistry $registry, JobManager $jobManager)
     {

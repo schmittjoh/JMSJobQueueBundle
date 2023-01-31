@@ -22,7 +22,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\JobQueueBundle\Exception\InvalidStateTransitionException;
 use JMS\JobQueueBundle\Exception\LogicException;
-use Symfony\Component\Debug\Exception\FlattenException;
+use Symfony\Component\ErrorHandler\Exception\FlattenException;
 
 /**
  * @ORM\Entity
@@ -178,17 +178,17 @@ class Job
      */
     private $relatedEntities;
 
-    public static function create($command, array $args = array(), $confirmed = true, $queue = self::DEFAULT_QUEUE, $priority = self::PRIORITY_DEFAULT)
+    public static function create($command, array $args = array(), $confirmed = true, $queue = self::DEFAULT_QUEUE, $priority = self::PRIORITY_DEFAULT): Job
     {
         return new self($command, $args, $confirmed, $queue, $priority);
     }
 
-    public static function isNonSuccessfulFinalState($state)
+    public static function isNonSuccessfulFinalState($state): bool
     {
         return in_array($state, array(self::STATE_CANCELED, self::STATE_FAILED, self::STATE_INCOMPLETE, self::STATE_TERMINATED), true);
     }
 
-    public static function getStates()
+    public static function getStates(): array
     {
         return array(
             self::STATE_NEW,
@@ -267,12 +267,12 @@ class Job
         return $this->priority * -1;
     }
 
-    public function isInFinalState()
+    public function isInFinalState(): bool
     {
         return ! $this->isNew() && ! $this->isPending() && ! $this->isRunning();
     }
 
-    public function isStartable()
+    public function isStartable(): bool
     {
         foreach ($this->dependencies as $dep) {
             if ($dep->getState() !== self::STATE_FINISHED) {
@@ -309,9 +309,7 @@ class Job
                 if ($newState === self::STATE_RUNNING) {
                     $this->startedAt = new \DateTime();
                     $this->checkedAt = new \DateTime();
-                } else if ($newState === self::STATE_CANCELED) {
-                    $this->closedAt = new \DateTime();
-                }
+                } else $this->closedAt = new \DateTime();
 
                 break;
 
@@ -337,7 +335,7 @@ class Job
         $this->state = $newState;
     }
 
-    public function getCreatedAt()
+    public function getCreatedAt(): \DateTime
     {
         return $this->createdAt;
     }
@@ -362,17 +360,17 @@ class Job
         return $this->command;
     }
 
-    public function getArgs()
+    public function getArgs(): array
     {
         return $this->args;
     }
 
-    public function getRelatedEntities()
+    public function getRelatedEntities(): ArrayCollection
     {
         return $this->relatedEntities;
     }
 
-    public function isClosedNonSuccessful()
+    public function isClosedNonSuccessful(): bool
     {
         return self::isNonSuccessfulFinalState($this->state);
     }
@@ -401,12 +399,12 @@ class Job
         $this->relatedEntities->add($entity);
     }
 
-    public function getDependencies()
+    public function getDependencies(): ArrayCollection
     {
         return $this->dependencies;
     }
 
-    public function hasDependency(Job $job)
+    public function hasDependency(Job $job): bool
     {
         return $this->dependencies->contains($job);
     }
@@ -489,7 +487,7 @@ class Job
         $this->maxRuntime = (integer) $time;
     }
 
-    public function getMaxRuntime()
+    public function getMaxRuntime(): int
     {
         return $this->maxRuntime;
     }
@@ -499,7 +497,7 @@ class Job
         return $this->startedAt;
     }
 
-    public function getMaxRetries()
+    public function getMaxRetries(): int
     {
         return $this->maxRetries;
     }
@@ -509,7 +507,7 @@ class Job
         $this->maxRetries = (integer) $tries;
     }
 
-    public function isRetryAllowed()
+    public function isRetryAllowed(): bool
     {
         // If no retries are allowed, we can bail out directly, and we
         // do not need to initialize the retryJobs relation.
@@ -520,7 +518,7 @@ class Job
         return count($this->retryJobs) < $this->maxRetries;
     }
 
-    public function getOriginalJob()
+    public function getOriginalJob(): Job
     {
         if (null === $this->originalJob) {
             return $this;
@@ -552,17 +550,17 @@ class Job
         $this->retryJobs->add($job);
     }
 
-    public function getRetryJobs()
+    public function getRetryJobs(): ArrayCollection
     {
         return $this->retryJobs;
     }
 
-    public function isRetryJob()
+    public function isRetryJob(): bool
     {
         return null !== $this->originalJob;
     }
 
-    public function isRetried()
+    public function isRetried(): bool
     {
         foreach ($this->retryJobs as $job) {
             /** @var Job $job */
@@ -600,42 +598,42 @@ class Job
         return $this->queue;
     }
 
-    public function isNew()
+    public function isNew(): bool
     {
         return self::STATE_NEW === $this->state;
     }
 
-    public function isPending()
+    public function isPending(): bool
     {
         return self::STATE_PENDING === $this->state;
     }
 
-    public function isCanceled()
+    public function isCanceled(): bool
     {
         return self::STATE_CANCELED === $this->state;
     }
 
-    public function isRunning()
+    public function isRunning(): bool
     {
         return self::STATE_RUNNING === $this->state;
     }
 
-    public function isTerminated()
+    public function isTerminated(): bool
     {
         return self::STATE_TERMINATED === $this->state;
     }
 
-    public function isFailed()
+    public function isFailed(): bool
     {
         return self::STATE_FAILED === $this->state;
     }
 
-    public function isFinished()
+    public function isFinished(): bool
     {
         return self::STATE_FINISHED === $this->state;
     }
 
-    public function isIncomplete()
+    public function isIncomplete(): bool
     {
         return self::STATE_INCOMPLETE === $this->state;
     }
@@ -645,7 +643,7 @@ class Job
         return sprintf('Job(id = %s, command = "%s")', $this->id, $this->command);
     }
 
-    private function mightHaveStarted()
+    private function mightHaveStarted(): bool
     {
         if (null === $this->id) {
             return false;

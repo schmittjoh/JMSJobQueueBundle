@@ -2,6 +2,7 @@
 
 namespace JMS\JobQueueBundle\Retry;
 
+use DateTime;
 use JMS\JobQueueBundle\Entity\Job;
 
 interface RetryScheduler
@@ -12,7 +13,7 @@ interface RetryScheduler
      * When this method is called, it has already been decided that a retry should be attempted. The implementation
      * should needs to decide when that should happen.
      *
-     * @return \DateTime
+     * @return DateTime
      */
-    public function scheduleNextRetry(Job $originalJob);
+    public function scheduleNextRetry(Job $originalJob): DateTime;
 }

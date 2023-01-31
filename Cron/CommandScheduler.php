@@ -7,8 +7,8 @@ use JMS\JobQueueBundle\Entity\Job;
 
 class CommandScheduler implements JobScheduler
 {
-    private $name;
-    private $command;
+    private string $name;
+    private CronCommand $command;
 
     public function __construct(string $name, CronCommand $command)
     {

@@ -21,39 +21,49 @@ namespace JMS\JobQueueBundle\Entity\Repository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Util\ClassUtils;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Types\Type;
-use Doctrine\ORM\EntityManager;
+use Doctrine\DBAL\Exception;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\NonUniqueResultException;
+use Doctrine\ORM\NoResultException;
+use Doctrine\ORM\OptimisticLockException;
 use Doctrine\ORM\Query\Parameter;
 use Doctrine\ORM\Query\ResultSetMappingBuilder;
+use Doctrine\Persistence\Mapping\MappingException;
 use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Event\StateChangeEvent;
-use JMS\JobQueueBundle\Retry\ExponentialRetryScheduler;
 use JMS\JobQueueBundle\Retry\RetryScheduler;
-use Symfony\Bridge\Doctrine\ManagerRegistry;
+use ReflectionException;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class JobManager
 {
-    private $dispatcher;
-    private $registry;
-    private $retryScheduler;
+    private EventDispatcherInterface $dispatcher;
+    private EntityManagerInterface $registry;
+    private RetryScheduler $retryScheduler;
     
-    public function __construct(ManagerRegistry $managerRegistry, EventDispatcherInterface $eventDispatcher, RetryScheduler $retryScheduler)
+    public function __construct(EntityManagerInterface $managerRegistry, EventDispatcherInterface $eventDispatcher, RetryScheduler $retryScheduler)
     {
         $this->registry = $managerRegistry;
         $this->dispatcher = $eventDispatcher;
         $this->retryScheduler = $retryScheduler;
     }
 
+    /**
+     * @throws NonUniqueResultException
+     */
     public function findJob($command, array $args = array())
     {
         return $this->getJobManager()->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.command = :command AND j.args = :args")
             ->setParameter('command', $command)
-            ->setParameter('args', $args, Type::JSON_ARRAY)
+            ->setParameter('args', $args, Connection::PARAM_STR_ARRAY)
             ->setMaxResults(1)
             ->getOneOrNullResult();
     }
 
+    /**
+     * @throws NonUniqueResultException
+     */
     public function getJob($command, array $args = array())
     {
         if (null !== $job = $this->findJob($command, $args)) {
@@ -63,7 +73,12 @@ class JobManager
         throw new \RuntimeException(sprintf('Found no job for command "%s" with args "%s".', $command, json_encode($args)));
     }
 
-    public function getOrCreateIfNotExists($command, array $args = array())
+    /**
+     * @throws ORMException
+     * @throws NonUniqueResultException
+     * @throws NoResultException
+     */
+    public function getOrCreateIfNotExists($command, array $args = array()): Job
     {
         if (null !== $job = $this->findJob($command, $args)) {
             return $job;
@@ -93,6 +108,10 @@ class JobManager
         return $firstJob;
     }
 
+    /**
+     * @throws NonUniqueResultException
+     * @throws Exception
+     */
     public function findStartableJob($workerName, array &$excludedIds = array(), $excludedQueues = array(), $restrictedQueues = array())
     {
         while (null !== $job = $this->findPendingJob($excludedIds, $excludedQueues, $restrictedQueues)) {
@@ -111,9 +130,12 @@ class JobManager
         return null;
     }
 
-    private function acquireLock($workerName, Job $job)
+    /**
+     * @throws Exception
+     */
+    private function acquireLock($workerName, Job $job): bool
     {
-        $affectedRows = $this->getJobManager()->getConnection()->executeUpdate(
+        $affectedRows = $this->getJobManager()->getConnection()->executeQuery(
             "UPDATE jms_jobs SET workerName = :worker WHERE id = :id AND workerName IS NULL",
             array(
                 'worker' => $workerName,
@@ -143,11 +165,24 @@ class JobManager
                     ->getResult();
     }
 
+    /**
+     * @param $command
+     * @param $relatedEntity
+     * @return float|int|mixed|string|null
+     * @throws MappingException
+     * @throws NonUniqueResultException
+     * @throws ReflectionException
+     */
     public function findOpenJobForRelatedEntity($command, $relatedEntity)
     {
         return $this->findJobForRelatedEntity($command, $relatedEntity, array(Job::STATE_RUNNING, Job::STATE_PENDING, Job::STATE_NEW));
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws NonUniqueResultException
+     * @throws MappingException
+     */
     public function findJobForRelatedEntity($command, $relatedEntity, array $states = array())
     {
         list($relClass, $relId) = $this->getRelatedEntityIdentifier($relatedEntity);
@@ -171,18 +206,22 @@ class JobManager
                    ->getOneOrNullResult();
     }
 
-    private function getRelatedEntityIdentifier($entity)
+    /**
+     * @throws \ReflectionException
+     * @throws MappingException
+     */
+    private function getRelatedEntityIdentifier($entity): array
     {
         if ( ! is_object($entity)) {
             throw new \RuntimeException('$entity must be an object.');
         }
 
-        if ($entity instanceof \Doctrine\Common\Persistence\Proxy) {
+        if ($entity instanceof \Doctrine\Persistence\Proxy) {
             $entity->__load();
         }
 
         $relClass = ClassUtils::getClass($entity);
-        $relId = $this->registry->getManagerForClass($relClass)->getMetadataFactory()
+        $relId = $this->registry->getMetadataFactory()
                     ->getMetadataFor($relClass)->getIdentifierValues($entity);
         asort($relId);
 
@@ -193,6 +232,9 @@ class JobManager
         return array($relClass, json_encode($relId));
     }
 
+    /**
+     * @throws NonUniqueResultException
+     */
     public function findPendingJob(array $excludedIds = array(), array $excludedQueues = array(), array $restrictedQueues = array())
     {
         $qb = $this->getJobManager()->createQueryBuilder();
@@ -230,6 +272,11 @@ class JobManager
         return $qb->getQuery()->setMaxResults(1)->getOneOrNullResult();
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     * @throws Exception
+     */
     public function closeJob(Job $job, $finalState)
     {
         $this->getJobManager()->getConnection()->beginTransaction();
@@ -256,6 +303,9 @@ class JobManager
         }
     }
 
+    /**
+     * @throws ORMException
+     */
     private function closeJobInternal(Job $job, $finalState, array &$visited = array())
     {
         if (in_array($job, $visited, true)) {
@@ -267,9 +317,9 @@ class JobManager
             return;
         }
 
-        if (null !== $this->dispatcher && ($job->isRetryJob() || 0 === count($job->getRetryJobs()))) {
+        if (($job->isRetryJob() || 0 === count($job->getRetryJobs()))) {
             $event = new StateChangeEvent($job, $finalState);
-            $this->dispatcher->dispatch('jms_job_queue.job_state_change', $event);
+            $this->dispatcher->dispatch($event, 'jms_job_queue.job_state_change');
             $finalState = $event->getNewState();
         }
 
@@ -306,10 +356,6 @@ class JobManager
                 if ($job->isRetryAllowed()) {
                     $retryJob = new Job($job->getCommand(), $job->getArgs(), true, $job->getQueue(), $job->getPriority());
                     $retryJob->setMaxRuntime($job->getMaxRuntime());
-
-                    if ($this->retryScheduler === null) {
-                        $this->retryScheduler = new ExponentialRetryScheduler(5);
-                    }
 
                     $retryJob->setExecuteAfter($this->retryScheduler->scheduleNextRetry($job));
 
@@ -353,7 +399,7 @@ class JobManager
     /**
      * @return Job[]
      */
-    public function findIncomingDependencies(Job $job)
+    public function findIncomingDependencies(Job $job): array
     {
         $jobIds = $this->getJobIdsOfIncomingDependencies($job);
         if (empty($jobIds)) {
@@ -368,7 +414,7 @@ class JobManager
     /**
      * @return Job[]
      */
-    public function getIncomingDependencies(Job $job)
+    public function getIncomingDependencies(Job $job): array
     {
         $jobIds = $this->getJobIdsOfIncomingDependencies($job);
         if (empty($jobIds)) {
@@ -380,13 +426,14 @@ class JobManager
                     ->getResult();
     }
 
-    private function getJobIdsOfIncomingDependencies(Job $job)
+    /**
+     * @throws Exception
+     */
+    private function getJobIdsOfIncomingDependencies(Job $job): array
     {
-        $jobIds = $this->getJobManager()->getConnection()
+        return $this->getJobManager()->getConnection()
             ->executeQuery("SELECT source_job_id FROM jms_job_dependencies WHERE dest_job_id = :id", array('id' => $job->getId()))
-            ->fetchAll(\PDO::FETCH_COLUMN);
-
-        return $jobIds;
+            ->fetchFirstColumn();
     }
 
     public function findLastJobsWithError($nbJobs = 10)
@@ -397,7 +444,7 @@ class JobManager
                     ->getResult();
     }
 
-    public function getAvailableQueueList()
+    public function getAvailableQueueList(): array
     {
         $queues =  $this->getJobManager()->createQuery("SELECT DISTINCT j.queue FROM JMSJobQueueBundle:Job j WHERE j.state IN (:availableStates)  GROUP BY j.queue")
             ->setParameter('availableStates', array(Job::STATE_RUNNING, Job::STATE_NEW, Job::STATE_PENDING))
@@ -414,7 +461,10 @@ class JobManager
     }
 
 
-    public function getAvailableJobsForQueueCount($jobQueue)
+    /**
+     * @throws NonUniqueResultException
+     */
+    public function getAvailableJobsForQueueCount($jobQueue): int
     {
         $result = $this->getJobManager()->createQuery("SELECT j.queue FROM JMSJobQueueBundle:Job j WHERE j.state IN (:availableStates) AND j.queue = :queue")
             ->setParameter('availableStates', array(Job::STATE_RUNNING, Job::STATE_NEW, Job::STATE_PENDING))
@@ -425,8 +475,8 @@ class JobManager
         return count($result);
     }
     
-    private function getJobManager(): EntityManager
+    private function getJobManager(): EntityManagerInterface
     {
-        return $this->registry->getManagerForClass(Job::class);
+        return $this->registry;
     }
 }

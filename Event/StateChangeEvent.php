@@ -19,7 +19,6 @@
 namespace JMS\JobQueueBundle\Event;
 
 use JMS\JobQueueBundle\Entity\Job;
-use JMS\JobQueueBundle\Event\JobEvent;
 
 class StateChangeEvent extends JobEvent
 {
@@ -42,7 +41,7 @@ class StateChangeEvent extends JobEvent
         $this->newState = $state;
     }
 
-    public function getOldState()
+    public function getOldState(): string
     {
         return $this->getJob()->getState();
     }

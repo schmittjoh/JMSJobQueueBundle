@@ -2,7 +2,11 @@
 
 namespace JMS\JobQueueBundle\Command;
 
-use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\DBAL\Exception;
+use Doctrine\ORM\Exception\ORMException;
+use Doctrine\ORM\NonUniqueResultException;
+use Doctrine\ORM\OptimisticLockException;
+use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManager;
 use JMS\JobQueueBundle\Entity\Job;
 use Symfony\Component\Console\Command\Command;
@@ -15,8 +19,8 @@ class MarkJobIncompleteCommand extends Command
 {
     protected static $defaultName = 'jms-job-queue:mark-incomplete';
 
-    private $registry;
-    private $jobManager;
+    private ManagerRegistry $registry;
+    private JobManager $jobManager;
 
     public function __construct(ManagerRegistry $managerRegistry, JobManager $jobManager)
     {
@@ -34,6 +38,12 @@ class MarkJobIncompleteCommand extends Command
         ;
     }
 
+    /**
+     * @throws OptimisticLockException
+     * @throws ORMException
+     * @throws NonUniqueResultException
+     * @throws Exception
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         /** @var EntityManager $em */

@@ -2,6 +2,7 @@
 
 namespace JMS\JobQueueBundle\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -31,7 +32,7 @@ class CronJob
         return $this->command;
     }
 
-    public function getLastRunAt()
+    public function getLastRunAt(): DateTime
     {
         return $this->lastRunAt;
     }

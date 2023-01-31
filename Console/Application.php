@@ -4,14 +4,17 @@ namespace JMS\JobQueueBundle\Console;
 
 declare(ticks = 10000000);
 
+use DateTime;
 use Doctrine\DBAL\Statement;
 use Doctrine\DBAL\Types\Type;
 
+use Exception;
+use PDO;
 use Symfony\Bundle\FrameworkBundle\Console\Application as BaseApplication;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Debug\Exception\FlattenException;
+use Symfony\Component\ErrorHandler\Exception\FlattenException;
 use Symfony\Component\HttpKernel\KernelInterface;
 
 /**
@@ -21,8 +24,8 @@ use Symfony\Component\HttpKernel\KernelInterface;
  */
 class Application extends BaseApplication
 {
-    private $insertStatStmt;
-    private $input;
+    private string $insertStatStmt;
+    private ?InputInterface $input = null;
 
     public function __construct(KernelInterface $kernel)
     {
@@ -37,7 +40,10 @@ class Application extends BaseApplication
         }
     }
 
-    public function doRun(InputInterface $input, OutputInterface $output)
+    /**
+     * @throws Exception
+     */
+    public function doRun(InputInterface $input, OutputInterface $output): int
     {
         $this->input = $input;
 
@@ -46,13 +52,16 @@ class Application extends BaseApplication
             $this->saveDebugInformation();
 
             return $rs;
-        } catch (\Exception $ex) {
+        } catch (Exception $ex) {
             $this->saveDebugInformation($ex);
 
             throw $ex;
         }
     }
 
+    /**
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function onTick()
     {
         if ( ! $this->input->hasOption('jms-job-id') || null === $jobId = $this->input->getOption('jms-job-id')) {
@@ -67,13 +76,13 @@ class Application extends BaseApplication
             $this->insertStatStmt = $this->getConnection()->prepare($this->insertStatStmt);
         }
 
-        $this->insertStatStmt->bindValue('jobId', $jobId, \PDO::PARAM_INT);
-        $this->insertStatStmt->bindValue('createdAt', new \DateTime(), Type::getType('datetime'));
+        $this->insertStatStmt->bindValue('jobId', $jobId, PDO::PARAM_INT);
+        $this->insertStatStmt->bindValue('createdAt', new DateTime(), Type::getType('datetime'));
 
         foreach ($characteristics as $name => $value) {
             $this->insertStatStmt->bindValue('name', $name);
             $this->insertStatStmt->bindValue('value', $value);
-            $this->insertStatStmt->execute();
+            $this->insertStatStmt->executeQuery();
         }
     }
 
@@ -92,10 +101,10 @@ class Application extends BaseApplication
                 'trace' => serialize($ex ? FlattenException::create($ex) : null),
             ),
             array(
-                'id' => \PDO::PARAM_INT,
-                'memoryUsage' => \PDO::PARAM_INT,
-                'memoryUsageReal' => \PDO::PARAM_INT,
-                'trace' => \PDO::PARAM_LOB,
+                'id' => PDO::PARAM_INT,
+                'memoryUsage' => PDO::PARAM_INT,
+                'memoryUsageReal' => PDO::PARAM_INT,
+                'trace' => PDO::PARAM_LOB,
             )
         );
     }

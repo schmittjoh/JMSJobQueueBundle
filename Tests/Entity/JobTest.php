@@ -19,11 +19,14 @@
 namespace JMS\JobQueueBundle\Tests\Entity;
 
 use JMS\JobQueueBundle\Entity\Job;
+use JMS\JobQueueBundle\Exception\InvalidStateTransitionException;
 use PHPUnit\Framework\TestCase;
+use ReflectionException;
+use ReflectionProperty;
 
 class JobTest extends TestCase
 {
-    public function testConstruct()
+    public function testConstruct(): Job
     {
         $job = new Job('a:b', array('a', 'b', 'c'));
 
@@ -38,17 +41,17 @@ class JobTest extends TestCase
 
     /**
      * @depends testConstruct
-     * @expectedException JMS\JobQueueBundle\Exception\InvalidStateTransitionException
      */
     public function testInvalidTransition(Job $job)
     {
+        $this->expectException(InvalidStateTransitionException::class);
         $job->setState('failed');
     }
 
     /**
      * @depends testConstruct
      */
-    public function testStateToRunning(Job $job)
+    public function testStateToRunning(Job $job): Job
     {
         $job->setState('running');
         $this->assertEquals('running', $job->getState());
@@ -145,19 +148,17 @@ class JobTest extends TestCase
         $this->assertSame($b, $a->getDependencies()->first());
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage You cannot add dependencies to a job which might have been started already.
-     */
     public function testAddDependencyToRunningJob()
     {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage("You cannot add dependencies to a job which might have been started already.");
         $job = new Job('a');
         $job->setState(Job::STATE_RUNNING);
         $this->setField($job, 'id', 1);
         $job->addDependency(new Job('b'));
     }
 
-    public function testAddRetryJob()
+    public function testAddRetryJob(): Job
     {
         $a = new Job('a');
         $a->setState(Job::STATE_RUNNING);
@@ -245,9 +246,12 @@ class JobTest extends TestCase
         $this->assertEquals('foo', $clonedJob->getQueue());
     }
 
+    /**
+     * @throws ReflectionException
+     */
     private function setField($obj, $field, $value)
     {
-        $ref = new \ReflectionProperty($obj, $field);
+        $ref = new ReflectionProperty($obj, $field);
         $ref->setAccessible(true);
         $ref->setValue($obj, $value);
     }
