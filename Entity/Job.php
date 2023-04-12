@@ -390,7 +390,7 @@ class Job
 
     public function addRelatedEntity($entity)
     {
-        assert('is_object($entity)');
+        assert(is_object($entity));
 
         if ($this->relatedEntities->contains($entity)) {
             return;
