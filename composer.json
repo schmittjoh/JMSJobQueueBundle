@@ -1,5 +1,5 @@
 {
-    "name":         "jms/job-queue-bundle",
+    "name":         "littlerocket/job-queue-bundle",
     "description":  "Allows to run and schedule Symfony console commands as background jobs.",
     "keywords":     ["job","queue", "background", "cron", "scheduled"],
     "homepage":     "http://jmsyst.com/bundles/JMSJobQueueBundle",
