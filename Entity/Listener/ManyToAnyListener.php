@@ -19,7 +19,7 @@ class ManyToAnyListener
     private $registry;
     private $ref;
 
-    public function __construct(\Symfony\Bridge\Doctrine\RegistryInterface $registry)
+    public function __construct(\Doctrine\Common\Persistence\ManagerRegistry $registry)
     {
         $this->registry = $registry;
         $this->ref = new \ReflectionProperty('JMS\JobQueueBundle\Entity\Job', 'relatedEntities');
@@ -84,9 +84,9 @@ class ManyToAnyListener
         }
 
         $table = $schema->createTable('jms_job_related_entities');
-        $table->addColumn('job_id', 'bigint', array('nullable' => false, 'unsigned' => true));
-        $table->addColumn('related_class', 'string', array('nullable' => false, 'length' => '150'));
-        $table->addColumn('related_id', 'string', array('nullable' => false, 'length' => '100'));
+        $table->addColumn('job_id', 'bigint', array('notnull' => true, 'unsigned' => true));
+        $table->addColumn('related_class', 'string', array('notnull' => true, 'length' => '150'));
+        $table->addColumn('related_id', 'string', array('notnull' => true, 'length' => '100'));
         $table->setPrimaryKey(array('job_id', 'related_class', 'related_id'));
         $table->addForeignKeyConstraint('jms_jobs', array('job_id'), array('id'));
     }

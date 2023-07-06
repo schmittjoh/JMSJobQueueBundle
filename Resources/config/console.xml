@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+        <defaults public="false" />
+
+        <service id="jms_job_queue.command.clean_up" class="JMS\JobQueueBundle\Command\CleanUpCommand">
+            <tag name="console.command" />
+            <argument type="service" id="doctrine" />
+            <argument type="service" id="jms_job_queue.job_manager" />
+        </service>
+
+        <service id="jms_job_queue.command.mark_job_incomplete" class="JMS\JobQueueBundle\Command\MarkJobIncompleteCommand">
+            <tag name="console.command" />
+            <argument type="service" id="doctrine" />
+            <argument type="service" id="jms_job_queue.job_manager" />
+        </service>
+
+        <service id="jms_job_queue.command.run" class="JMS\JobQueueBundle\Command\RunCommand">
+            <tag name="console.command" />
+            <argument type="service" id="doctrine" />
+            <argument type="service" id="jms_job_queue.job_manager" />
+            <argument type="service" id="event_dispatcher" />
+            <argument key="$queueOptionsDefault">%jms_job_queue.queue_options_defaults%</argument>
+            <argument key="$queueOptions">%jms_job_queue.queue_options%</argument>
+        </service>
+
+        <service id="jms_job_queue.command.schedule" class="JMS\JobQueueBundle\Command\ScheduleCommand">
+            <tag name="console.command" />
+            <argument type="service" id="doctrine" />
+            <argument type="tagged" tag="jms_job_queue.scheduler" />
+            <argument type="tagged" tag="jms_job_queue.cron_command" />
+        </service>
+    </services>
+</container>

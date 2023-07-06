@@ -28,6 +28,5 @@ class JMSJobQueueBundle extends Bundle
     public function build(ContainerBuilder $container)
     {
         $container->addCompilerPass(new LinkGeneratorsPass());
-        $container->addCompilerPass(new JobSchedulersPass());
     }
 }
