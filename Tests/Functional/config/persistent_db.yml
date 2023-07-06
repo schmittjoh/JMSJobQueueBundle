@@ -1,25 +1,25 @@
 imports:
-    - { resource: framework.yml }
+  - { resource: framework.yml }
 
 parameters:
-    database_path: "%kernel.cache_dir%/database.sqlite"
+  database_path: "%kernel.cache_dir%/database.sqlite"
 
 doctrine:
-    dbal:
-        driver:   pdo_sqlite
-        path:     "%database_path%"
+  dbal:
+    driver: pdo_sqlite
+    path: "%database_path%"
 
-    orm:
-        auto_generate_proxy_classes: "%kernel.debug%"
-        entity_managers:
-            default:
-                auto_mapping: true
+  orm:
+    auto_generate_proxy_classes: "%kernel.debug%"
+    entity_managers:
+      default:
+        auto_mapping: true
 
 
 jms_job_queue:
-    queue_options_defaults:
-        max_concurrent_jobs: 1
+  queue_options_defaults:
+    max_concurrent_jobs: 1
 
-    queue_options:
-        foo:
-            max_concurrent_jobs: 2
+  queue_options:
+    foo:
+      max_concurrent_jobs: 2

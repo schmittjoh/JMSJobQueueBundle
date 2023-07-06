@@ -32,26 +32,27 @@ class Configuration implements ConfigurationInterface
     /**
      * {@inheritDoc}
      */
-    public function getConfigTreeBuilder()
+    public function getConfigTreeBuilder(): TreeBuilder
     {
-        $treeBuilder = new TreeBuilder();
-        $rootNode = $treeBuilder->root('jms_job_queue');
+        $treeBuilder = new TreeBuilder('jms_job_queue');
+        $rootNode = $treeBuilder->getRootNode();
 
         $rootNode
             ->children()
-                ->booleanNode('statistics')->defaultTrue()->end();
+            ->booleanNode('statistics')->defaultTrue()->end();
 
         $defaultOptionsNode = $rootNode
             ->children()
-                ->arrayNode('queue_options_defaults')
-                    ->addDefaultsIfNotSet();
+            ->arrayNode('queue_options_defaults')
+            ->addDefaultsIfNotSet();
         $this->addQueueOptions($defaultOptionsNode);
 
+        /** @var ArrayNodeDefinition $queueOptionsNode */
         $queueOptionsNode = $rootNode
             ->children()
-                ->arrayNode('queue_options')
-                    ->useAttributeAsKey('queue')
-                    ->prototype('array');
+            ->arrayNode('queue_options')
+            ->useAttributeAsKey('queue')
+            ->prototype('array');
         $this->addQueueOptions($queueOptionsNode);
 
         return $treeBuilder;
@@ -61,7 +62,6 @@ class Configuration implements ConfigurationInterface
     {
         $def
             ->children()
-                ->scalarNode('max_concurrent_jobs')->end()
-        ;
+            ->scalarNode('max_concurrent_jobs')->end();
     }
 }

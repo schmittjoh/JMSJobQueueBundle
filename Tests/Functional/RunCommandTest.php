@@ -3,9 +3,9 @@
 namespace JMS\JobQueueBundle\Tests\Functional;
 
 use JMS\JobQueueBundle\Entity\Job;
-use Symfony\Component\Console\Output\Output;
-use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\Output;
 
 class RunCommandTest extends BaseTestCase
 {
@@ -23,12 +23,23 @@ class RunCommandTest extends BaseTestCase
 
         $output = $this->runConsoleCommand(array('--max-runtime' => 5, '--worker-name' => 'test'));
         $expectedOutput = "Started Job(id = 1, command = \"adoigjaoisdjfijasodifjoiajsdf\").\n"
-                         ."Job(id = 1, command = \"adoigjaoisdjfijasodifjoiajsdf\") finished with exit code 1.\n";
+            . "Job(id = 1, command = \"adoigjaoisdjfijasodifjoiajsdf\") finished with exit code 1.\n";
         $this->assertEquals($expectedOutput, $output);
         $this->assertEquals('failed', $a->getState());
         $this->assertEquals('', $a->getOutput());
         $this->assertContains('Command "adoigjaoisdjfijasodifjoiajsdf" is not defined.', $a->getErrorOutput());
         $this->assertEquals('canceled', $b->getState());
+    }
+
+    private function runConsoleCommand(array $args = array())
+    {
+        array_unshift($args, 'jms-job-queue:run');
+        $output = new MemoryOutput();
+
+        $_SERVER['SYMFONY_CONSOLE_FILE'] = __DIR__ . '/console';
+        $this->app->run(new ArrayInput($args), $output);
+
+        return $output->getOutput();
     }
 
     public function testExitsAfterMaxRuntime()
@@ -57,8 +68,8 @@ class RunCommandTest extends BaseTestCase
     public function testQueueWithLimitedConcurrentJobs()
     {
         $outputFile = tempnam(sys_get_temp_dir(), 'job-output');
-        for ($i=0; $i<4; $i++) {
-            $job = new Job('jms-job-queue:logging-cmd', array('Job'.$i, $outputFile, '--runtime=1'));
+        for ($i = 0; $i < 4; $i++) {
+            $job = new Job('jms-job-queue:logging-cmd', array('Job' . $i, $outputFile, '--runtime=1'));
             $this->em->persist($job);
         }
 
@@ -69,7 +80,8 @@ class RunCommandTest extends BaseTestCase
         $output = file_get_contents($outputFile);
         unlink($outputFile);
 
-        $this->assertEquals(<<<OUTPUT
+        $this->assertEquals(
+            <<<OUTPUT
 Job0 started
 Job0 stopped
 Job1 started
@@ -91,8 +103,8 @@ OUTPUT
     public function testQueueWithMoreThanOneConcurrentJob()
     {
         $outputFile = tempnam(sys_get_temp_dir(), 'job-output');
-        for ($i=0; $i<3; $i++) {
-            $job = new Job('jms-job-queue:logging-cmd', array('Job'.$i, $outputFile, '--runtime=4'), true, 'foo');
+        for ($i = 0; $i < 3; $i++) {
+            $job = new Job('jms-job-queue:logging-cmd', array('Job' . $i, $outputFile, '--runtime=4'), true, 'foo');
             $this->em->persist($job);
         }
         $this->em->flush();
@@ -100,7 +112,8 @@ OUTPUT
         $output = $this->runConsoleCommand(array('--max-runtime' => 15, '--worker-name' => 'test'));
         unlink($outputFile);
 
-        $this->assertStringStartsWith(<<<OUTPUT
+        $this->assertStringStartsWith(
+            <<<OUTPUT
 Started Job(id = 1, command = "jms-job-queue:logging-cmd").
 Started Job(id = 2, command = "jms-job-queue:logging-cmd").
 OUTPUT
@@ -108,7 +121,8 @@ OUTPUT
             $output
         );
 
-        $this->assertStringStartsNotWith(<<<OUTPUT
+        $this->assertStringStartsNotWith(
+            <<<OUTPUT
 Started Job(id = 1, command = "jms-job-queue:logging-cmd").
 Started Job(id = 2, command = "jms-job-queue:logging-cmd").
 Started Job(id = 3, command = "jms-job-queue:logging-cmd").
@@ -131,7 +145,9 @@ OUTPUT
         $this->em->persist($c);
         $this->em->flush();
 
-        $this->runConsoleCommand(array('--max-runtime' => 1, '--queue' => array('other_queue'), '--worker-name' => 'test'));
+        $this->runConsoleCommand(
+            array('--max-runtime' => 1, '--queue' => array('other_queue'), '--worker-name' => 'test')
+        );
         $this->assertEquals(Job::STATE_PENDING, $a->getState());
         $this->assertEquals(Job::STATE_FINISHED, $b->getState());
         $this->assertEquals(Job::STATE_PENDING, $c->getState());
@@ -150,7 +166,13 @@ OUTPUT
         $this->em->persist($c);
         $this->em->flush();
 
-        $this->runConsoleCommand(array('--max-runtime' => 1, '--queue' => array('other_queue', 'yet_another_queue'), '--worker-name' => 'test'));
+        $this->runConsoleCommand(
+            array(
+                '--max-runtime' => 1,
+                '--queue' => array('other_queue', 'yet_another_queue'),
+                '--worker-name' => 'test'
+            )
+        );
         $this->assertEquals(Job::STATE_PENDING, $a->getState());
         $this->assertEquals(Job::STATE_FINISHED, $b->getState());
         $this->assertEquals(Job::STATE_FINISHED, $c->getState());
@@ -217,7 +239,8 @@ OUTPUT
 
         $output = $this->runConsoleCommand(array('--max-runtime' => 4, '--worker-name' => 'test'));
 
-        $this->assertEquals(<<<OUTPUT
+        $this->assertEquals(
+            <<<OUTPUT
 Started Job(id = 2, command = "jms-job-queue:successful-cmd").
 Job(id = 2, command = "jms-job-queue:successful-cmd") finished with exit code 0.
 Started Job(id = 1, command = "jms-job-queue:successful-cmd").
@@ -243,7 +266,8 @@ OUTPUT
 
         $output = $this->runConsoleCommand(array('--max-runtime' => 4, '--worker-name' => 'test'));
 
-        $this->assertEquals(<<<OUTPUT
+        $this->assertEquals(
+            <<<OUTPUT
 Started Job(id = 1, command = "jms-job-queue:successful-cmd").
 Job(id = 1, command = "jms-job-queue:successful-cmd") finished with exit code 0.
 Started Job(id = 2, command = "jms-job-queue:successful-cmd").
@@ -253,7 +277,6 @@ OUTPUT
             ,
             $output
         );
-
     }
 
     /**
@@ -280,7 +303,7 @@ OUTPUT
     {
         $this->createClient(array('config' => 'persistent_db.yml'));
 
-        if (is_file($databaseFile = self::$kernel->getCacheDir().'/database.sqlite')) {
+        if (is_file($databaseFile = self::$kernel->getCacheDir() . '/database.sqlite')) {
             unlink($databaseFile);
         }
 
@@ -292,22 +315,16 @@ OUTPUT
 
         $this->em = self::$kernel->getContainer()->get('doctrine')->getManagerForClass('JMSJobQueueBundle:Job');
     }
-
-    private function runConsoleCommand(array $args = array())
-    {
-        array_unshift($args, 'jms-job-queue:run');
-        $output = new MemoryOutput();
-
-        $_SERVER['SYMFONY_CONSOLE_FILE'] = __DIR__.'/console';
-        $this->app->run(new ArrayInput($args), $output);
-
-        return $output->getOutput();
-    }
 }
 
 class MemoryOutput extends Output
 {
     private $output;
+
+    public function getOutput()
+    {
+        return $this->output;
+    }
 
     protected function doWrite($message, $newline)
     {
@@ -316,10 +333,5 @@ class MemoryOutput extends Output
         if ($newline) {
             $this->output .= "\n";
         }
-    }
-
-    public function getOutput()
-    {
-        return $this->output;
     }
 }

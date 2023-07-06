@@ -67,8 +67,13 @@ class RunCommand extends Command
     /** @var array */
     private $queueOptions;
 
-    public function __construct(ManagerRegistry $managerRegistry, JobManager $jobManager, EventDispatcherInterface $dispatcher, array $queueOptionsDefault, array $queueOptions)
-    {
+    public function __construct(
+        ManagerRegistry $managerRegistry,
+        JobManager $jobManager,
+        EventDispatcherInterface $dispatcher,
+        array $queueOptionsDefault,
+        array $queueOptions
+    ) {
         parent::__construct();
 
         $this->registry = $managerRegistry;
@@ -83,18 +88,40 @@ class RunCommand extends Command
         $this
             ->setDescription('Runs jobs from the queue.')
             ->addOption('max-runtime', 'r', InputOption::VALUE_REQUIRED, 'The maximum runtime in seconds.', 900)
-            ->addOption('max-concurrent-jobs', 'j', InputOption::VALUE_REQUIRED, 'The maximum number of concurrent jobs.', 4)
-            ->addOption('idle-time', null, InputOption::VALUE_REQUIRED, 'Time to sleep when the queue ran out of jobs.', 2)
-            ->addOption('queue', null, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, 'Restrict to one or more queues.', array())
-            ->addOption('worker-name', null, InputOption::VALUE_REQUIRED, 'The name that uniquely identifies this worker process.')
-        ;
+            ->addOption(
+                'max-concurrent-jobs',
+                'j',
+                InputOption::VALUE_REQUIRED,
+                'The maximum number of concurrent jobs.',
+                4
+            )
+            ->addOption(
+                'idle-time',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Time to sleep when the queue ran out of jobs.',
+                2
+            )
+            ->addOption(
+                'queue',
+                null,
+                InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
+                'Restrict to one or more queues.',
+                array()
+            )
+            ->addOption(
+                'worker-name',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'The name that uniquely identifies this worker process.'
+            );
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $startTime = time();
 
-        $maxRuntime = (integer) $input->getOption('max-runtime');
+        $maxRuntime = (integer)$input->getOption('max-runtime');
         if ($maxRuntime <= 0) {
             throw new InvalidArgumentException('The maximum runtime must be greater than zero.');
         }
@@ -103,12 +130,12 @@ class RunCommand extends Command
             $maxRuntime += random_int(-120, 120);
         }
 
-        $maxJobs = (integer) $input->getOption('max-concurrent-jobs');
+        $maxJobs = (integer)$input->getOption('max-concurrent-jobs');
         if ($maxJobs <= 0) {
             throw new InvalidArgumentException('The maximum number of jobs per queue must be greater than zero.');
         }
 
-        $idleTime = (integer) $input->getOption('idle-time');
+        $idleTime = (integer)$input->getOption('idle-time');
         if ($idleTime <= 0) {
             throw new InvalidArgumentException('Time to sleep when idling must be greater than zero.');
         }
@@ -117,15 +144,17 @@ class RunCommand extends Command
 
         $workerName = $input->getOption('worker-name');
         if ($workerName === null) {
-            $workerName = gethostname().'-'.getmypid();
+            $workerName = gethostname() . '-' . getmypid();
         }
 
         if (strlen($workerName) > 50) {
-            throw new \RuntimeException(sprintf(
-                '"worker-name" must not be longer than 50 chars, but got "%s" (%d chars).',
-                $workerName,
-                strlen($workerName)
-            ));
+            throw new \RuntimeException(
+                sprintf(
+                    '"worker-name" must not be longer than 50 chars, but got "%s" (%d chars).',
+                    $workerName,
+                    strlen($workerName)
+                )
+            );
         }
 
         $this->env = $input->getOption('env');
@@ -149,10 +178,83 @@ class RunCommand extends Command
             $this->queueOptionsDefault,
             $this->queueOptions
         );
+
+        return 0;
     }
 
-    private function runJobs($workerName, $startTime, $maxRuntime, $idleTime, $maxJobs, array $restrictedQueues, array $queueOptionsDefaults, array $queueOptions)
+    private function getEntityManager(): EntityManager
     {
+        return /** @var EntityManager */ $this->registry->getManagerForClass('JMSJobQueueBundle:Job');
+    }
+
+    /**
+     * Cleans up stale jobs.
+     *
+     * A stale job is a job where this command has exited with an error
+     * condition. Although this command is very robust, there might be cases
+     * where it might be terminated abruptly (like a PHP segfault, a SIGTERM signal, etc.).
+     *
+     * In such an error condition, these jobs are cleaned-up on restart of this command.
+     */
+    private function cleanUpStaleJobs($workerName)
+    {
+        /** @var Job[] $staleJobs */
+        $staleJobs = $this->getEntityManager()->createQuery(
+            "SELECT j FROM " . Job::class . " j WHERE j.state = :running AND (j.workerName = :worker OR j.workerName IS NULL)"
+        )
+            ->setParameter('worker', $workerName)
+            ->setParameter('running', Job::STATE_RUNNING)
+            ->getResult();
+
+        foreach ($staleJobs as $job) {
+            // If the original job has retry jobs, then one of them is still in
+            // running state. We can skip the original job here as it will be
+            // processed automatically once the retry job is processed.
+            if (!$job->isRetryJob() && count($job->getRetryJobs()) > 0) {
+                continue;
+            }
+
+            $args = $this->getBasicCommandLineArgs();
+            $args[] = 'jms-job-queue:mark-incomplete';
+            $args[] = $job->getId();
+
+            // We use a separate process to clean up.
+            $proc = new Process($args);
+            if (0 !== $proc->run()) {
+                $ex = new ProcessFailedException($proc);
+
+                $this->output->writeln(
+                    sprintf('There was an error when marking %s as incomplete: %s', $job, $ex->getMessage())
+                );
+            }
+        }
+    }
+
+    private function getBasicCommandLineArgs(): array
+    {
+        $args = array(
+            PHP_BINARY,
+            $_SERVER['SYMFONY_CONSOLE_FILE'] ?? $_SERVER['argv'][0],
+            '--env=' . $this->env
+        );
+
+        if ($this->verbose) {
+            $args[] = '--verbose';
+        }
+
+        return $args;
+    }
+
+    private function runJobs(
+        $workerName,
+        $startTime,
+        $maxRuntime,
+        $idleTime,
+        $maxJobs,
+        array $restrictedQueues,
+        array $queueOptionsDefaults,
+        array $queueOptions
+    ) {
         $hasPcntl = extension_loaded('pcntl');
 
         if ($this->verbose) {
@@ -188,7 +290,7 @@ class RunCommand extends Command
             $this->output->writeln('Entering shutdown sequence, waiting for running jobs to terminate...');
         }
 
-        while ( ! empty($this->runningJobs)) {
+        while (!empty($this->runningJobs)) {
             sleep(5);
             $this->checkRunningJobs();
         }
@@ -200,7 +302,7 @@ class RunCommand extends Command
 
     private function setupSignalHandlers()
     {
-        pcntl_signal(SIGTERM, function() {
+        pcntl_signal(SIGTERM, function () {
             if ($this->verbose) {
                 $this->output->writeln('Received SIGTERM signal.');
             }
@@ -209,8 +311,101 @@ class RunCommand extends Command
         });
     }
 
-    private function startJobs($workerName, $idleTime, $maxJobs, array $restrictedQueues, array $queueOptionsDefaults, array $queueOptions)
+    private function checkRunningJobs()
     {
+        foreach ($this->runningJobs as $i => &$data) {
+            $newOutput = substr($data['process']->getOutput(), $data['output_pointer']);
+            $data['output_pointer'] += strlen($newOutput);
+
+            $newErrorOutput = substr($data['process']->getErrorOutput(), $data['error_output_pointer']);
+            $data['error_output_pointer'] += strlen($newErrorOutput);
+
+            if (!empty($newOutput)) {
+                $event = new NewOutputEvent($data['job'], $newOutput, NewOutputEvent::TYPE_STDOUT);
+                $this->dispatcher->dispatch($event, 'jms_job_queue.new_job_output');
+                $newOutput = $event->getNewOutput();
+            }
+
+            if (!empty($newErrorOutput)) {
+                $event = new NewOutputEvent($data['job'], $newErrorOutput, NewOutputEvent::TYPE_STDERR);
+                $this->dispatcher->dispatch($event, 'jms_job_queue.new_job_output');
+                $newErrorOutput = $event->getNewOutput();
+            }
+
+            if ($this->verbose) {
+                if (!empty($newOutput)) {
+                    $this->output->writeln(
+                        'Job ' . $data['job']->getId() . ': ' . str_replace(
+                            "\n",
+                            "\nJob " . $data['job']->getId() . ": ",
+                            $newOutput
+                        )
+                    );
+                }
+
+                if (!empty($newErrorOutput)) {
+                    $this->output->writeln(
+                        'Job ' . $data['job']->getId() . ': ' . str_replace(
+                            "\n",
+                            "\nJob " . $data['job']->getId() . ": ",
+                            $newErrorOutput
+                        )
+                    );
+                }
+            }
+
+            // Check whether this process exceeds the maximum runtime, and terminate if that is
+            // the case.
+            $runtime = time() - $data['job']->getStartedAt()->getTimestamp();
+            if ($data['job']->getMaxRuntime() > 0 && $runtime > $data['job']->getMaxRuntime()) {
+                $data['process']->stop(5);
+
+                $this->output->writeln($data['job'] . ' terminated; maximum runtime exceeded.');
+                $this->jobManager->closeJob($data['job'], Job::STATE_TERMINATED);
+                unset($this->runningJobs[$i]);
+
+                continue;
+            }
+
+            if ($data['process']->isRunning()) {
+                // For long running processes, it is nice to update the output status regularly.
+                $data['job']->addOutput($newOutput);
+                $data['job']->addErrorOutput($newErrorOutput);
+                $data['job']->checked();
+                $em = $this->getEntityManager();
+                $em->persist($data['job']);
+                $em->flush($data['job']);
+
+                continue;
+            }
+
+            $this->output->writeln($data['job'] . ' finished with exit code ' . $data['process']->getExitCode() . '.');
+
+            // If the Job exited with an exception, let's reload it so that we
+            // get access to the stack trace. This might be useful for listeners.
+            $this->getEntityManager()->refresh($data['job']);
+
+            $data['job']->setExitCode($data['process']->getExitCode());
+            $data['job']->setOutput($data['process']->getOutput());
+            $data['job']->setErrorOutput($data['process']->getErrorOutput());
+            $data['job']->setRuntime(time() - $data['start_time']);
+
+            $newState = 0 === $data['process']->getExitCode() ? Job::STATE_FINISHED : Job::STATE_FAILED;
+            $this->jobManager->closeJob($data['job'], $newState);
+            unset($this->runningJobs[$i]);
+        }
+
+        gc_collect_cycles();
+    }
+
+    private function startJobs(
+        $workerName,
+        $idleTime,
+        $maxJobs,
+        array $restrictedQueues,
+        array $queueOptionsDefaults,
+        array $queueOptions
+    ) {
         $excludedIds = array();
         while (count($this->runningJobs) < $maxJobs) {
             $pendingJob = $this->jobManager->findStartableJob(
@@ -234,25 +429,17 @@ class RunCommand extends Command
     {
         $excludedQueues = array();
         foreach ($this->getRunningJobsPerQueue() as $queue => $count) {
-            if ($count >= $this->getMaxConcurrentJobs($queue, $queueOptionsDefaults, $queueOptions, $maxConcurrentJobs)) {
+            if ($count >= $this->getMaxConcurrentJobs(
+                    $queue,
+                    $queueOptionsDefaults,
+                    $queueOptions,
+                    $maxConcurrentJobs
+                )) {
                 $excludedQueues[] = $queue;
             }
         }
 
         return $excludedQueues;
-    }
-
-    private function getMaxConcurrentJobs($queue, array $queueOptionsDefaults, array $queueOptions, $maxConcurrentJobs)
-    {
-        if (isset($queueOptions[$queue]['max_concurrent_jobs'])) {
-            return (integer) $queueOptions[$queue]['max_concurrent_jobs'];
-        }
-
-        if (isset($queueOptionsDefaults['max_concurrent_jobs'])) {
-            return (integer) $queueOptionsDefaults['max_concurrent_jobs'];
-        }
-
-        return $maxConcurrentJobs;
     }
 
     private function getRunningJobsPerQueue()
@@ -263,7 +450,7 @@ class RunCommand extends Command
             $job = $jobDetails['job'];
 
             $queue = $job->getQueue();
-            if ( ! isset($runningJobsPerQueue[$queue])) {
+            if (!isset($runningJobsPerQueue[$queue])) {
                 $runningJobsPerQueue[$queue] = 0;
             }
             $runningJobsPerQueue[$queue] += 1;
@@ -272,85 +459,23 @@ class RunCommand extends Command
         return $runningJobsPerQueue;
     }
 
-    private function checkRunningJobs()
+    private function getMaxConcurrentJobs($queue, array $queueOptionsDefaults, array $queueOptions, $maxConcurrentJobs)
     {
-        foreach ($this->runningJobs as $i => &$data) {
-            $newOutput = substr($data['process']->getOutput(), $data['output_pointer']);
-            $data['output_pointer'] += strlen($newOutput);
-
-            $newErrorOutput = substr($data['process']->getErrorOutput(), $data['error_output_pointer']);
-            $data['error_output_pointer'] += strlen($newErrorOutput);
-
-            if ( ! empty($newOutput)) {
-                $event = new NewOutputEvent($data['job'], $newOutput, NewOutputEvent::TYPE_STDOUT);
-                $this->dispatcher->dispatch('jms_job_queue.new_job_output', $event);
-                $newOutput = $event->getNewOutput();
-            }
-
-            if ( ! empty($newErrorOutput)) {
-                $event = new NewOutputEvent($data['job'], $newErrorOutput, NewOutputEvent::TYPE_STDERR);
-                $this->dispatcher->dispatch('jms_job_queue.new_job_output', $event);
-                $newErrorOutput = $event->getNewOutput();
-            }
-
-            if ($this->verbose) {
-                if ( ! empty($newOutput)) {
-                    $this->output->writeln('Job '.$data['job']->getId().': '.str_replace("\n", "\nJob ".$data['job']->getId().": ", $newOutput));
-                }
-
-                if ( ! empty($newErrorOutput)) {
-                    $this->output->writeln('Job '.$data['job']->getId().': '.str_replace("\n", "\nJob ".$data['job']->getId().": ", $newErrorOutput));
-                }
-            }
-
-            // Check whether this process exceeds the maximum runtime, and terminate if that is
-            // the case.
-            $runtime = time() - $data['job']->getStartedAt()->getTimestamp();
-            if ($data['job']->getMaxRuntime() > 0 && $runtime > $data['job']->getMaxRuntime()) {
-                $data['process']->stop(5);
-
-                $this->output->writeln($data['job'].' terminated; maximum runtime exceeded.');
-                $this->jobManager->closeJob($data['job'], Job::STATE_TERMINATED);
-                unset($this->runningJobs[$i]);
-
-                continue;
-            }
-
-            if ($data['process']->isRunning()) {
-                // For long running processes, it is nice to update the output status regularly.
-                $data['job']->addOutput($newOutput);
-                $data['job']->addErrorOutput($newErrorOutput);
-                $data['job']->checked();
-                $em = $this->getEntityManager();
-                $em->persist($data['job']);
-                $em->flush($data['job']);
-
-                continue;
-            }
-
-            $this->output->writeln($data['job'].' finished with exit code '.$data['process']->getExitCode().'.');
-
-            // If the Job exited with an exception, let's reload it so that we
-            // get access to the stack trace. This might be useful for listeners.
-            $this->getEntityManager()->refresh($data['job']);
-
-            $data['job']->setExitCode($data['process']->getExitCode());
-            $data['job']->setOutput($data['process']->getOutput());
-            $data['job']->setErrorOutput($data['process']->getErrorOutput());
-            $data['job']->setRuntime(time() - $data['start_time']);
-
-            $newState = 0 === $data['process']->getExitCode() ? Job::STATE_FINISHED : Job::STATE_FAILED;
-            $this->jobManager->closeJob($data['job'], $newState);
-            unset($this->runningJobs[$i]);
+        if (isset($queueOptions[$queue]['max_concurrent_jobs'])) {
+            return (integer)$queueOptions[$queue]['max_concurrent_jobs'];
         }
 
-        gc_collect_cycles();
+        if (isset($queueOptionsDefaults['max_concurrent_jobs'])) {
+            return (integer)$queueOptionsDefaults['max_concurrent_jobs'];
+        }
+
+        return $maxConcurrentJobs;
     }
 
     private function startJob(Job $job)
     {
         $event = new StateChangeEvent($job, Job::STATE_RUNNING);
-        $this->dispatcher->dispatch('jms_job_queue.job_state_change', $event);
+        $this->dispatcher->dispatch($event, 'jms_job_queue.job_state_change');
         $newState = $event->getNewState();
 
         if (Job::STATE_CANCELED === $newState) {
@@ -370,7 +495,7 @@ class RunCommand extends Command
 
         $args = $this->getBasicCommandLineArgs();
         $args[] = $job->getCommand();
-        $args[] = '--jms-job-id='.$job->getId();
+        $args[] = '--jms-job-id=' . $job->getId();
 
         foreach ($job->getArgs() as $arg) {
             $args[] = $arg;
@@ -387,64 +512,5 @@ class RunCommand extends Command
             'output_pointer' => 0,
             'error_output_pointer' => 0,
         );
-    }
-
-    /**
-     * Cleans up stale jobs.
-     *
-     * A stale job is a job where this command has exited with an error
-     * condition. Although this command is very robust, there might be cases
-     * where it might be terminated abruptly (like a PHP segfault, a SIGTERM signal, etc.).
-     *
-     * In such an error condition, these jobs are cleaned-up on restart of this command.
-     */
-    private function cleanUpStaleJobs($workerName)
-    {
-        /** @var Job[] $staleJobs */
-        $staleJobs = $this->getEntityManager()->createQuery("SELECT j FROM ".Job::class." j WHERE j.state = :running AND (j.workerName = :worker OR j.workerName IS NULL)")
-            ->setParameter('worker', $workerName)
-            ->setParameter('running', Job::STATE_RUNNING)
-            ->getResult();
-
-        foreach ($staleJobs as $job) {
-            // If the original job has retry jobs, then one of them is still in
-            // running state. We can skip the original job here as it will be
-            // processed automatically once the retry job is processed.
-            if ( ! $job->isRetryJob() && count($job->getRetryJobs()) > 0) {
-                continue;
-            }
-
-            $args = $this->getBasicCommandLineArgs();
-            $args[] = 'jms-job-queue:mark-incomplete';
-            $args[] = $job->getId();
-
-            // We use a separate process to clean up.
-            $proc = new Process($args);
-            if (0 !== $proc->run()) {
-                $ex = new ProcessFailedException($proc);
-
-                $this->output->writeln(sprintf('There was an error when marking %s as incomplete: %s', $job, $ex->getMessage()));
-            }
-        }
-    }
-
-    private function getBasicCommandLineArgs(): array
-    {
-        $args = array(
-            PHP_BINARY,
-            $_SERVER['SYMFONY_CONSOLE_FILE'] ?? $_SERVER['argv'][0],
-            '--env='.$this->env
-        );
-
-        if ($this->verbose) {
-            $args[] = '--verbose';
-        }
-
-        return $args;
-    }
-
-    private function getEntityManager(): EntityManager
-    {
-        return /** @var EntityManager */ $this->registry->getManagerForClass('JMSJobQueueBundle:Job');
     }
 }

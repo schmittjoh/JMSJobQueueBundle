@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace JMS\JobQueueBundle\Console;
 
@@ -14,9 +14,14 @@ trait ScheduleInSecondInterval
         return time() - $lastRunAt->getTimestamp() >= $this->getScheduleInterval();
     }
 
+    /**
+     * @return integer
+     */
+    abstract protected function getScheduleInterval(): int;
+
     public function createCronJob(\DateTime $_): Job
     {
-        if ( ! $this instanceof Command) {
+        if (!$this instanceof Command) {
             throw new \LogicException('This trait must be used in Symfony console commands only.');
         }
 
@@ -25,9 +30,4 @@ trait ScheduleInSecondInterval
 
         return $job;
     }
-
-    /**
-     * @return integer
-     */
-    abstract protected function getScheduleInterval(): int;
 }

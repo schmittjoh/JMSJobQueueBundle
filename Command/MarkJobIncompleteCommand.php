@@ -2,21 +2,21 @@
 
 namespace JMS\JobQueueBundle\Command;
 
-use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManager;
+use Doctrine\Persistence\ManagerRegistry;
 use JMS\JobQueueBundle\Entity\Job;
-use Symfony\Component\Console\Command\Command;
 use JMS\JobQueueBundle\Entity\Repository\JobManager;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class MarkJobIncompleteCommand extends Command
 {
     protected static $defaultName = 'jms-job-queue:mark-incomplete';
 
-    private $registry;
-    private $jobManager;
+    private ManagerRegistry $registry;
+    private JobManager $jobManager;
 
     public function __construct(ManagerRegistry $managerRegistry, JobManager $jobManager)
     {
@@ -30,17 +30,16 @@ class MarkJobIncompleteCommand extends Command
     {
         $this
             ->setDescription('Internal command (do not use). It marks jobs as incomplete.')
-            ->addArgument('job-id', InputArgument::REQUIRED, 'The ID of the Job.')
-        ;
+            ->addArgument('job-id', InputArgument::REQUIRED, 'The ID of the Job.');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         /** @var EntityManager $em */
         $em = $this->registry->getManagerForClass(Job::class);
 
         /** @var Job|null $job */
-        $job = $em->createQuery("SELECT j FROM ".Job::class." j WHERE j.id = :id")
+        $job = $em->createQuery("SELECT j FROM " . Job::class . " j WHERE j.id = :id")
             ->setParameter('id', $input->getArgument('job-id'))
             ->getOneOrNullResult();
 

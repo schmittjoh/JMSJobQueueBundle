@@ -43,6 +43,58 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
         return $this->entities;
     }
 
+    private function initialize()
+    {
+        if (null !== $this->entities) {
+            return;
+        }
+
+        $con = $this->registry->getManagerForClass('JMSJobQueueBundle:Job')->getConnection();
+        $entitiesPerClass = array();
+        $count = 0;
+        foreach (
+            $con->query(
+                "SELECT related_class, related_id FROM jms_job_related_entities WHERE job_id = " . $this->job->getId()
+            ) as $data
+        ) {
+            $count += 1;
+            $entitiesPerClass[$data['related_class']][] = json_decode($data['related_id'], true);
+        }
+
+        if (0 === $count) {
+            $this->entities = array();
+
+            return;
+        }
+
+        $entities = array();
+        foreach ($entitiesPerClass as $className => $ids) {
+            $em = $this->registry->getManagerForClass($className);
+            $qb = $em->createQueryBuilder()
+                ->select('e')->from($className, 'e');
+
+            $i = 0;
+            foreach ($ids as $id) {
+                $expr = null;
+                foreach ($id as $k => $v) {
+                    if (null === $expr) {
+                        $expr = $qb->expr()->eq('e.' . $k, '?' . (++$i));
+                    } else {
+                        $expr = $qb->expr()->andX($expr, $qb->expr()->eq('e.' . $k, '?' . (++$i)));
+                    }
+
+                    $qb->setParameter($i, $v);
+                }
+
+                $qb->orWhere($expr);
+            }
+
+            $entities = array_merge($entities, $qb->getQuery()->getResult());
+        }
+
+        $this->entities = $entities;
+    }
+
     /**
      * Sets the internal iterator to the first element in the collection and
      * returns this element.
@@ -130,59 +182,16 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
     /**
      * ArrayAccess implementation of offsetExists()
      *
-     * @see containsKey()
-     *
      * @param mixed $offset
      * @return bool
+     * @see containsKey()
+     *
      */
     public function offsetExists($offset)
     {
         $this->initialize();
 
         return $this->containsKey($offset);
-    }
-
-    /**
-     * ArrayAccess implementation of offsetGet()
-     *
-     * @see get()
-     *
-     * @param mixed $offset
-     * @return mixed
-     */
-    public function offsetGet($offset)
-    {
-        $this->initialize();
-
-        return $this->get($offset);
-    }
-
-    /**
-     * ArrayAccess implementation of offsetSet()
-     *
-     * @see add()
-     * @see set()
-     *
-     * @param mixed $offset
-     * @param mixed $value
-     * @return bool
-     */
-    public function offsetSet($offset, $value)
-    {
-        throw new \LogicException('Adding new related entities is not supported after initial creation.');
-    }
-
-    /**
-     * ArrayAccess implementation of offsetUnset()
-     *
-     * @see remove()
-     *
-     * @param mixed $offset
-     * @return mixed
-     */
-    public function offsetUnset($offset)
-    {
-        throw new \LogicException('unset() is not supported.');
     }
 
     /**
@@ -196,6 +205,65 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
         $this->initialize();
 
         return isset($this->entities[$key]);
+    }
+
+    /**
+     * ArrayAccess implementation of offsetGet()
+     *
+     * @param mixed $offset
+     * @return mixed
+     * @see get()
+     *
+     */
+    public function offsetGet($offset)
+    {
+        $this->initialize();
+
+        return $this->get($offset);
+    }
+
+    /**
+     * Gets the element with the given key/index.
+     *
+     * @param mixed $key The key.
+     * @return mixed The element or NULL, if no element exists for the given key.
+     */
+    public function get($key)
+    {
+        $this->initialize();
+
+        if (isset($this->entities[$key])) {
+            return $this->entities[$key];
+        }
+        return null;
+    }
+
+    /**
+     * ArrayAccess implementation of offsetSet()
+     *
+     * @param mixed $offset
+     * @param mixed $value
+     * @return bool
+     * @see set()
+     *
+     * @see add()
+     */
+    public function offsetSet($offset, $value)
+    {
+        throw new \LogicException('Adding new related entities is not supported after initial creation.');
+    }
+
+    /**
+     * ArrayAccess implementation of offsetUnset()
+     *
+     * @param mixed $offset
+     * @return mixed
+     * @see remove()
+     *
+     */
+    public function offsetUnset($offset)
+    {
+        throw new \LogicException('unset() is not supported.');
     }
 
     /**
@@ -253,22 +321,6 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
         $this->initialize();
 
         return array_search($element, $this->entities, true);
-    }
-
-    /**
-     * Gets the element with the given key/index.
-     *
-     * @param mixed $key The key.
-     * @return mixed The element or NULL, if no element exists for the given key.
-     */
-    public function get($key)
-    {
-        $this->initialize();
-
-        if (isset($this->entities[$key])) {
-            return $this->entities[$key];
-        }
-        return null;
     }
 
     /**
@@ -345,7 +397,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
     {
         $this->initialize();
 
-        return ! $this->entities;
+        return !$this->entities;
     }
 
     /**
@@ -400,7 +452,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
         $this->initialize();
 
         foreach ($this->entities as $key => $element) {
-            if ( ! $p($key, $element)) {
+            if (!$p($key, $element)) {
                 return false;
             }
         }
@@ -472,19 +524,19 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * Select all elements from a selectable that match the criteria and
      * return a new collection containing these elements.
      *
-     * @param  Criteria $criteria
+     * @param Criteria $criteria
      * @return Collection
      */
     public function matching(Criteria $criteria)
     {
         $this->initialize();
 
-        $expr     = $criteria->getWhereExpression();
+        $expr = $criteria->getWhereExpression();
         $filtered = $this->entities;
 
         if ($expr) {
-            $visitor  = new ClosureExpressionVisitor();
-            $filter   = $visitor->dispatch($expr);
+            $visitor = new ClosureExpressionVisitor();
+            $filter = $visitor->dispatch($expr);
             $filtered = array_filter($filtered, $filter);
         }
 
@@ -505,53 +557,5 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
         }
 
         return new ArrayCollection($filtered);
-    }
-
-    private function initialize()
-    {
-        if (null !== $this->entities) {
-            return;
-        }
-
-        $con = $this->registry->getManagerForClass('JMSJobQueueBundle:Job')->getConnection();
-        $entitiesPerClass = array();
-        $count = 0;
-        foreach ($con->query("SELECT related_class, related_id FROM jms_job_related_entities WHERE job_id = ".$this->job->getId()) as $data) {
-            $count += 1;
-            $entitiesPerClass[$data['related_class']][] = json_decode($data['related_id'], true);
-        }
-
-        if (0 === $count) {
-            $this->entities = array();
-
-            return;
-        }
-
-        $entities = array();
-        foreach ($entitiesPerClass as $className => $ids) {
-            $em = $this->registry->getManagerForClass($className);
-            $qb = $em->createQueryBuilder()
-                        ->select('e')->from($className, 'e');
-
-            $i = 0;
-            foreach ($ids as $id) {
-                $expr = null;
-                foreach ($id as $k => $v) {
-                    if (null === $expr) {
-                        $expr = $qb->expr()->eq('e.'.$k, '?'.(++$i));
-                    } else {
-                        $expr = $qb->expr()->andX($expr, $qb->expr()->eq('e.'.$k, '?'.(++$i)));
-                    }
-
-                    $qb->setParameter($i, $v);
-                }
-
-                $qb->orWhere($expr);
-            }
-
-            $entities = array_merge($entities, $qb->getQuery()->getResult());
-        }
-
-        $this->entities = $entities;
     }
 }

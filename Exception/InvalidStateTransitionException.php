@@ -28,8 +28,13 @@ class InvalidStateTransitionException extends \InvalidArgumentException
 
     public function __construct(Job $job, $newState, array $allowedStates = array())
     {
-        $msg = sprintf('The Job(id = %d) cannot change from "%s" to "%s". Allowed transitions: ', $job->getId(), $job->getState(), $newState);
-        $msg .= count($allowedStates) > 0 ? '"'.implode('", "', $allowedStates).'"' : '#none#';
+        $msg = sprintf(
+            'The Job(id = %d) cannot change from "%s" to "%s". Allowed transitions: ',
+            $job->getId(),
+            $job->getState(),
+            $newState
+        );
+        $msg .= count($allowedStates) > 0 ? '"' . implode('", "', $allowedStates) . '"' : '#none#';
         parent::__construct($msg);
 
         $this->job = $job;

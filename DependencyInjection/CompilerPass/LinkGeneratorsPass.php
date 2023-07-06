@@ -16,6 +16,6 @@ class LinkGeneratorsPass implements CompilerPassInterface
         }
 
         $container->getDefinition('jms_job_queue.twig.extension')
-                ->addArgument($generators);
+            ->addArgument($generators);
     }
 }

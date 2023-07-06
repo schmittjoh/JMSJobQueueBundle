@@ -1,50 +1,63 @@
 {
-    "name":         "littlerocket/job-queue-bundle",
-    "description":  "Allows to run and schedule Symfony console commands as background jobs.",
-    "keywords":     ["job","queue", "background", "cron", "scheduled"],
-    "homepage":     "http://jmsyst.com/bundles/JMSJobQueueBundle",
-    "type":         "symfony-bundle",
-    "license":      "Apache-2.0",
-    "authors": [
-        {
-            "name":   "Johannes M. Schmitt",
-            "email":  "schmittjoh@gmail.com"
-        }
-    ],
-    "require": {
-        "php": "^7.1",
-        "symfony/framework-bundle": "^3.4 || ^4.0",
-        "symfony/debug": "^3.4 || ^4.0",
-        "doctrine/common": "^2.3",
-        "symfony/process": "^3.4 || ^4.0"
-    },
-    "require-dev": {
-        "doctrine/doctrine-fixtures-bundle": "*",
-        "sensio/framework-extra-bundle": "*",
-        "symfony/class-loader": "*",
-        "symfony/yaml": "*",
-        "symfony/browser-kit": "*",
-        "symfony/finder": "*",
-        "symfony/css-selector": "*",
-        "doctrine/doctrine-bundle": "*",
-        "doctrine/orm": "*",
-        "symfony/twig-bundle": "*",
-        "symfony/form": "*",
-        "symfony/validator": "*",
-        "phpunit/phpunit": "^6.0",
-        "symfony/intl": "*"
-    },
-    "suggest": {
-        "sensio/framework-extra-bundle": "Required when using the webinterface.",
-        "symfony/twig-bundle": "Required when using the webinterface."
-    },
-    "autoload": {
-        "psr-0": { "JMS\\JobQueueBundle": "" }
-    },
-    "target-dir": "JMS/JobQueueBundle",
-    "extra": {
-        "branch-alias": {
-            "dev-master": "2.0.x-dev"
-        }
+  "name": "littlerocket/job-queue-bundle",
+  "description": "Allows to run and schedule Symfony console commands as background jobs.",
+  "keywords": [
+    "job",
+    "queue",
+    "background",
+    "cron",
+    "scheduled"
+  ],
+  "homepage": "https://jmsyst.com/bundles/JMSJobQueueBundle",
+  "type": "symfony-bundle",
+  "license": "Apache-2.0",
+  "authors": [
+    {
+      "name": "Johannes M. Schmitt",
+      "email": "schmittjoh@gmail.com"
     }
+  ],
+  "require": {
+    "php": "^7.4 || ^8.0",
+    "symfony/framework-bundle": "^4.0 || ^5.0",
+    "symfony/debug": "^4.0 || ^5.0",
+    "doctrine/common": "^3.1",
+    "symfony/process": "^4.0 || ^5.0"
+  },
+  "require-dev": {
+    "doctrine/doctrine-fixtures-bundle": "*",
+    "sensio/framework-extra-bundle": "*",
+    "symfony/class-loader": "*",
+    "symfony/yaml": "*",
+    "symfony/browser-kit": "*",
+    "symfony/finder": "*",
+    "symfony/css-selector": "*",
+    "doctrine/doctrine-bundle": "*",
+    "doctrine/orm": "*",
+    "symfony/twig-bundle": "*",
+    "symfony/form": "*",
+    "symfony/validator": "*",
+    "phpunit/phpunit": "^6.0",
+    "symfony/intl": "*"
+  },
+  "suggest": {
+    "sensio/framework-extra-bundle": "Required when using the webinterface.",
+    "symfony/twig-bundle": "Required when using the webinterface."
+  },
+  "autoload": {
+    "psr-0": {
+      "JMS\\JobQueueBundle": ""
+    }
+  },
+  "target-dir": "JMS/JobQueueBundle",
+  "extra": {
+    "branch-alias": {
+      "dev-master": "2.0.x-dev"
+    }
+  },
+  "config": {
+    "platform": {
+      "php": "7.4.33"
+    }
+  }
 }

@@ -157,6 +157,13 @@ class JobTest extends TestCase
         $job->addDependency(new Job('b'));
     }
 
+    private function setField($obj, $field, $value)
+    {
+        $ref = new \ReflectionProperty($obj, $field);
+        $ref->setAccessible(true);
+        $ref->setValue($obj, $value);
+    }
+
     public function testAddRetryJob()
     {
         $a = new Job('a');
@@ -243,12 +250,5 @@ class JobTest extends TestCase
         $clonedJob = clone $job;
 
         $this->assertEquals('foo', $clonedJob->getQueue());
-    }
-
-    private function setField($obj, $field, $value)
-    {
-        $ref = new \ReflectionProperty($obj, $field);
-        $ref->setAccessible(true);
-        $ref->setValue($obj, $value);
     }
 }

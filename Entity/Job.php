@@ -18,10 +18,13 @@
 
 namespace JMS\JobQueueBundle\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
+use InvalidArgumentException;
 use JMS\JobQueueBundle\Exception\InvalidStateTransitionException;
 use JMS\JobQueueBundle\Exception\LogicException;
+use RuntimeException;
 use Symfony\Component\Debug\Exception\FlattenException;
 
 /**
@@ -122,7 +125,7 @@ class Job
     /** @ORM\Column(type = "string") */
     private $command;
 
-    /** @ORM\Column(type = "json_array") */
+    /** @ORM\Column(type = "json") */
     private $args;
 
     /**
@@ -178,14 +181,48 @@ class Job
      */
     private $relatedEntities;
 
-    public static function create($command, array $args = array(), $confirmed = true, $queue = self::DEFAULT_QUEUE, $priority = self::PRIORITY_DEFAULT)
-    {
-        return new self($command, $args, $confirmed, $queue, $priority);
+    public function __construct(
+        $command,
+        array $args = array(),
+        $confirmed = true,
+        $queue = self::DEFAULT_QUEUE,
+        $priority = self::PRIORITY_DEFAULT
+    ) {
+        if (trim($queue) === '') {
+            throw new InvalidArgumentException('$queue must not be empty.');
+        }
+        if (strlen($queue) > self::MAX_QUEUE_LENGTH) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    'The maximum queue length is %d, but got "%s" (%d chars).',
+                    self::MAX_QUEUE_LENGTH,
+                    $queue,
+                    strlen($queue)
+                )
+            );
+        }
+
+        $this->command = $command;
+        $this->args = $args;
+        $this->state = $confirmed ? self::STATE_PENDING : self::STATE_NEW;
+        $this->queue = $queue;
+        $this->priority = $priority * -1;
+        $this->createdAt = new DateTime();
+        $this->executeAfter = new DateTime();
+        $this->executeAfter = $this->executeAfter->modify('-1 second');
+        $this->dependencies = new ArrayCollection();
+        $this->retryJobs = new ArrayCollection();
+        $this->relatedEntities = new ArrayCollection();
     }
 
-    public static function isNonSuccessfulFinalState($state)
-    {
-        return in_array($state, array(self::STATE_CANCELED, self::STATE_FAILED, self::STATE_INCOMPLETE, self::STATE_TERMINATED), true);
+    public static function create(
+        $command,
+        array $args = array(),
+        $confirmed = true,
+        $queue = self::DEFAULT_QUEUE,
+        $priority = self::PRIORITY_DEFAULT
+    ) {
+        return new self($command, $args, $confirmed, $queue, $priority);
     }
 
     public static function getStates()
@@ -202,32 +239,10 @@ class Job
         );
     }
 
-    public function __construct($command, array $args = array(), $confirmed = true, $queue = self::DEFAULT_QUEUE, $priority = self::PRIORITY_DEFAULT)
-    {
-        if (trim($queue) === '') {
-            throw new \InvalidArgumentException('$queue must not be empty.');
-        }
-        if (strlen($queue) > self::MAX_QUEUE_LENGTH) {
-            throw new \InvalidArgumentException(sprintf('The maximum queue length is %d, but got "%s" (%d chars).', self::MAX_QUEUE_LENGTH, $queue, strlen($queue)));
-        }
-
-        $this->command = $command;
-        $this->args = $args;
-        $this->state = $confirmed ? self::STATE_PENDING : self::STATE_NEW;
-        $this->queue = $queue;
-        $this->priority = $priority * -1;
-        $this->createdAt = new \DateTime();
-        $this->executeAfter = new \DateTime();
-        $this->executeAfter = $this->executeAfter->modify('-1 second');
-        $this->dependencies = new ArrayCollection();
-        $this->retryJobs = new ArrayCollection();
-        $this->relatedEntities = new ArrayCollection();
-    }
-
     public function __clone()
     {
         $this->state = self::STATE_PENDING;
-        $this->createdAt = new \DateTime();
+        $this->createdAt = new DateTime();
         $this->startedAt = null;
         $this->checkedAt = null;
         $this->closedAt = null;
@@ -247,9 +262,9 @@ class Job
         return $this->id;
     }
 
-    public function getState()
+    public function getWorkerName()
     {
-        return $this->state;
+        return $this->workerName;
     }
 
     public function setWorkerName($workerName)
@@ -257,84 +272,9 @@ class Job
         $this->workerName = $workerName;
     }
 
-    public function getWorkerName()
-    {
-        return $this->workerName;
-    }
-
     public function getPriority()
     {
         return $this->priority * -1;
-    }
-
-    public function isInFinalState()
-    {
-        return ! $this->isNew() && ! $this->isPending() && ! $this->isRunning();
-    }
-
-    public function isStartable()
-    {
-        foreach ($this->dependencies as $dep) {
-            if ($dep->getState() !== self::STATE_FINISHED) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    public function setState($newState)
-    {
-        if ($newState === $this->state) {
-            return;
-        }
-
-        switch ($this->state) {
-            case self::STATE_NEW:
-                if ( ! in_array($newState, array(self::STATE_PENDING, self::STATE_CANCELED), true)) {
-                    throw new InvalidStateTransitionException($this, $newState, array(self::STATE_PENDING, self::STATE_CANCELED));
-                }
-
-                if (self::STATE_CANCELED === $newState) {
-                    $this->closedAt = new \DateTime();
-                }
-
-                break;
-
-            case self::STATE_PENDING:
-                if ( ! in_array($newState, array(self::STATE_RUNNING, self::STATE_CANCELED), true)) {
-                    throw new InvalidStateTransitionException($this, $newState, array(self::STATE_RUNNING, self::STATE_CANCELED));
-                }
-
-                if ($newState === self::STATE_RUNNING) {
-                    $this->startedAt = new \DateTime();
-                    $this->checkedAt = new \DateTime();
-                } else if ($newState === self::STATE_CANCELED) {
-                    $this->closedAt = new \DateTime();
-                }
-
-                break;
-
-            case self::STATE_RUNNING:
-                if ( ! in_array($newState, array(self::STATE_FINISHED, self::STATE_FAILED, self::STATE_TERMINATED, self::STATE_INCOMPLETE))) {
-                    throw new InvalidStateTransitionException($this, $newState, array(self::STATE_FINISHED, self::STATE_FAILED, self::STATE_TERMINATED, self::STATE_INCOMPLETE));
-                }
-
-                $this->closedAt = new \DateTime();
-
-                break;
-
-            case self::STATE_FINISHED:
-            case self::STATE_FAILED:
-            case self::STATE_TERMINATED:
-            case self::STATE_INCOMPLETE:
-                throw new InvalidStateTransitionException($this, $newState);
-
-            default:
-                throw new LogicException('The previous cases were exhaustive. Unknown state: '.$this->state);
-        }
-
-        $this->state = $newState;
     }
 
     public function getCreatedAt()
@@ -352,7 +292,7 @@ class Job
         return $this->executeAfter;
     }
 
-    public function setExecuteAfter(\DateTime $executeAfter)
+    public function setExecuteAfter(DateTime $executeAfter)
     {
         $this->executeAfter = $executeAfter;
     }
@@ -377,6 +317,15 @@ class Job
         return self::isNonSuccessfulFinalState($this->state);
     }
 
+    public static function isNonSuccessfulFinalState($state)
+    {
+        return in_array(
+            $state,
+            array(self::STATE_CANCELED, self::STATE_FAILED, self::STATE_INCOMPLETE, self::STATE_TERMINATED),
+            true
+        );
+    }
+
     public function findRelatedEntity($class)
     {
         foreach ($this->relatedEntities as $entity) {
@@ -390,8 +339,8 @@ class Job
 
     public function addRelatedEntity($entity)
     {
-        if ( ! is_object($entity)) {
-            throw new \RuntimeException(sprintf('$entity must be an object.'));
+        if (!is_object($entity)) {
+            throw new RuntimeException('$entity must be an object.');
         }
 
         if ($this->relatedEntities->contains($entity)) {
@@ -424,6 +373,110 @@ class Job
         $this->dependencies->add($job);
     }
 
+    private function mightHaveStarted()
+    {
+        if (null === $this->id) {
+            return false;
+        }
+
+        if (self::STATE_NEW === $this->state) {
+            return false;
+        }
+
+        if (self::STATE_PENDING === $this->state && !$this->isStartable()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function isStartable()
+    {
+        foreach ($this->dependencies as $dep) {
+            if ($dep->getState() !== self::STATE_FINISHED) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function getState()
+    {
+        return $this->state;
+    }
+
+    public function setState($newState)
+    {
+        if ($newState === $this->state) {
+            return;
+        }
+
+        switch ($this->state) {
+            case self::STATE_NEW:
+                if (!in_array($newState, array(self::STATE_PENDING, self::STATE_CANCELED), true)) {
+                    throw new InvalidStateTransitionException(
+                        $this,
+                        $newState,
+                        array(self::STATE_PENDING, self::STATE_CANCELED)
+                    );
+                }
+
+                if (self::STATE_CANCELED === $newState) {
+                    $this->closedAt = new DateTime();
+                }
+
+                break;
+
+            case self::STATE_PENDING:
+                if (!in_array($newState, array(self::STATE_RUNNING, self::STATE_CANCELED), true)) {
+                    throw new InvalidStateTransitionException(
+                        $this,
+                        $newState,
+                        array(self::STATE_RUNNING, self::STATE_CANCELED)
+                    );
+                }
+
+                if ($newState === self::STATE_RUNNING) {
+                    $this->startedAt = new DateTime();
+                    $this->checkedAt = new DateTime();
+                } else {
+                    if ($newState === self::STATE_CANCELED) {
+                        $this->closedAt = new DateTime();
+                    }
+                }
+
+                break;
+
+            case self::STATE_RUNNING:
+                if (!in_array(
+                    $newState,
+                    array(self::STATE_FINISHED, self::STATE_FAILED, self::STATE_TERMINATED, self::STATE_INCOMPLETE)
+                )) {
+                    throw new InvalidStateTransitionException(
+                        $this,
+                        $newState,
+                        array(self::STATE_FINISHED, self::STATE_FAILED, self::STATE_TERMINATED, self::STATE_INCOMPLETE)
+                    );
+                }
+
+                $this->closedAt = new DateTime();
+
+                break;
+
+            case self::STATE_FINISHED:
+            case self::STATE_FAILED:
+            case self::STATE_TERMINATED:
+            case self::STATE_INCOMPLETE:
+                throw new InvalidStateTransitionException($this, $newState);
+
+            default:
+                throw new LogicException('The previous cases were exhaustive. Unknown state: ' . $this->state);
+        }
+
+        $this->state = $newState;
+    }
+
     public function getRuntime()
     {
         return $this->runtime;
@@ -431,7 +484,7 @@ class Job
 
     public function setRuntime($time)
     {
-        $this->runtime = (integer) $time;
+        $this->runtime = (integer)$time;
     }
 
     public function getMemoryUsage()
@@ -454,19 +507,14 @@ class Job
         $this->errorOutput .= $output;
     }
 
-    public function setOutput($output)
-    {
-        $this->output = $output;
-    }
-
-    public function setErrorOutput($output)
-    {
-        $this->errorOutput = $output;
-    }
-
     public function getOutput()
     {
         return $this->output;
+    }
+
+    public function setOutput($output)
+    {
+        $this->output = $output;
     }
 
     public function getErrorOutput()
@@ -474,9 +522,9 @@ class Job
         return $this->errorOutput;
     }
 
-    public function setExitCode($code)
+    public function setErrorOutput($output)
     {
-        $this->exitCode = $code;
+        $this->errorOutput = $output;
     }
 
     public function getExitCode()
@@ -484,14 +532,19 @@ class Job
         return $this->exitCode;
     }
 
-    public function setMaxRuntime($time)
+    public function setExitCode($code)
     {
-        $this->maxRuntime = (integer) $time;
+        $this->exitCode = $code;
     }
 
     public function getMaxRuntime()
     {
         return $this->maxRuntime;
+    }
+
+    public function setMaxRuntime($time)
+    {
+        $this->maxRuntime = (integer)$time;
     }
 
     public function getStartedAt()
@@ -506,7 +559,7 @@ class Job
 
     public function setMaxRetries($tries)
     {
-        $this->maxRetries = (integer) $tries;
+        $this->maxRetries = (integer)$tries;
     }
 
     public function isRetryAllowed()
@@ -532,11 +585,11 @@ class Job
     public function setOriginalJob(Job $job)
     {
         if (self::STATE_PENDING !== $this->state) {
-            throw new \LogicException($this.' must be in state "PENDING".');
+            throw new \LogicException($this . ' must be in state "PENDING".');
         }
 
         if (null !== $this->originalJob) {
-            throw new \LogicException($this.' already has an original job set.');
+            throw new \LogicException($this . ' already has an original job set.');
         }
 
         $this->originalJob = $job;
@@ -567,7 +620,7 @@ class Job
         foreach ($this->retryJobs as $job) {
             /** @var Job $job */
 
-            if ( ! $job->isInFinalState()) {
+            if (!$job->isInFinalState()) {
                 return true;
             }
         }
@@ -575,29 +628,9 @@ class Job
         return false;
     }
 
-    public function checked()
+    public function isInFinalState()
     {
-        $this->checkedAt = new \DateTime();
-    }
-
-    public function getCheckedAt()
-    {
-        return $this->checkedAt;
-    }
-
-    public function setStackTrace(FlattenException $ex)
-    {
-        $this->stackTrace = $ex;
-    }
-
-    public function getStackTrace()
-    {
-        return $this->stackTrace;
-    }
-
-    public function getQueue()
-    {
-        return $this->queue;
+        return !$this->isNew() && !$this->isPending() && !$this->isRunning();
     }
 
     public function isNew()
@@ -610,14 +643,39 @@ class Job
         return self::STATE_PENDING === $this->state;
     }
 
-    public function isCanceled()
-    {
-        return self::STATE_CANCELED === $this->state;
-    }
-
     public function isRunning()
     {
         return self::STATE_RUNNING === $this->state;
+    }
+
+    public function checked()
+    {
+        $this->checkedAt = new DateTime();
+    }
+
+    public function getCheckedAt()
+    {
+        return $this->checkedAt;
+    }
+
+    public function getStackTrace()
+    {
+        return $this->stackTrace;
+    }
+
+    public function setStackTrace(FlattenException $ex)
+    {
+        $this->stackTrace = $ex;
+    }
+
+    public function getQueue()
+    {
+        return $this->queue;
+    }
+
+    public function isCanceled()
+    {
+        return self::STATE_CANCELED === $this->state;
     }
 
     public function isTerminated()
@@ -643,22 +701,5 @@ class Job
     public function __toString()
     {
         return sprintf('Job(id = %s, command = "%s")', $this->id, $this->command);
-    }
-
-    private function mightHaveStarted()
-    {
-        if (null === $this->id) {
-            return false;
-        }
-
-        if (self::STATE_NEW === $this->state) {
-            return false;
-        }
-
-        if (self::STATE_PENDING === $this->state && ! $this->isStartable()) {
-            return false;
-        }
-
-        return true;
     }
 }

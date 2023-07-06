@@ -3,9 +3,11 @@
 namespace JMS\JobQueueBundle\Tests\Functional;
 
 // Set-up composer auto-loading if Client is insulated.
-call_user_func(function() {
-    if ( ! is_file($autoloadFile = __DIR__.'/../../vendor/autoload.php')) {
-        throw new \LogicException('The autoload file "vendor/autoload.php" was not found. Did you run "composer install --dev"?');
+call_user_func(function () {
+    if (!is_file($autoloadFile = __DIR__ . '/../../vendor/autoload.php')) {
+        throw new \LogicException(
+            'The autoload file "vendor/autoload.php" was not found. Did you run "composer install --dev"?'
+        );
     }
 
     require_once $autoloadFile;
@@ -13,29 +15,13 @@ call_user_func(function() {
 
 \Doctrine\Common\Annotations\AnnotationRegistry::registerLoader('class_exists');
 
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Config\Loader\LoaderInterface;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpKernel\Kernel;
 
 class AppKernel extends Kernel
 {
     private $config;
-
-    public function __construct($config)
-    {
-        parent::__construct('test', false);
-
-        $fs = new Filesystem();
-        if (!$fs->isAbsolutePath($config)) {
-            $config = __DIR__.'/config/'.$config;
-        }
-
-        if ( ! is_file($config)) {
-            throw new \RuntimeException(sprintf('The config file "%s" does not exist.', $config));
-        }
-
-        $this->config = $config;
-    }
 
     public function registerBundles()
     {
@@ -57,17 +43,25 @@ class AppKernel extends Kernel
 
     public function getCacheDir()
     {
-        return sys_get_temp_dir().'/'.Kernel::VERSION.'/JMSJobQueueBundle/'.substr(sha1($this->config), 0, 6).'/cache';
+        return sys_get_temp_dir() . '/' . Kernel::VERSION . '/JMSJobQueueBundle/' . substr(
+                sha1($this->config),
+                0,
+                6
+            ) . '/cache';
     }
 
     public function getContainerClass()
     {
-        return parent::getContainerClass().'_'.substr(sha1($this->config), 0, 6);
+        return parent::getContainerClass() . '_' . substr(sha1($this->config), 0, 6);
     }
 
     public function getLogDir()
     {
-        return sys_get_temp_dir().'/'.Kernel::VERSION.'/JMSJobQueueBundle/'.substr(sha1($this->config), 0, 6).'/logs';
+        return sys_get_temp_dir() . '/' . Kernel::VERSION . '/JMSJobQueueBundle/' . substr(
+                sha1($this->config),
+                0,
+                6
+            ) . '/logs';
     }
 
     public function serialize()
@@ -78,5 +72,21 @@ class AppKernel extends Kernel
     public function unserialize($config)
     {
         $this->__construct($config);
+    }
+
+    public function __construct($config)
+    {
+        parent::__construct('test', false);
+
+        $fs = new Filesystem();
+        if (!$fs->isAbsolutePath($config)) {
+            $config = __DIR__ . '/config/' . $config;
+        }
+
+        if (!is_file($config)) {
+            throw new \RuntimeException(sprintf('The config file "%s" does not exist.', $config));
+        }
+
+        $this->config = $config;
     }
 }
