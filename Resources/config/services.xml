@@ -5,9 +5,7 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
 
     <parameters>
-        <parameter key="jms_job_queue.entity.many_to_any_listener.class">
-            JMS\JobQueueBundle\Entity\Listener\ManyToAnyListener
-        </parameter>
+        <parameter key="jms_job_queue.entity.many_to_any_listener.class">JMS\JobQueueBundle\Entity\Listener\ManyToAnyListener</parameter>
         <parameter key="jms_job_queue.twig.extension.class">JMS\JobQueueBundle\Twig\JobQueueExtension</parameter>
         <parameter key="jms_job_queue.retry_scheduler.class">JMS\JobQueueBundle\Retry\ExponentialRetryScheduler
         </parameter>
