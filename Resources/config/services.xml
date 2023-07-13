@@ -24,7 +24,7 @@
             <tag name="doctrine.event_listener" lazy="true" event="preRemove"/>
         </service>
 
-        <service id="jms_job_queue.twig.extension" class="%jms_job_queue.twig.extension.class%">
+        <service id="JMS\JobQueueBundle\Twig\JobQueueExtension" class="JMS\JobQueueBundle\Twig\JobQueueExtension">
             <tag name="twig.extension"/>
         </service>
 
