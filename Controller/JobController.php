@@ -16,6 +16,13 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class JobController extends AbstractController
 {
+    private JobManager $jobRepo;
+
+    public function __construct(JobManager $jobRepo)
+    {
+        $this->jobRepo = $jobRepo;
+    }
+
     /**
      * @Route("/", name = "jms_jobs_overview")
      */
@@ -28,7 +35,7 @@ class JobController extends AbstractController
             ->where($qb->expr()->isNull('j.originalJob'))
             ->orderBy('j.id', 'desc');
 
-        $lastJobsWithError = $jobFilter->isDefaultPage() ? $this->getRepo()->findLastJobsWithError(5) : [];
+        $lastJobsWithError = $jobFilter->isDefaultPage() ? $this->jobRepo->findLastJobsWithError(5) : [];
         foreach ($lastJobsWithError as $i => $job) {
             $qb->andWhere($qb->expr()->neq('j.id', '?' . $i));
             $qb->setParameter($i, $job->getId());
@@ -69,11 +76,6 @@ class JobController extends AbstractController
     private function getEm(): EntityManager
     {
         return $this->get('doctrine')->getManagerForClass(Job::class);
-    }
-
-    private function getRepo(): JobManager
-    {
-        return $this->get('jms_job_queue.job_manager');
     }
 
     /**
@@ -139,7 +141,7 @@ class JobController extends AbstractController
         return $this->render('@JMSJobQueue/Job/details.html.twig', array(
             'job' => $job,
             'relatedEntities' => $relatedEntities,
-            'incomingDependencies' => $this->getRepo()->getIncomingDependencies($job),
+            'incomingDependencies' => $this->jobRepo->getIncomingDependencies($job),
             'statisticData' => $statisticData,
             'statisticOptions' => $statisticOptions,
         ));

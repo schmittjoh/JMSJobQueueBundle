@@ -34,7 +34,11 @@
             <argument type="service" id="jms_job_queue.retry_scheduler"/>
         </service>
         <service id="JMS\JobQueueBundle\Controller\JobController" class="JMS\JobQueueBundle\Controller\JobController">
+            <argument type="service" id="jms_job_queue.job_manager" />
             <tag name="controller.service_arguments"/>
+            <call method="setContainer">
+                <argument type="service" id="service_container" />
+            </call>
         </service>
     </services>
 </container>
