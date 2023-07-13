@@ -5,31 +5,38 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
 
     <parameters>
-        <parameter key="jms_job_queue.entity.many_to_any_listener.class">JMS\JobQueueBundle\Entity\Listener\ManyToAnyListener</parameter>
+        <parameter key="jms_job_queue.entity.many_to_any_listener.class">
+            JMS\JobQueueBundle\Entity\Listener\ManyToAnyListener
+        </parameter>
         <parameter key="jms_job_queue.twig.extension.class">JMS\JobQueueBundle\Twig\JobQueueExtension</parameter>
-        <parameter key="jms_job_queue.retry_scheduler.class">JMS\JobQueueBundle\Retry\ExponentialRetryScheduler</parameter>
+        <parameter key="jms_job_queue.retry_scheduler.class">JMS\JobQueueBundle\Retry\ExponentialRetryScheduler
+        </parameter>
         <parameter key="jms_job_queue.job_manager.class">JMS\JobQueueBundle\Entity\Repository\JobManager</parameter>
     </parameters>
 
     <services>
-        <service id="jms_job_queue.retry_scheduler" class="%jms_job_queue.retry_scheduler.class%" />
+        <service id="jms_job_queue.retry_scheduler" class="%jms_job_queue.retry_scheduler.class%"/>
 
-        <service id="jms_job_queue.entity.many_to_any_listener" class="%jms_job_queue.entity.many_to_any_listener.class%">
-            <argument type="service" id="doctrine" />
-            <tag name="doctrine.event_listener" lazy="true" event="postGenerateSchema" />
-            <tag name="doctrine.event_listener" lazy="true" event="postLoad" />
-            <tag name="doctrine.event_listener" lazy="true" event="postPersist" />
-            <tag name="doctrine.event_listener" lazy="true" event="preRemove" />
+        <service id="jms_job_queue.entity.many_to_any_listener"
+                 class="%jms_job_queue.entity.many_to_any_listener.class%">
+            <argument type="service" id="doctrine"/>
+            <tag name="doctrine.event_listener" lazy="true" event="postGenerateSchema"/>
+            <tag name="doctrine.event_listener" lazy="true" event="postLoad"/>
+            <tag name="doctrine.event_listener" lazy="true" event="postPersist"/>
+            <tag name="doctrine.event_listener" lazy="true" event="preRemove"/>
         </service>
 
         <service id="jms_job_queue.twig.extension" class="%jms_job_queue.twig.extension.class%">
-            <tag name="twig.extension" />
+            <tag name="twig.extension"/>
         </service>
 
         <service id="jms_job_queue.job_manager" class="%jms_job_queue.job_manager.class%" public="true">
-            <argument type="service" id="doctrine" />
-            <argument type="service" id="event_dispatcher" />
-            <argument type="service" id="jms_job_queue.retry_scheduler" />
+            <argument type="service" id="doctrine"/>
+            <argument type="service" id="event_dispatcher"/>
+            <argument type="service" id="jms_job_queue.retry_scheduler"/>
+        </service>
+        <service id="JMS\JobQueueBundle\Controller\JobController" class="JMS\JobQueueBundle\Controller\JobController">
+            <tag name="controller.service_arguments"/>
         </service>
     </services>
 </container>
