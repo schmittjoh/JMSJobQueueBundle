@@ -6,7 +6,6 @@
 
     <parameters>
         <parameter key="jms_job_queue.entity.many_to_any_listener.class">JMS\JobQueueBundle\Entity\Listener\ManyToAnyListener</parameter>
-        <parameter key="jms_job_queue.twig.extension.class">JMS\JobQueueBundle\Twig\JobQueueExtension</parameter>
         <parameter key="jms_job_queue.retry_scheduler.class">JMS\JobQueueBundle\Retry\ExponentialRetryScheduler
         </parameter>
         <parameter key="jms_job_queue.job_manager.class">JMS\JobQueueBundle\Entity\Repository\JobManager</parameter>
