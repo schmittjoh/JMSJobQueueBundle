@@ -104,7 +104,7 @@ class CleanUpCommand extends Command
     {
         $succeededJobs = function (array $excludedIds) use ($em, $input) {
             return $em->createQuery(
-                "SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL AND j.state = :succeeded AND j.id NOT IN (:excludedIds)"
+                "SELECT j FROM JMSJobQueueBundle\Entity\Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL AND j.state = :succeeded AND j.id NOT IN (:excludedIds)"
             )
                 ->setParameter('maxRetentionTime', new DateTime('-' . $input->getOption('max-retention-succeeded')))
                 ->setParameter('excludedIds', $excludedIds)
@@ -116,7 +116,7 @@ class CleanUpCommand extends Command
 
         $finishedJobs = function (array $excludedIds) use ($em, $input) {
             return $em->createQuery(
-                "SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)"
+                "SELECT j FROM JMSJobQueueBundle\Entity\Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)"
             )
                 ->setParameter('maxRetentionTime', new DateTime('-' . $input->getOption('max-retention')))
                 ->setParameter('excludedIds', $excludedIds)
@@ -127,7 +127,7 @@ class CleanUpCommand extends Command
 
         $canceledJobs = function (array $excludedIds) use ($em, $input) {
             return $em->createQuery(
-                "SELECT j FROM JMSJobQueueBundle:Job j WHERE j.state = :canceled AND j.createdAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)"
+                "SELECT j FROM JMSJobQueueBundle\Entity\Job j WHERE j.state = :canceled AND j.createdAt < :maxRetentionTime AND j.originalJob IS NULL AND j.id NOT IN (:excludedIds)"
             )
                 ->setParameter('maxRetentionTime', new DateTime('-' . $input->getOption('max-retention')))
                 ->setParameter('canceled', Job::STATE_CANCELED)
@@ -200,7 +200,7 @@ class CleanUpCommand extends Command
 
             /** @var Job $job */
             $job = $em->createQuery(
-                "SELECT j FROM JMSJobQueueBundle:Job j
+                "SELECT j FROM JMSJobQueueBundle\Entity\Job j
                                       WHERE j.state = :running AND j.workerName IS NOT NULL AND j.checkedAt < :maxAge
                                                 AND j.id NOT IN (:excludedIds)"
             )
