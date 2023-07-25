@@ -2,8 +2,9 @@
 
 namespace JMS\JobQueueBundle\Controller;
 
+use Doctrine\Bundle\DoctrineBundle\Registry;
 use Doctrine\Common\Util\ClassUtils;
-use Doctrine\ORM\EntityManager;
+use Doctrine\Persistence\ObjectManager;
 use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Entity\Repository\JobManager;
 use JMS\JobQueueBundle\View\JobFilter;
@@ -17,10 +18,12 @@ use Symfony\Component\Routing\Annotation\Route;
 class JobController extends AbstractController
 {
     private JobManager $jobRepo;
+    private Registry $doctrine;
 
-    public function __construct(JobManager $jobRepo)
+    public function __construct(JobManager $jobRepo, Registry $doctrine)
     {
         $this->jobRepo = $jobRepo;
+        $this->doctrine = $doctrine;
     }
 
     /**
@@ -31,9 +34,7 @@ class JobController extends AbstractController
         $jobFilter = JobFilter::fromRequest($request);
 
         $qb = $this->getEm()->createQueryBuilder();
-        $qb->select('j')->from(Job::class, 'j')
-            ->where($qb->expr()->isNull('j.originalJob'))
-            ->orderBy('j.id', 'desc');
+        $qb->select('j')->from(Job::class, 'j')->where($qb->expr()->isNull('j.originalJob'))->orderBy('j.id', 'desc');
 
         $lastJobsWithError = $jobFilter->isDefaultPage() ? $this->jobRepo->findLastJobsWithError(5) : [];
         foreach ($lastJobsWithError as $i => $job) {
@@ -47,13 +48,11 @@ class JobController extends AbstractController
                     $qb->expr()->like('j.command', ':commandQuery'),
                     $qb->expr()->like('j.args', ':commandQuery')
                 )
-            )
-                ->setParameter('commandQuery', '%' . $jobFilter->command . '%');
+            )->setParameter('commandQuery', '%' . $jobFilter->command . '%');
         }
 
         if (!empty($jobFilter->state)) {
-            $qb->andWhere($qb->expr()->eq('j.state', ':jobState'))
-                ->setParameter('jobState', $jobFilter->state);
+            $qb->andWhere($qb->expr()->eq('j.state', ':jobState'))->setParameter('jobState', $jobFilter->state);
         }
 
         $perPage = 50;
@@ -73,9 +72,9 @@ class JobController extends AbstractController
         ));
     }
 
-    private function getEm(): EntityManager
+    private function getEm(): ObjectManager
     {
-        return $this->get('doctrine')->getManagerForClass(Job::class);
+        return $this->doctrine->getManagerForClass(Job::class);
     }
 
     /**
@@ -89,7 +88,7 @@ class JobController extends AbstractController
             $relatedEntities[] = array(
                 'class' => $class,
                 'id' => json_encode(
-                    $this->get('doctrine')->getManagerForClass($class)->getClassMetadata($class)->getIdentifierValues(
+                    $this->doctrine->getManagerForClass($class)->getClassMetadata($class)->getIdentifierValues(
                         $entity
                     )
                 ),
@@ -98,43 +97,41 @@ class JobController extends AbstractController
         }
 
         $statisticData = $statisticOptions = array();
-        if ($this->getParameter('jms_job_queue.statistics')) {
-            $dataPerCharacteristic = array();
-            foreach (
-                $this->get('doctrine')->getManagerForClass(Job::class)->getConnection()->query(
-                    "SELECT * FROM jms_job_statistics WHERE job_id = " . $job->getId()
-                ) as $row
-            ) {
-                $dataPerCharacteristic[$row['characteristic']][] = array(
-                    // hack because postgresql lower-cases all column names.
-                    array_key_exists('createdAt', $row) ? $row['createdAt'] : $row['createdat'],
-                    array_key_exists('charValue', $row) ? $row['charValue'] : $row['charvalue'],
-                );
-            }
+        $dataPerCharacteristic = array();
+        foreach (
+            $this->doctrine->getManagerForClass(Job::class)->getConnection()->query(
+                "SELECT * FROM jms_job_statistics WHERE job_id = " . $job->getId()
+            ) as $row
+        ) {
+            $dataPerCharacteristic[$row['characteristic']][] = array(
+                // hack because postgresql lower-cases all column names.
+                array_key_exists('createdAt', $row) ? $row['createdAt'] : $row['createdat'],
+                array_key_exists('charValue', $row) ? $row['charValue'] : $row['charvalue'],
+            );
+        }
 
-            if ($dataPerCharacteristic) {
-                $statisticData = array(array_merge(array('Time'), $chars = array_keys($dataPerCharacteristic)));
-                $startTime = strtotime($dataPerCharacteristic[$chars[0]][0][0]);
-                $endTime = strtotime(
-                    $dataPerCharacteristic[$chars[0]][count($dataPerCharacteristic[$chars[0]]) - 1][0]
-                );
-                $scaleFactor = $endTime - $startTime > 300 ? 1 / 60 : 1;
+        if ($dataPerCharacteristic) {
+            $statisticData = array(array_merge(array('Time'), $chars = array_keys($dataPerCharacteristic)));
+            $startTime = strtotime($dataPerCharacteristic[$chars[0]][0][0]);
+            $endTime = strtotime(
+                $dataPerCharacteristic[$chars[0]][count($dataPerCharacteristic[$chars[0]]) - 1][0]
+            );
+            $scaleFactor = $endTime - $startTime > 300 ? 1 / 60 : 1;
 
-                // This assumes that we have the same number of rows for each characteristic.
-                for ($i = 0, $c = count(reset($dataPerCharacteristic)); $i < $c; $i++) {
-                    $row = array((strtotime($dataPerCharacteristic[$chars[0]][$i][0]) - $startTime) * $scaleFactor);
-                    foreach ($chars as $name) {
-                        $value = (float)$dataPerCharacteristic[$name][$i][1];
+            // This assumes that we have the same number of rows for each characteristic.
+            for ($i = 0, $c = count(reset($dataPerCharacteristic)); $i < $c; $i++) {
+                $row = array((strtotime($dataPerCharacteristic[$chars[0]][$i][0]) - $startTime) * $scaleFactor);
+                foreach ($chars as $name) {
+                    $value = (float)$dataPerCharacteristic[$name][$i][1];
 
-                        if ($name == 'memory') {
-                            $value /= 1024 * 1024;
-                        }
-
-                        $row[] = $value;
+                    if ($name == 'memory') {
+                        $value /= 1024 * 1024;
                     }
 
-                    $statisticData[] = $row;
+                    $row[] = $value;
                 }
+
+                $statisticData[] = $row;
             }
         }
 
@@ -154,11 +151,7 @@ class JobController extends AbstractController
     {
         $state = $job->getState();
 
-        if (
-            Job::STATE_FAILED !== $state &&
-            Job::STATE_TERMINATED !== $state &&
-            Job::STATE_INCOMPLETE !== $state
-        ) {
+        if (Job::STATE_FAILED !== $state && Job::STATE_TERMINATED !== $state && Job::STATE_INCOMPLETE !== $state) {
             throw new HttpException(400, 'Given job can\'t be retried');
         }
 
