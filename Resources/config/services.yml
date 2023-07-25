@@ -1,0 +1,36 @@
+services:
+  jms_job_queue.retry_scheduler:
+    class: JMS\JobQueueBundle\Retry\ExponentialRetryScheduler
+
+  jms_job_queue.entity.many_to_any_listener:
+    class: JMS\JobQueueBundle\Entity\Listener\ManyToAnyListener
+    arguments:
+      - '@doctrine'
+    tags:
+      - { name: 'doctrine.event_listener', event: 'postGenerateSchema', lazy: true }
+      - { name: 'doctrine.event_listener', event: 'postLoad', lazy: true }
+      - { name: 'doctrine.event_listener', event: 'postPersist', lazy: true }
+      - { name: 'doctrine.event_listener', event: 'preRemove', lazy: true }
+
+  JMS\JobQueueBundle\Twig\JobQueueExtension:
+    class: JMS\JobQueueBundle\Twig\JobQueueExtension
+    tags:
+      - { name: 'twig.extension' }
+
+  jms_job_queue.job_manager:
+    class: JMS\JobQueueBundle\Entity\Repository\JobManager
+    arguments:
+      - '@doctrine'
+      - '@event_dispatcher'
+      - '@jms_job_queue.retry_scheduler'
+
+  JMS\JobQueueBundle\Controller\JobController:
+    class: JMS\JobQueueBundle\Controller\JobController
+    arguments:
+      - '@jms_job_queue.job_manager'
+      - '@doctrine'
+      - '%jms_job_queue.statistics%'
+    tags:
+      - { name: 'controller.service_arguments' }
+    calls:
+      - [ setContainer, [ "@service_container" ] ]

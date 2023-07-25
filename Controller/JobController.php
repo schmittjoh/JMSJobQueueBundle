@@ -19,11 +19,13 @@ class JobController extends AbstractController
 {
     private JobManager $jobRepo;
     private Registry $doctrine;
+    private bool $statisticsEnabled;
 
-    public function __construct(JobManager $jobRepo, Registry $doctrine)
+    public function __construct(JobManager $jobRepo, Registry $doctrine, bool $statisticsEnabled)
     {
         $this->jobRepo = $jobRepo;
         $this->doctrine = $doctrine;
+        $this->statisticsEnabled = $statisticsEnabled;
     }
 
     /**
@@ -97,41 +99,42 @@ class JobController extends AbstractController
         }
 
         $statisticData = $statisticOptions = array();
-        $dataPerCharacteristic = array();
-        foreach (
-            $this->doctrine->getManagerForClass(Job::class)->getConnection()->query(
-                "SELECT * FROM jms_job_statistics WHERE job_id = " . $job->getId()
-            ) as $row
-        ) {
-            $dataPerCharacteristic[$row['characteristic']][] = array(
-                // hack because postgresql lower-cases all column names.
-                array_key_exists('createdAt', $row) ? $row['createdAt'] : $row['createdat'],
-                array_key_exists('charValue', $row) ? $row['charValue'] : $row['charvalue'],
-            );
-        }
+        if ($this->statisticsEnabled) {
+            $dataPerCharacteristic = array();
+            foreach (
+                $this->doctrine->getManagerForClass(Job::class)->getConnection()
+                    ->query("SELECT * FROM jms_job_statistics WHERE job_id = " . $job->getId()) as $row
+            ) {
+                $dataPerCharacteristic[$row['characteristic']][] = array(
+                    // hack because postgresql lower-cases all column names.
+                    array_key_exists('createdAt', $row) ? $row['createdAt'] : $row['createdat'],
+                    array_key_exists('charValue', $row) ? $row['charValue'] : $row['charvalue'],
+                );
+            }
 
-        if ($dataPerCharacteristic) {
-            $statisticData = array(array_merge(array('Time'), $chars = array_keys($dataPerCharacteristic)));
-            $startTime = strtotime($dataPerCharacteristic[$chars[0]][0][0]);
-            $endTime = strtotime(
-                $dataPerCharacteristic[$chars[0]][count($dataPerCharacteristic[$chars[0]]) - 1][0]
-            );
-            $scaleFactor = $endTime - $startTime > 300 ? 1 / 60 : 1;
+            if ($dataPerCharacteristic) {
+                $statisticData = array(array_merge(array('Time'), $chars = array_keys($dataPerCharacteristic)));
+                $startTime = strtotime($dataPerCharacteristic[$chars[0]][0][0]);
+                $endTime = strtotime(
+                    $dataPerCharacteristic[$chars[0]][count($dataPerCharacteristic[$chars[0]]) - 1][0]
+                );
+                $scaleFactor = $endTime - $startTime > 300 ? 1 / 60 : 1;
 
-            // This assumes that we have the same number of rows for each characteristic.
-            for ($i = 0, $c = count(reset($dataPerCharacteristic)); $i < $c; $i++) {
-                $row = array((strtotime($dataPerCharacteristic[$chars[0]][$i][0]) - $startTime) * $scaleFactor);
-                foreach ($chars as $name) {
-                    $value = (float)$dataPerCharacteristic[$name][$i][1];
+                // This assumes that we have the same number of rows for each characteristic.
+                for ($i = 0, $c = count(reset($dataPerCharacteristic)); $i < $c; $i++) {
+                    $row = array((strtotime($dataPerCharacteristic[$chars[0]][$i][0]) - $startTime) * $scaleFactor);
+                    foreach ($chars as $name) {
+                        $value = (float)$dataPerCharacteristic[$name][$i][1];
 
-                    if ($name == 'memory') {
-                        $value /= 1024 * 1024;
+                        if ($name == 'memory') {
+                            $value /= 1024 * 1024;
+                        }
+
+                        $row[] = $value;
                     }
 
-                    $row[] = $value;
+                    $statisticData[] = $row;
                 }
-
-                $statisticData[] = $row;
             }
         }
 

@@ -26,6 +26,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension;
+use Symfony\Component\Routing\Loader\YamlFileLoader;
 
 /**
  * This is the class that loads and manages your bundle configuration
@@ -41,9 +42,13 @@ class JMSJobQueueExtension extends Extension implements PrependExtensionInterfac
     {
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
+        $fileLocator = new FileLocator(__DIR__ . '/../Resources/config');
 
-        $loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
-        $loader->load('services.xml');
+
+        $yamlLoader = new Loader\YamlFileLoader($container, $fileLocator);
+        $yamlLoader->load('services.yml');
+
+        $loader = new Loader\XmlFileLoader($container, $fileLocator);
         $loader->load('console.xml');
 
         $container->setParameter('jms_job_queue.statistics', $config['statistics']);
