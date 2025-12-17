@@ -10,7 +10,7 @@ use Doctrine\Common\Collections\Criteria;
 use Doctrine\Common\Collections\Expr\ClosureExpressionVisitor;
 use Doctrine\Common\Collections\Selectable;
 use JMS\JobQueueBundle\Entity\Job;
-use Symfony\Bridge\Doctrine\RegistryInterface;
+use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * Collection for persistent related entities.
@@ -25,7 +25,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
     private $job;
     private $entities;
 
-    public function __construct(RegistryInterface $registry, Job $job)
+    public function __construct(ManagerRegistry $registry, Job $job)
     {
         $this->registry = $registry;
         $this->job = $job;

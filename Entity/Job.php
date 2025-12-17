@@ -22,7 +22,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\JobQueueBundle\Exception\InvalidStateTransitionException;
 use JMS\JobQueueBundle\Exception\LogicException;
-use Symfony\Component\Debug\Exception\FlattenException;
+use Symfony\Component\ErrorHandler\Exception\FlattenException;
 
 /**
  * @ORM\Entity
@@ -125,7 +125,7 @@ class Job
     /** @ORM\Column(type = "string") */
     private $command;
 
-    /** @ORM\Column(type = "json_array") */
+    /** @ORM\Column(type = "json") */
     private $args;
 
     /**

@@ -12,11 +12,12 @@
         }
     ],
     "require": {
-        "php": "^7.1",
-        "symfony/framework-bundle": "^3.4 || ^4.0",
-        "symfony/debug": "^3.4 || ^4.0",
-        "doctrine/common": "^2.3",
-        "symfony/process": "^3.4 || ^4.0"
+        "php": "^8.1",
+        "symfony/framework-bundle": "^5.4 || ^6.0 || ^7.0",
+        "symfony/debug": "^5.4 || ^6.0 || ^7.0",
+        "doctrine/common": "^2.3 || ^3.0",
+        "doctrine/persistence": "^2.0 || ^3.0",
+        "symfony/process": "^5.4 || ^6.0 || ^7.0"
     },
     "require-dev": {
         "doctrine/doctrine-fixtures-bundle": "*",

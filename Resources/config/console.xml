@@ -31,8 +31,8 @@
         <service id="jms_job_queue.command.schedule" class="JMS\JobQueueBundle\Command\ScheduleCommand">
             <tag name="console.command" />
             <argument type="service" id="doctrine" />
-            <argument type="tagged" tag="jms_job_queue.scheduler" />
-            <argument type="tagged" tag="jms_job_queue.cron_command" />
+            <argument type="tagged_iterator" tag="jms_job_queue.scheduler" />
+            <argument type="tagged_iterator" tag="jms_job_queue.cron_command" />
         </service>
     </services>
 </container>

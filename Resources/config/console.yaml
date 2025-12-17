@@ -1,0 +1,39 @@
+services:
+    _defaults:
+        public: false
+
+    jms_job_queue.command.clean_up:
+        class: JMS\JobQueueBundle\Command\CleanUpCommand
+        tags:
+            - { name: console.command }
+        arguments:
+            - '@doctrine'
+            - '@jms_job_queue.job_manager'
+
+    jms_job_queue.command.mark_job_incomplete:
+        class: JMS\JobQueueBundle\Command\MarkJobIncompleteCommand
+        tags:
+            - { name: console.command }
+        arguments:
+            - '@doctrine'
+            - '@jms_job_queue.job_manager'
+
+    jms_job_queue.command.run:
+        class: JMS\JobQueueBundle\Command\RunCommand
+        tags:
+            - { name: console.command }
+        arguments:
+            - '@doctrine'
+            - '@jms_job_queue.job_manager'
+            - '@event_dispatcher'
+            - '%jms_job_queue.queue_options_defaults%'
+            - '%jms_job_queue.queue_options%'
+
+    jms_job_queue.command.schedule:
+        class: JMS\JobQueueBundle\Command\ScheduleCommand
+        tags:
+            - { name: console.command }
+        arguments:
+            - '@doctrine'
+            - !tagged_iterator 'jms_job_queue.scheduler'
+            - !tagged_iterator 'jms_job_queue.cron_command'

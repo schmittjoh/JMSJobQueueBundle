@@ -1,0 +1,8 @@
+parameters:
+    jms_job_queue.entity.statistics_listener.class: JMS\JobQueueBundle\Entity\Listener\StatisticsListener
+
+services:
+    jms_job_queue.entity.statistics_listener:
+        class: '%jms_job_queue.entity.statistics_listener.class%'
+        tags:
+            - { name: doctrine.event_listener, lazy: true, event: postGenerateSchema }

@@ -2,7 +2,7 @@
 
 namespace JMS\JobQueueBundle\Command;
 
-use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Query;
 use JMS\JobQueueBundle\Console\CronCommand;
@@ -10,14 +10,15 @@ use JMS\JobQueueBundle\Cron\CommandScheduler;
 use JMS\JobQueueBundle\Cron\JobScheduler;
 use JMS\JobQueueBundle\Entity\CronJob;
 use JMS\JobQueueBundle\Entity\Job;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(name: 'jms-job-queue:schedule', description: 'Schedules jobs at defined intervals')]
 class ScheduleCommand extends Command
 {
-    protected static $defaultName = 'jms-job-queue:schedule';
 
     private $registry;
     private $schedulers;
@@ -35,7 +36,6 @@ class ScheduleCommand extends Command
     protected function configure()
     {
         $this
-            ->setDescription('Schedules jobs at defined intervals')
             ->addOption('max-runtime', null, InputOption::VALUE_REQUIRED, 'The maximum runtime of this command.', 3600)
             ->addOption('min-job-interval', null, InputOption::VALUE_REQUIRED, 'The minimum time between schedules jobs in seconds.', 5)
         ;
@@ -118,7 +118,7 @@ class ScheduleCommand extends Command
         $con = $em->getConnection();
 
         $now = new \DateTime();
-        $affectedRows = $con->executeUpdate(
+        $affectedRows = $con->executeStatement(
             "UPDATE jms_cron_jobs SET lastRunAt = :now WHERE command = :command AND lastRunAt = :lastRunAt",
             array(
                 'now' => $now,

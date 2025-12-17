@@ -1,0 +1,39 @@
+parameters:
+    jms_job_queue.entity.many_to_any_listener.class: JMS\JobQueueBundle\Entity\Listener\ManyToAnyListener
+    jms_job_queue.twig.extension.class: JMS\JobQueueBundle\Twig\JobQueueExtension
+    jms_job_queue.retry_scheduler.class: JMS\JobQueueBundle\Retry\ExponentialRetryScheduler
+    jms_job_queue.job_manager.class: JMS\JobQueueBundle\Entity\Repository\JobManager
+
+services:
+    jms_job_queue.retry_scheduler:
+        class: '%jms_job_queue.retry_scheduler.class%'
+
+    jms_job_queue.entity.many_to_any_listener:
+        class: '%jms_job_queue.entity.many_to_any_listener.class%'
+        arguments:
+            - '@doctrine'
+        tags:
+            - { name: doctrine.event_listener, lazy: true, event: postGenerateSchema }
+            - { name: doctrine.event_listener, lazy: true, event: postLoad }
+            - { name: doctrine.event_listener, lazy: true, event: postPersist }
+            - { name: doctrine.event_listener, lazy: true, event: preRemove }
+
+    jms_job_queue.entity.jobs_listener:
+        class: JMS\JobQueueBundle\Entity\Listener\JobsListener
+        arguments:
+            - '@doctrine'
+        tags:
+            - { name: doctrine.event_listener, event: prePersist }
+
+    jms_job_queue.twig.extension:
+        class: '%jms_job_queue.twig.extension.class%'
+        tags:
+            - { name: twig.extension }
+
+    jms_job_queue.job_manager:
+        class: '%jms_job_queue.job_manager.class%'
+        public: true
+        arguments:
+            - '@doctrine'
+            - '@event_dispatcher'
+            - '@jms_job_queue.retry_scheduler'

@@ -21,7 +21,6 @@ namespace JMS\JobQueueBundle\Entity\Repository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Util\ClassUtils;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Query\Parameter;
 use Doctrine\ORM\Query\ResultSetMappingBuilder;
@@ -29,7 +28,7 @@ use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Event\StateChangeEvent;
 use JMS\JobQueueBundle\Retry\ExponentialRetryScheduler;
 use JMS\JobQueueBundle\Retry\RetryScheduler;
-use Symfony\Bridge\Doctrine\ManagerRegistry;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class JobManager
@@ -49,7 +48,7 @@ class JobManager
     {
         return $this->getJobManager()->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.command = :command AND j.args = :args")
             ->setParameter('command', $command)
-            ->setParameter('args', $args, Type::JSON_ARRAY)
+            ->setParameter('args', $args, 'json')
             ->setMaxResults(1)
             ->getOneOrNullResult();
     }
@@ -75,7 +74,7 @@ class JobManager
 
         $firstJob = $this->getJobManager()->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.command = :command AND j.args = :args ORDER BY j.id ASC")
              ->setParameter('command', $command)
-             ->setParameter('args', $args, 'json_array')
+             ->setParameter('args', $args, 'json')
              ->setMaxResults(1)
              ->getSingleResult();
 
@@ -113,7 +112,7 @@ class JobManager
 
     private function acquireLock($workerName, Job $job)
     {
-        $affectedRows = $this->getJobManager()->getConnection()->executeUpdate(
+        $affectedRows = $this->getJobManager()->getConnection()->executeStatement(
             "UPDATE jms_jobs SET workerName = :worker WHERE id = :id AND workerName IS NULL",
             array(
                 'worker' => $workerName,
@@ -228,7 +227,7 @@ INNER JOIN jms_job_tags jt ON jjt.tag_id = jt.id WHERE r.related_class = :relCla
             throw new \RuntimeException('$entity must be an object.');
         }
 
-        if ($entity instanceof \Doctrine\Common\Persistence\Proxy) {
+        if ($entity instanceof \Doctrine\Persistence\Proxy) {
             $entity->__load();
         }
 
