@@ -91,7 +91,7 @@ class JobController extends AbstractController
         $statisticsEnabled = $this->parameterBag->get('jms_job_queue.statistics');
         if ($statisticsEnabled) {
             $dataPerCharacteristic = array();
-            foreach ($this->doctrine->getManagerForClass(Job::class)->getConnection()->query("SELECT * FROM jms_job_statistics WHERE job_id = ".$job->getId()) as $row) {
+            foreach ($this->doctrine->getManagerForClass(Job::class)->getConnection()->executeQuery("SELECT * FROM jms_job_statistics WHERE job_id = ".$job->getId())->fetchAllAssociative() as $row) {
                 $dataPerCharacteristic[$row['characteristic']][] = array(
                     // hack because postgresql lower-cases all column names.
                     array_key_exists('createdAt', $row) ? $row['createdAt'] : $row['createdat'],

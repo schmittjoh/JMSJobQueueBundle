@@ -14,15 +14,13 @@
     "require": {
         "php": "^8.1",
         "symfony/framework-bundle": "^5.4 || ^6.0 || ^7.0",
-        "symfony/debug": "^5.4 || ^6.0 || ^7.0",
+        "symfony/error-handler": "^5.4 || ^6.0 || ^7.0",
         "doctrine/common": "^2.3 || ^3.0",
         "doctrine/persistence": "^2.0 || ^3.0",
         "symfony/process": "^5.4 || ^6.0 || ^7.0"
     },
     "require-dev": {
         "doctrine/doctrine-fixtures-bundle": "*",
-        "sensio/framework-extra-bundle": "*",
-        "symfony/class-loader": "*",
         "symfony/yaml": "*",
         "symfony/browser-kit": "*",
         "symfony/finder": "*",
@@ -36,13 +34,11 @@
         "symfony/intl": "*"
     },
     "suggest": {
-        "sensio/framework-extra-bundle": "Required when using the webinterface.",
         "symfony/twig-bundle": "Required when using the webinterface."
     },
     "autoload": {
-        "psr-0": { "JMS\\JobQueueBundle": "" }
+        "psr-4": { "JMS\\JobQueueBundle\\": "" }
     },
-    "target-dir": "JMS/JobQueueBundle",
     "extra": {
         "branch-alias": {
             "dev-master": "2.0.x-dev"
